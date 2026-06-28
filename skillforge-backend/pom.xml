@@ -165,6 +165,16 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                <version>12.4.0</version>
+                <configuration>
+                    <url>jdbc:postgresql://localhost:5432/skillforge</url>
+                    <user>postgres</user>
+                    <password>Sandip@6549</password>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
