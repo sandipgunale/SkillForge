@@ -1,4 +1,4 @@
-package com.project.skillforgebackend.exception;
+package com.project.skillforgebackend.common.exception;
 
 public class EmailAlreadyExistsException extends RuntimeException {
     public EmailAlreadyExistsException(String email) {

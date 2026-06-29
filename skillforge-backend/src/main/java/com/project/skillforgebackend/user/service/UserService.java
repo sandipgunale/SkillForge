@@ -2,15 +2,12 @@ package com.project.skillforgebackend.user.service;
 
 
 
-import com.project.skillforgebackend.exception.ResourceNotFoundException;
 import com.project.skillforgebackend.user.dto.*;
 import com.project.skillforgebackend.user.entity.User;
 import com.project.skillforgebackend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor

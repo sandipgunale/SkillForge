@@ -1,4 +1,4 @@
-package com.project.skillforgebackend.exception;
+package com.project.skillforgebackend.common.exception;
 
 public class InvalidCredentialsException extends RuntimeException {
     public InvalidCredentialsException() {

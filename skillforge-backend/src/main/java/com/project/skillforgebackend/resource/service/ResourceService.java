@@ -1,6 +1,6 @@
 package com.project.skillforgebackend.resource.service;
 
-import com.project.skillforgebackend.exception.ResourceNotFoundException;
+import com.project.skillforgebackend.common.exception.ResourceNotFoundException;
 import com.project.skillforgebackend.resource.dto.ResourceDto;
 import com.project.skillforgebackend.resource.dto.TopicDto;
 import com.project.skillforgebackend.resource.entity.Resource;

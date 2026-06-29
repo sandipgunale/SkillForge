@@ -3,6 +3,7 @@ package com.project.skillforgebackend.auth.controller;
 
 import com.project.skillforgebackend.auth.dto.*;
 import com.project.skillforgebackend.auth.service.AuthService;
+import com.project.skillforgebackend.common.exception.InvalidCredentialsException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -84,14 +85,14 @@ public class AuthController {
 
     private String extractRefreshTokenFromCookie(HttpServletRequest request) {
         if (request.getCookies() == null) {
-            throw new com.project.skillforgebackend.exception.InvalidCredentialsException();
+            throw new InvalidCredentialsException();
         }
         return Arrays.stream(request.getCookies())
                 .filter(c -> "refreshToken".equals(c.getName()))
                 .findFirst()
                 .map(Cookie::getValue)
                 .orElseThrow(
-                        com.project.skillforgebackend.exception.InvalidCredentialsException::new
+                        InvalidCredentialsException::new
                 );
     }
 }

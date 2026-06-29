@@ -3,8 +3,8 @@ package com.project.skillforgebackend.auth.service;
 
 
 import com.project.skillforgebackend.auth.dto.*;
-import com.project.skillforgebackend.exception.EmailAlreadyExistsException;
-import com.project.skillforgebackend.exception.InvalidCredentialsException;
+import com.project.skillforgebackend.common.exception.EmailAlreadyExistsException;
+import com.project.skillforgebackend.common.exception.InvalidCredentialsException;
 import com.project.skillforgebackend.user.entity.User;
 import com.project.skillforgebackend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
