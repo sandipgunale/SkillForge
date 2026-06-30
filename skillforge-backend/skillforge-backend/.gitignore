@@ -1,0 +1,22 @@
+### Environment ###
+.env
+.env.*
+!.env.example
+
+### IntelliJ ###
+.idea/
+*.iml
+
+### VS Code ###
+.vscode/
+
+### Build ###
+target/
+build/
+
+### Logs ###
+*.log
+
+### OS Files ###
+.DS_Store
+Thumbs.db
