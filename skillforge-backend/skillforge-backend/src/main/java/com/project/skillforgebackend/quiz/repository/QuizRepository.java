@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -41,6 +42,16 @@ public interface QuizRepository extends JpaRepository<Quiz, UUID> {
             User user,
             Quiz.QuizStatus status,
             Pageable pageable
+    );
+
+    List<Quiz> findTop10ByUserAndStatusOrderByCompletedAtDesc(
+            User user,
+            Quiz.QuizStatus status
+    );
+
+    long countByUserAndStatus(
+            User user,
+            Quiz.QuizStatus status
     );
 
 }
