@@ -56,6 +56,10 @@ public class Resource {
     @Builder.Default
     private int ratingCount = 0;
 
+    @Column(name = "estimated_minutes", nullable = false)
+    @Builder.Default
+    private Integer estimatedMinutes = 0;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "resource_tags",
