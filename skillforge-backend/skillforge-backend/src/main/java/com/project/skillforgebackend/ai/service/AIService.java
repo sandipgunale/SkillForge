@@ -88,6 +88,150 @@ public class AIService {
             );
         }
     }
+
+    public String generateLearningPath(
+            String title,
+            String goal,
+            String skillLevel,
+            Integer weeklyHours,
+            Integer durationWeeks
+    ) {
+
+        String prompt = buildLearningPathPrompt(
+                title,
+                goal,
+                skillLevel,
+                weeklyHours,
+                durationWeeks
+        );
+
+        log.info("========== PROMPT ==========");
+        log.info(prompt);
+        log.info("============================");
+
+        String response = geminiClient.complete(prompt);
+
+        log.info("Raw Gemini Response:\n{}", response);
+
+        try {
+
+            return parseLearningPathJson(response);
+
+        } catch (Exception ex) {
+
+            log.error("Failed to generate learning path.", ex);
+
+            throw new AIServiceException(
+                    "Failed to generate learning path.",
+                    ex
+            );
+        }
+    }
+
+    private String buildLearningPathPrompt(
+            String title,
+            String goal,
+            String skillLevel,
+            Integer weeklyHours,
+            Integer durationWeeks
+    ) {
+
+        return """
+You are an expert Software Architect, Technical Mentor, and Career Coach.
+
+Generate a personalized learning roadmap.
+
+Title:
+%s
+
+Goal:
+%s
+
+Current Skill Level:
+%s
+
+Weekly Study Hours:
+%d
+
+Roadmap Duration:
+%d weeks
+
+IMPORTANT RULES
+
+1. Return ONLY valid JSON.
+2. Do NOT return markdown.
+3. Do NOT wrap JSON inside ```json.
+4. Do NOT explain anything.
+5. Generate EXACTLY %d weeks.
+6. The "weeks" array MUST contain exactly %d objects.
+7. Organize the roadmap from beginner to advanced.
+8. Distribute the workload according to %d study hours per week.
+9. Every week must contain:
+   - week
+   - title
+   - estimatedHours
+   - completed
+   - topics
+   - resources
+   - learningGoals
+10. completed must always be false.
+11. estimatedHours should approximately equal the weekly study hours.
+12. Resources should contain only resource names.
+13. Return UTF-8 JSON only.
+14. durationWeeks must equal %d.
+15. Week numbers must start from 1 and end at %d.
+
+JSON FORMAT
+
+{
+  "title":"%s",
+  "goal":"%s",
+  "durationWeeks": %d,
+  "weeks":[
+    {
+      "week":1,
+      "title":"",
+      "estimatedHours":%d,
+      "completed":false,
+      "topics":[
+        {
+          "name":"",
+          "difficulty":"BEGINNER"
+        }
+      ],
+      "resources":[
+        {
+          "title":"",
+          "type":"VIDEO"
+        }
+      ],
+      "learningGoals":[
+        ""
+      ]
+    }
+  ]
+}
+"""
+                .formatted(
+                        title,
+                        goal,
+                        skillLevel,
+                        weeklyHours,
+                        durationWeeks,
+
+                        durationWeeks,
+                        durationWeeks,
+                        weeklyHours,
+                        durationWeeks,
+                        durationWeeks,
+
+                        title,
+                        goal,
+                        durationWeeks,
+                        weeklyHours
+                );
+    }
+
     // ==========================================================
     // Prompt Builders
     // ==========================================================
@@ -535,6 +679,34 @@ public class AIService {
         }
 
         return response.trim();
+    }
+
+    private String parseLearningPathJson(
+            String json
+    ) {
+
+        String cleaned = cleanJson(json);
+
+        if (cleaned == null || cleaned.isBlank()) {
+
+            throw new AIServiceException(
+                    "AI returned an empty learning path."
+            );
+        }
+
+        try {
+
+            objectMapper.readTree(cleaned);
+
+            return cleaned;
+
+        } catch (Exception ex) {
+
+            throw new AIServiceException(
+                    "AI returned invalid roadmap JSON.",
+                    ex
+            );
+        }
     }
 
 }
