@@ -46,4 +46,6 @@ public interface ResourceRepository extends JpaRepository<Resource, UUID> {
           AND r.isActive = true
     """)
     Optional<Resource> findByIdActive(@Param("id") UUID id);
+
+    Optional<Resource> findByIdAndIsActiveTrue(UUID id);
 }
