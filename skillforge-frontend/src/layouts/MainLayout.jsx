@@ -7,7 +7,7 @@ export default function MainLayout() {
     <div className="min-h-screen bg-muted/30">
       <Navbar />
 
-      <main className="p-6">
+      <main className="mx-auto w-full max-w-screen-2xl px-8 py-8">
         <Outlet />
       </main>
     </div>
