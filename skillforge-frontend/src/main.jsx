@@ -2,16 +2,15 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { RouterProvider } from "react-router-dom";
 import App from "./App.jsx";
-import { router } from "@/app/router";
+import { router } from "@/routes";
 import AppProviders from "@/app/providers";
-
-// import "./index.css";
+import "@/index.css";
+import "@/services/api/interceptors";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <AppProviders>
       <RouterProvider router={router} />
-      <App />
     </AppProviders>
   </React.StrictMode>,
 );
