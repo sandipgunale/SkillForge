@@ -59,7 +59,7 @@ export const router = createBrowserRouter([
         element: <MainLayout />,
         children: [
           {
-            path: ROUTES.HOME,
+            index: true,
             element: <Navigate to={ROUTES.DASHBOARD} replace />,
           },
           {
