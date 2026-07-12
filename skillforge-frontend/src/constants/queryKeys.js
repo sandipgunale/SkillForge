@@ -1,19 +1,15 @@
 export const QUERY_KEYS = {
-  USER: ["user"],
-
-  TOPICS: ["topics"],
-
-  RESOURCES: ["resources"],
-
-  RESOURCE: (id) => ["resource", id],
-
-  BOOKMARKS: ["bookmarks"],
-
-  QUIZZES: ["quizzes"],
-
-  QUIZ: (id) => ["quiz", id],
+  DASHBOARD: ["dashboard"],
 
   ANALYTICS: ["analytics"],
 
-  LEARNING_PATHS: ["learning-paths"],
+  RESOURCES: ["resources"],
+
+  TOPICS: ["topics"],
+
+  QUIZ_HISTORY: ["quiz-history"],
+
+  QUIZ: (quizId) => ["quiz", quizId],
+
+  QUIZ_RESULT: (quizId) => ["quiz-result", quizId],
 };

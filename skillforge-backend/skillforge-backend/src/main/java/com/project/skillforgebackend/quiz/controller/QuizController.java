@@ -71,6 +71,37 @@ public class QuizController {
         );
     }
 
+    @GetMapping("/{quizId}")
+    public ResponseEntity<ApiResponse<QuizDto>> getQuiz(
+            @AuthenticationPrincipal User user,
+            @PathVariable UUID quizId
+    ) {
+        QuizDto quiz = quizService.getQuiz(user, quizId);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Quiz fetched successfully.",
+                        quiz
+                )
+        );
+    }
+
+    @GetMapping("/{quizId}/result")
+    public ResponseEntity<ApiResponse<QuizResultDto>> getQuizResult(
+            @AuthenticationPrincipal User user,
+            @PathVariable UUID quizId
+    ) {
+
+        QuizResultDto result = quizService.getQuizResult(user, quizId);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Quiz result fetched successfully.",
+                        result
+                )
+        );
+    }
+
     /**
      * User quiz history.
      */

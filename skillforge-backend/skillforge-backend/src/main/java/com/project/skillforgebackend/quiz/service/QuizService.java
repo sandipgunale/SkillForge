@@ -77,6 +77,41 @@ public class QuizService {
         return quizMapper.toDto(savedQuiz);
     }
 
+    public QuizDto getQuiz(User user, UUID quizId) {
+
+        Quiz quiz = quizRepository
+                .findByIdAndUser(quizId, user)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Quiz",
+                                quizId.toString()
+                        ));
+
+        return quizMapper.toDto(quiz);
+    }
+
+    public QuizResultDto getQuizResult(
+            User user,
+            UUID quizId
+    ) {
+
+        Quiz quiz = quizRepository
+                .findByIdAndUser(quizId, user)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Quiz",
+                                quizId.toString()
+                        ));
+
+        if (quiz.getStatus() != Quiz.QuizStatus.COMPLETED) {
+            throw new IllegalStateException(
+                    "Quiz has not been completed yet."
+            );
+        }
+
+        return aiService.evaluateQuiz(quiz);
+    }
+
     @Transactional
     public QuizResultDto submitAnswers(
             User user,

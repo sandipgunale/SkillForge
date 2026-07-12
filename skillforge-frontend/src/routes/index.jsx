@@ -24,6 +24,7 @@ import LearningPathPage from "@/features/learning-path/pages/LearningPathPage";
 import ProfilePage from "@/features/profile/pages/ProfilePage";
 import LoginPage from "@/features/auth/pages/LoginPage";
 import RegisterPage from "@/features/auth/pages/RegisterPage";
+import QuizSetupPage from "@/features/quiz/pages/QuizSetupPage";
 // import BookmarkPage from "@/features/bookmark/pages/BookmarkPage";
 
 export const router = createBrowserRouter([
@@ -73,6 +74,10 @@ export const router = createBrowserRouter([
           {
             path: ROUTES.RESOURCE_DETAIL,
             element: <ResourceDetailPage />,
+          },
+          {
+            path: ROUTES.QUIZ_SETUP,
+            element: <QuizSetupPage />,
           },
           {
             path: ROUTES.QUIZ,

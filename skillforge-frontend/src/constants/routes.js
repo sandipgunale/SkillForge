@@ -7,10 +7,13 @@ export const ROUTES = {
   DASHBOARD: "/dashboard",
 
   RESOURCES: "/resources",
-  RESOURCE_DETAIL: "/resources/:id",
+  RESOURCE_DETAIL: "/resources/:resourceId",
 
-  QUIZ: "/quiz",
-  QUIZ_RESULT: "/quiz/:id/result",
+  QUIZ_SETUP: "/quiz",
+
+QUIZ: "/quiz/:quizId",
+
+QUIZ_RESULT: "/quiz/:quizId/result",
 
   LEARNING_PATH: "/learning-path",
 
