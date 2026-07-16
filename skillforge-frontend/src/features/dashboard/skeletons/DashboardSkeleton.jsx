@@ -1,16 +1,31 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import HeroSkeleton from "./HeroSkeleton";
+import StatsGridSkeleton from "./StatsGridSkeleton";
+import ChartSkeleton from "./ChartSkeleton";
+import CardSkeleton from "./CardSkeleton";
 
 export default function DashboardSkeleton() {
   return (
-    <div className="space-y-8">
-      <Skeleton className="h-52 rounded-2xl" />
+    <main className="space-y-8">
+      <HeroSkeleton />
 
-      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-        <Skeleton className="h-36 rounded-xl" />
-        <Skeleton className="h-36 rounded-xl" />
-        <Skeleton className="h-36 rounded-xl" />
-        <Skeleton className="h-36 rounded-xl" />
+      <StatsGridSkeleton />
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ChartSkeleton />
+        <ChartSkeleton />
       </div>
-    </div>
+
+      <ChartSkeleton />
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <CardSkeleton />
+        <CardSkeleton />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <CardSkeleton />
+        <CardSkeleton />
+      </div>
+    </main>
   );
 }

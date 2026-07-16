@@ -2,10 +2,21 @@ import { CheckCircle2 } from "lucide-react";
 
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AppCard from "@/components/common/AppCard";
+import { formatDate } from "@/utils/date";
+import EmptyState from "@/components/common/EmptyState";
 
 export default function RecentQuizList({ quizzes }) {
+  if (!quizzes || quizzes.length === 0) {
+    return (
+      <EmptyState
+        title="No Quiz History"
+        description="Complete your first quiz to see your recent activity."
+      />
+    );
+  }
+
   return (
-    <AppCard>
+    <AppCard className="transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
       <CardHeader>
         <CardTitle>Recent Quiz Activity</CardTitle>
       </CardHeader>
@@ -29,7 +40,7 @@ export default function RecentQuizList({ quizzes }) {
                     <p className="font-semibold">{quiz.topicName}</p>
 
                     <p className="text-sm text-muted-foreground">
-                      {new Date(quiz.completedAt).toLocaleDateString()}
+                      {formatDate(quiz.completedAt)}
                     </p>
                   </div>
                 </div>

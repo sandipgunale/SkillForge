@@ -9,7 +9,7 @@ export default function WeakAreasCard({ weakAreas }) {
   const hasWeakAreas = weakAreas.length > 0;
 
   return (
-    <AppCard>
+    <AppCard className="transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
       <CardHeader>
         <CardTitle>Weak Areas</CardTitle>
       </CardHeader>

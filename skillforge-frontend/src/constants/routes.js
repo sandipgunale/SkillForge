@@ -9,6 +9,8 @@ export const ROUTES = {
   RESOURCES: "/resources",
   RESOURCE_DETAIL: "/resources/:resourceId",
 
+  BOOKMARKS: "/bookmarks",
+
   QUIZ_SETUP: "/quiz",
 
 QUIZ: "/quiz/:quizId",

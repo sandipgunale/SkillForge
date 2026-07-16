@@ -12,7 +12,7 @@ export default function ResourceFooter({ resource }) {
         <Badge>{resource.topicName}</Badge>
       </div>
 
-      <Button asChild className="w-full">
+      <Button className="w-full">
         <Link to={`/resources/${resource.id}`}>View Details</Link>
       </Button>
     </>

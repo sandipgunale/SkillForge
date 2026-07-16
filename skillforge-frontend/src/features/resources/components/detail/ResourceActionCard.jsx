@@ -12,7 +12,7 @@ export default function ResourceActionCard({ resource }) {
         <BookmarkButton onChange={(value) => console.log("Bookmark:", value)} />
       </div>
 
-      <Button asChild className="w-full">
+      <Button className="w-full">
         <a href={resource.url} target="_blank" rel="noopener noreferrer">
           Open Resource
           <ExternalLink className="ml-2 h-4 w-4" />

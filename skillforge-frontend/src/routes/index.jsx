@@ -1,7 +1,7 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
+import { lazy, Suspense } from "react";
 
 import { ROUTES } from "@/constants/routes";
-import { Navigate } from "react-router-dom";
 
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
@@ -10,27 +10,66 @@ import RouteFallback from "./RouteFallback";
 import MainLayout from "@/layouts/MainLayout";
 import AuthLayout from "@/layouts/AuthLayout";
 
-import DashboardPage from "@/features/dashboard/pages/DashboardPage";
+import PageLoader from "@/components/common/PageLoader";
 
-import ResourcesPage from "@/features/resources/pages/ResourcesPage";
+import AppError from "@/components/common/AppError";
 
-import ResourceDetailPage from "@/features/resources/pages/ResourceDetailPage";
+/* -------------------------------------------------------------------------- */
+/*                               Lazy Loaded Pages                            */
+/* -------------------------------------------------------------------------- */
 
-import QuizPage from "@/features/quiz/pages/QuizPage";
+const DashboardPage = lazy(
+  () => import("@/features/dashboard/pages/DashboardPage"),
+);
 
-import QuizResultPage from "@/features/quiz/pages/QuizResultPage";
+const ResourcesPage = lazy(
+  () => import("@/features/resources/pages/ResourcesPage"),
+);
 
-import LearningPathPage from "@/features/learning-path/pages/LearningPathPage";
-import ProfilePage from "@/features/profile/pages/ProfilePage";
-import LoginPage from "@/features/auth/pages/LoginPage";
-import RegisterPage from "@/features/auth/pages/RegisterPage";
-import QuizSetupPage from "@/features/quiz/pages/QuizSetupPage";
-// import BookmarkPage from "@/features/bookmark/pages/BookmarkPage";
+const ResourceDetailPage = lazy(
+  () => import("@/features/resources/pages/ResourceDetailPage"),
+);
+
+const QuizSetupPage = lazy(() => import("@/features/quiz/pages/QuizSetupPage"));
+
+const QuizPage = lazy(() => import("@/features/quiz/pages/QuizPage"));
+
+const QuizResultPage = lazy(
+  () => import("@/features/quiz/pages/QuizResultPage"),
+);
+
+const LearningPathPage = lazy(
+  () => import("@/features/learning-path/pages/LearningPathPage"),
+);
+
+const ProfilePage = lazy(() => import("@/features/profile/pages/ProfilePage"));
+
+const LoginPage = lazy(() => import("@/features/auth/pages/LoginPage"));
+
+const RegisterPage = lazy(() => import("@/features/auth/pages/RegisterPage"));
+
+const BookmarkPage = lazy(
+  () => import("@/features/bookmark/pages/BookmarksPage"),
+);
+
+/* -------------------------------------------------------------------------- */
+/*                           Suspense Helper                                  */
+/* -------------------------------------------------------------------------- */
+
+const withSuspense = (Component) => (
+  <Suspense fallback={<PageLoader />}>
+    <Component />
+  </Suspense>
+);
+
+/* -------------------------------------------------------------------------- */
+/*                                  Router                                    */
+/* -------------------------------------------------------------------------- */
 
 export const router = createBrowserRouter([
-  // -----------------------------
+  // ------------------------------------------------------------------------
   // Public Routes
-  // -----------------------------
+  // ------------------------------------------------------------------------
   {
     element: <PublicRoute />,
     children: [
@@ -39,22 +78,23 @@ export const router = createBrowserRouter([
         children: [
           {
             path: ROUTES.LOGIN,
-            element: <LoginPage />,
+            element: withSuspense(LoginPage),
           },
           {
             path: ROUTES.REGISTER,
-            element: <RegisterPage />,
+            element: withSuspense(RegisterPage),
           },
         ],
       },
     ],
   },
 
-  // -----------------------------
+  // ------------------------------------------------------------------------
   // Protected Routes
-  // -----------------------------
+  // ------------------------------------------------------------------------
   {
     element: <ProtectedRoute />,
+    errorElement: <AppError />,
     children: [
       {
         element: <MainLayout />,
@@ -63,46 +103,58 @@ export const router = createBrowserRouter([
             index: true,
             element: <Navigate to={ROUTES.DASHBOARD} replace />,
           },
+
           {
             path: ROUTES.DASHBOARD,
-            element: <DashboardPage />,
+            element: withSuspense(DashboardPage),
           },
+
           {
             path: ROUTES.RESOURCES,
-            element: <ResourcesPage />,
+            element: withSuspense(ResourcesPage),
           },
+
           {
             path: ROUTES.RESOURCE_DETAIL,
-            element: <ResourceDetailPage />,
+            element: withSuspense(ResourceDetailPage),
           },
+
           {
             path: ROUTES.QUIZ_SETUP,
-            element: <QuizSetupPage />,
+            element: withSuspense(QuizSetupPage),
           },
+
           {
             path: ROUTES.QUIZ,
-            element: <QuizPage />,
+            element: withSuspense(QuizPage),
           },
+
           {
             path: ROUTES.QUIZ_RESULT,
-            element: <QuizResultPage />,
+            element: withSuspense(QuizResultPage),
           },
+
           {
             path: ROUTES.LEARNING_PATH,
-            element: <LearningPathPage />,
+            element: withSuspense(LearningPathPage),
           },
+
           {
             path: ROUTES.PROFILE,
-            element: <ProfilePage />,
+            element: withSuspense(ProfilePage),
+          },
+          {
+            path: ROUTES.BOOKMARKS,
+            element: withSuspense(BookmarkPage),
           },
         ],
       },
     ],
   },
 
-  // -----------------------------
-  // 404 Route
-  // -----------------------------
+  // ------------------------------------------------------------------------
+  // 404
+  // ------------------------------------------------------------------------
   {
     path: "*",
     element: <RouteFallback />,

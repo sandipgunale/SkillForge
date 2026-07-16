@@ -12,8 +12,12 @@ const links = [
     path: ROUTES.RESOURCES,
   },
   {
+    title: "Bookmarks",
+    path: ROUTES.BOOKMARKS,
+  },
+  {
     title: "Quiz",
-    path: ROUTES.QUIZ,
+    path: ROUTES.QUIZ_SETUP,
   },
   {
     title: "Learning Path",
