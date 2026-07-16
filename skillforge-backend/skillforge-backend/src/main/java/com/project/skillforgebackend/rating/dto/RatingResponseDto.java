@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -16,7 +17,7 @@ public class RatingResponseDto {
     /**
      * Resource Information
      */
-    private String resourceId;
+    private UUID resourceId;
 
     /**
      * User Rating

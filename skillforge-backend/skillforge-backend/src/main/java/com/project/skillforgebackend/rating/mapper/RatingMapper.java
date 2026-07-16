@@ -1,7 +1,7 @@
 package com.project.skillforgebackend.rating.mapper;
 
 import com.project.skillforgebackend.rating.dto.RatingResponseDto;
-import com.project.skillforgebackend.rating.dto.RatingStatusDto;
+import com.project.skillforgebackend.rating.dto.UserRatingDto;
 import com.project.skillforgebackend.rating.entity.Rating;
 import com.project.skillforgebackend.resource.entity.Resource;
 import org.springframework.stereotype.Component;
@@ -17,12 +17,12 @@ public class RatingMapper {
             Resource resource
     ) {
 
-        if (rating == null || resource == null) {
+        if (rating == null) {
             return null;
         }
 
         return RatingResponseDto.builder()
-                .resourceId(resource.getId().toString())
+                .resourceId(resource.getId())
                 .userRating(rating.getValue())
                 .averageRating(resource.getAvgRating())
                 .ratingCount(resource.getRatingCount())
@@ -32,19 +32,19 @@ public class RatingMapper {
     /**
      * Converts Rating entity to RatingStatusDto.
      */
-    public RatingStatusDto toStatusDto(
+    public UserRatingDto toUserRatingDto(
             Rating rating
     ) {
 
         if (rating == null) {
 
-            return RatingStatusDto.builder()
+            return UserRatingDto.builder()
                     .rated(false)
                     .rating(null)
                     .build();
         }
 
-        return RatingStatusDto.builder()
+        return UserRatingDto.builder()
                 .rated(true)
                 .rating(rating.getValue())
                 .build();

@@ -89,7 +89,7 @@ public class BookmarkController {
     /**
      * Check bookmark status.
      */
-    @GetMapping("/{resourceId}")
+    @GetMapping("/status/{resourceId}")
     public ResponseEntity<ApiResponse<BookmarkStatusDto>> isBookmarked(
             @AuthenticationPrincipal User user,
             @PathVariable UUID resourceId

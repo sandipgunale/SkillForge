@@ -3,21 +3,23 @@ package com.project.skillforgebackend.rating.service;
 import com.project.skillforgebackend.common.exception.ResourceNotFoundException;
 import com.project.skillforgebackend.rating.dto.RatingRequest;
 import com.project.skillforgebackend.rating.dto.RatingResponseDto;
-import com.project.skillforgebackend.rating.dto.RatingStatusDto;
+import com.project.skillforgebackend.rating.dto.UserRatingDto;
 import com.project.skillforgebackend.rating.entity.Rating;
 import com.project.skillforgebackend.rating.mapper.RatingMapper;
 import com.project.skillforgebackend.rating.repository.RatingRepository;
 import com.project.skillforgebackend.resource.entity.Resource;
 import com.project.skillforgebackend.resource.repository.ResourceRepository;
 import com.project.skillforgebackend.user.entity.User;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -32,12 +34,12 @@ public class RatingService {
      */
     public RatingResponseDto rateResource(
             User user,
-            String resourceId,
+            UUID resourceId,
             RatingRequest request
     ) {
 
         Resource resource = resourceRepository
-                .findByIdActive(java.util.UUID.fromString(resourceId))
+                .findByIdActive(resourceId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Resource",
@@ -47,7 +49,7 @@ public class RatingService {
 
         Rating rating = ratingRepository
                 .findByUserAndResource(user, resource)
-                .orElse(
+                .orElseGet(() ->
                         Rating.builder()
                                 .user(user)
                                 .resource(resource)
@@ -59,7 +61,12 @@ public class RatingService {
         ratingRepository.save(rating);
 
         updateResourceStatistics(resource);
-
+        log.info(
+                "User {} rated resource {} with {} stars",
+                user.getEmail(),
+                resource.getId(),
+                request.getValue()
+        );
         return ratingMapper.toResponseDto(rating, resource);
     }
 
@@ -68,11 +75,11 @@ public class RatingService {
      */
     public void deleteRating(
             User user,
-            String resourceId
+            UUID resourceId
     ) {
 
         Resource resource = resourceRepository
-                .findByIdActive(java.util.UUID.fromString(resourceId))
+                .findByIdActive(resourceId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Resource",
@@ -83,12 +90,18 @@ public class RatingService {
         Rating rating = ratingRepository
                 .findByUserAndResource(user, resource)
                 .orElseThrow(() ->
-                        new EntityNotFoundException(
-                                "Rating not found."
+                        new ResourceNotFoundException(
+                                "Rating",
+                                resourceId
                         )
                 );
 
         ratingRepository.delete(rating);
+        log.info(
+                "User {} removed rating for resource {}",
+                user.getEmail(),
+                resource.getId()
+        );
 
         updateResourceStatistics(resource);
     }
@@ -97,13 +110,13 @@ public class RatingService {
      * Get user's rating for a resource.
      */
     @Transactional(readOnly = true)
-    public RatingStatusDto getRatingStatus(
+    public UserRatingDto getUserRating(
             User user,
-            String resourceId
+            UUID resourceId
     ) {
 
         Resource resource = resourceRepository
-                .findByIdActive(java.util.UUID.fromString(resourceId))
+                .findByIdActive(resourceId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Resource",
@@ -115,7 +128,7 @@ public class RatingService {
                 .findByUserAndResource(user, resource)
                 .orElse(null);
 
-        return ratingMapper.toStatusDto(rating);
+        return ratingMapper.toUserRatingDto(rating);
     }
 
     /**
@@ -146,6 +159,7 @@ public class RatingService {
         }
 
         resourceRepository.save(resource);
+
     }
 
 }

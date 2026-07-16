@@ -3,7 +3,7 @@ package com.project.skillforgebackend.rating.controller;
 import com.project.skillforgebackend.common.response.ApiResponse;
 import com.project.skillforgebackend.rating.dto.RatingRequest;
 import com.project.skillforgebackend.rating.dto.RatingResponseDto;
-import com.project.skillforgebackend.rating.dto.RatingStatusDto;
+import com.project.skillforgebackend.rating.dto.UserRatingDto;
 import com.project.skillforgebackend.rating.service.RatingService;
 import com.project.skillforgebackend.user.entity.User;
 import jakarta.validation.Valid;
@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/ratings")
@@ -25,7 +27,7 @@ public class RatingController {
     @PostMapping("/{resourceId}")
     public ResponseEntity<ApiResponse<RatingResponseDto>> rateResource(
             @AuthenticationPrincipal User user,
-            @PathVariable String resourceId,
+            @PathVariable UUID resourceId,
             @Valid @RequestBody RatingRequest request
     ) {
 
@@ -48,16 +50,13 @@ public class RatingController {
      * Get user's rating.
      */
     @GetMapping("/{resourceId}")
-    public ResponseEntity<ApiResponse<RatingStatusDto>> getRatingStatus(
+    public ResponseEntity<ApiResponse<UserRatingDto>> getRatingStatus(
             @AuthenticationPrincipal User user,
-            @PathVariable String resourceId
+            @PathVariable UUID resourceId
     ) {
 
-        RatingStatusDto response =
-                ratingService.getRatingStatus(
-                        user,
-                        resourceId
-                );
+        UserRatingDto response =
+                ratingService.getUserRating(user, resourceId);
 
         return ResponseEntity.ok(
                 ApiResponse.success(
@@ -73,7 +72,7 @@ public class RatingController {
     @DeleteMapping("/{resourceId}")
     public ResponseEntity<ApiResponse<Void>> deleteRating(
             @AuthenticationPrincipal User user,
-            @PathVariable String resourceId
+            @PathVariable UUID resourceId
     ) {
 
         ratingService.deleteRating(

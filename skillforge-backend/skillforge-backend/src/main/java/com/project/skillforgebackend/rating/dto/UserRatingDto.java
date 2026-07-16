@@ -6,7 +6,7 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RatingStatusDto {
+public class UserRatingDto {
 
     /**
      * Has user rated this resource?
