@@ -31,6 +31,9 @@ public class BookmarkMapper {
                 .topicId(bookmark.getResource().getTopic().getId().toString())
                 .topicName(bookmark.getResource().getTopic().getName())
 
+                .avgRating(bookmark.getResource().getAvgRating())
+                .ratingCount(bookmark.getResource().getRatingCount())
+
                 .build();
     }
 

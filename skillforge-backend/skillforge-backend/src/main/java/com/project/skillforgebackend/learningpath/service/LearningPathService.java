@@ -95,7 +95,7 @@ public class LearningPathService {
                         .orElseThrow(() ->
                                 new ResourceNotFoundException(
                                         "Learning Path",
-                                        learningPathId.toString()
+                                        learningPathId
                                 )
                         );
 
@@ -117,7 +117,7 @@ public class LearningPathService {
                         .orElseThrow(() ->
                                 new ResourceNotFoundException(
                                         "Learning Path",
-                                        learningPathId.toString()
+                                        learningPathId
                                 )
                         );
 
@@ -169,7 +169,7 @@ public class LearningPathService {
                         .orElseThrow(() ->
                                 new ResourceNotFoundException(
                                         "Learning Path",
-                                        learningPathId.toString()
+                                        learningPathId
                                 )
                         );
 
@@ -202,7 +202,7 @@ public class LearningPathService {
                         .orElseThrow(() ->
                                 new ResourceNotFoundException(
                                         "Learning Path",
-                                        learningPathId.toString()
+                                        learningPathId
                                 )
                         );
 

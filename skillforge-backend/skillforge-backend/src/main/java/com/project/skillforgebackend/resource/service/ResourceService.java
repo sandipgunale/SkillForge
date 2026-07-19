@@ -51,7 +51,7 @@ public class ResourceService {
         Resource resource = resourceRepository
                 .findByIdActive(id)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("Resource", id.toString()));
+                        new ResourceNotFoundException("Resource", id));
 
         return toDto(resource);
     }

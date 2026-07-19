@@ -9,10 +9,16 @@ export default function BookmarkCard({ bookmark }) {
     type: bookmark.type,
     difficulty: bookmark.difficulty,
     estimatedMinutes: bookmark.estimatedMinutes,
+
+    // ⭐ Add these
+    avgRating: bookmark.avgRating,
+    ratingCount: bookmark.ratingCount,
+
     topic: {
       id: bookmark.topicId,
       name: bookmark.topicName,
     },
+
     tags: [],
   };
 

@@ -44,7 +44,7 @@ public class QuizService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Topic",
-                                request.getTopicId().toString()
+                                request.getTopicId()
                         ));
 
         var questions = aiService.generateQuestions(
@@ -84,7 +84,7 @@ public class QuizService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Quiz",
-                                quizId.toString()
+                                quizId
                         ));
 
         return quizMapper.toDto(quiz);
@@ -100,7 +100,7 @@ public class QuizService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Quiz",
-                                quizId.toString()
+                                quizId
                         ));
 
         if (quiz.getStatus() != Quiz.QuizStatus.COMPLETED) {
@@ -123,7 +123,7 @@ public class QuizService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Quiz",
-                                quizId.toString()
+                                quizId
                         ));
 
         if (quiz.getStatus() == Quiz.QuizStatus.COMPLETED) {

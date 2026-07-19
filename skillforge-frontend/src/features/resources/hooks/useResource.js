@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { resourcesApi } from "../api/resources.api";
+import { QUERY_KEYS } from "@/constants/queryKeys";
 
 export function useResource(id) {
   return useQuery({
-    queryKey: ["resource", id],
+    queryKey: QUERY_KEYS.RESOURCE(id),
 
     queryFn: () => resourcesApi.getResourceById(id),
 

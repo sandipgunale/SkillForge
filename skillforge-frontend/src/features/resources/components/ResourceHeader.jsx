@@ -1,7 +1,9 @@
 import { BookOpen, FileText, PlayCircle } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+
 import BookmarkButton from "@/features/bookmark/components/BookmarkButton";
+import RatingButton from "@/features/rating/components/RatingButton";
 
 const icons = {
   VIDEO: PlayCircle,
@@ -20,6 +22,8 @@ export default function ResourceHeader({ resource }) {
 
       <div className="flex items-center gap-2">
         <Badge variant="secondary">{resource.difficulty}</Badge>
+
+        <RatingButton resourceId={resource.id} />
 
         <BookmarkButton resourceId={resource.id} />
       </div>

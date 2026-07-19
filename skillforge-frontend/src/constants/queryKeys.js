@@ -5,6 +5,11 @@ export const QUERY_KEYS = {
 
   RESOURCES: ["resources"],
 
+  RESOURCE: (resourceId) => [
+    "resource",
+    resourceId,
+  ],
+
   TOPICS: ["topics"],
 
   BOOKMARKS: ["bookmarks"],
@@ -14,9 +19,17 @@ export const QUERY_KEYS = {
     resourceId,
   ],
 
+  USER_RATING: (resourceId) => [
+    "user-rating",
+    resourceId,
+  ],
+
   QUIZ_HISTORY: ["quiz-history"],
 
-  QUIZ: (quizId) => ["quiz", quizId],
+  QUIZ: (quizId) => [
+    "quiz",
+    quizId,
+  ],
 
   QUIZ_RESULT: (quizId) => [
     "quiz-result",

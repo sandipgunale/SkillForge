@@ -40,7 +40,7 @@ public class BookmarkService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Resource",
-                                resourceId.toString()
+                                resourceId
                         ));
 
         if (bookmarkRepository.existsByUserAndResource(user, resource)) {
@@ -77,7 +77,7 @@ public class BookmarkService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Resource",
-                                resourceId.toString()
+                                resourceId
                         ));
 
         Bookmark bookmark = bookmarkRepository
@@ -85,7 +85,7 @@ public class BookmarkService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Bookmark",
-                                resourceId.toString()
+                                resourceId
                         ));
 
         bookmarkRepository.delete(bookmark);
@@ -125,7 +125,7 @@ public class BookmarkService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Resource",
-                                resourceId.toString()
+                                resourceId
                         ));
 
         boolean bookmarked =
