@@ -79,6 +79,7 @@ public class AuthService {
 
         return AuthResponse.builder()
                 .accessToken(accessToken)
+                .refreshToken(refreshToken)
                 .tokenType("Bearer")
                 .expiresIn(900)
                 .user(AuthResponse.UserSummary.builder()

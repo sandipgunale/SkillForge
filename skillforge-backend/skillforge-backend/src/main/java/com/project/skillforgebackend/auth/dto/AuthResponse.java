@@ -10,6 +10,7 @@ public class AuthResponse {
     private String tokenType;
     private long expiresIn;
     private UserSummary user;
+    private String refreshToken;
 
     @Data
     @Builder

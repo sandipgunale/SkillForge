@@ -1,37 +1,41 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
+
+const DEFAULT_FILTERS = Object.freeze({
+  page: 0,
+  size: 12,
+  topicId: "",
+  difficulty: "",
+  type: "",
+  search: "",
+});
 
 export function useResourceFilters() {
-  const [filters, setFilters] = useState({
-    page: 0,
-    size: 12,
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
 
-    topicId: "",
-    difficulty: "",
-    type: "",
-    search: "",
-  });
+  const updateFilter = useCallback((key, value) => {
+    setFilters((previous) => {
+      // Avoid unnecessary state updates
+      if (previous[key] === value) {
+        return previous;
+      }
 
-  const updateFilter = (key, value) => {
-    setFilters((previous) => ({
-      ...previous,
-
-      page: key === "page" ? value : 0,
-
-      [key]: value,
-    }));
-  };
-
-  const resetFilters = () => {
-    setFilters({
-      page: 0,
-      size: 12,
-
-      topicId: "",
-      difficulty: "",
-      type: "",
-      search: "",
+      return {
+        ...previous,
+        [key]: value,
+        page: key === "page" ? value : 0,
+      };
     });
-  };
+  }, []);
+
+  const resetFilters = useCallback(() => {
+    setFilters((previous) => {
+      const hasChanges = Object.keys(DEFAULT_FILTERS).some(
+        (key) => previous[key] !== DEFAULT_FILTERS[key]
+      );
+
+      return hasChanges ? DEFAULT_FILTERS : previous;
+    });
+  }, []);
 
   return {
     filters,

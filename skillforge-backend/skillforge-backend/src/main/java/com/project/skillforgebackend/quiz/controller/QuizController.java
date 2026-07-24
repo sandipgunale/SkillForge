@@ -1,11 +1,11 @@
 package com.project.skillforgebackend.quiz.controller;
 
 import com.project.skillforgebackend.common.response.ApiResponse;
-import com.project.skillforgebackend.quiz.dto.QuizDto;
-import com.project.skillforgebackend.quiz.dto.QuizRequest;
-import com.project.skillforgebackend.quiz.dto.QuizResultDto;
-import com.project.skillforgebackend.quiz.dto.SubmitAnswersRequest;
+import com.project.skillforgebackend.quiz.dto.*;
+import com.project.skillforgebackend.quiz.entity.Quiz;
+import com.project.skillforgebackend.quiz.entity.QuizSource;
 import com.project.skillforgebackend.quiz.service.QuizService;
+import com.project.skillforgebackend.resource.entity.Resource;
 import com.project.skillforgebackend.user.entity.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -106,21 +106,45 @@ public class QuizController {
      * User quiz history.
      */
     @GetMapping("/history")
-    public ResponseEntity<ApiResponse<Page<QuizDto>>> getHistory(
+    public ResponseEntity<ApiResponse<PagedResponse<QuizDto>>> getHistory(
+
             @AuthenticationPrincipal User user,
-            @PageableDefault(size = 10, sort = "startedAt")
+
+            @RequestParam(required = false)
+            QuizSource source,
+
+            @RequestParam(required = false)
+            Resource.Difficulty difficulty,
+
+            @RequestParam(required = false)
+            Quiz.QuizStatus status,
+
+            @PageableDefault(
+                    size = 10,
+                    sort = "completedAt"
+            )
             Pageable pageable
+
     ) {
 
-        Page<QuizDto> history =
-                quizService.getHistory(user, pageable);
+        PagedResponse<QuizDto> history =
+                quizService.getHistory(
+                        user,
+                        source,
+                        difficulty,
+                        status,
+                        pageable
+                );
 
         return ResponseEntity.ok(
+
                 ApiResponse.success(
                         "Quiz history fetched successfully.",
                         history
                 )
+
         );
+
     }
 
 }

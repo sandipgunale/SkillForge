@@ -38,22 +38,13 @@ public class RatingService {
             RatingRequest request
     ) {
 
-        Resource resource = resourceRepository
-                .findByIdActive(resourceId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Resource",
-                                resourceId
-                        )
-                );
+        Resource resource =
+                getResource(resourceId);
 
-        Rating rating = ratingRepository
-                .findByUserAndResource(user, resource)
-                .orElseGet(() ->
-                        Rating.builder()
-                                .user(user)
-                                .resource(resource)
-                                .build()
+        Rating rating =
+                getRating(
+                        user,
+                        resource
                 );
 
         rating.setValue(request.getValue());
@@ -78,22 +69,13 @@ public class RatingService {
             UUID resourceId
     ) {
 
-        Resource resource = resourceRepository
-                .findByIdActive(resourceId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Resource",
-                                resourceId
-                        )
-                );
+        Resource resource =
+                getResource(resourceId);
 
-        Rating rating = ratingRepository
-                .findByUserAndResource(user, resource)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Rating",
-                                resourceId
-                        )
+        Rating rating =
+                getRating(
+                        user,
+                        resource
                 );
 
         ratingRepository.delete(rating);
@@ -115,14 +97,8 @@ public class RatingService {
             UUID resourceId
     ) {
 
-        Resource resource = resourceRepository
-                .findByIdActive(resourceId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Resource",
-                                resourceId
-                        )
-                );
+        Resource resource =
+                getResource(resourceId);
 
         Rating rating = ratingRepository
                 .findByUserAndResource(user, resource)
@@ -159,6 +135,40 @@ public class RatingService {
         }
 
         resourceRepository.save(resource);
+
+    }
+
+    private Resource getResource(
+            UUID resourceId
+    ) {
+
+        return resourceRepository
+                .findByIdActive(resourceId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Resource",
+                                resourceId
+                        )
+                );
+
+    }
+
+    private Rating getRating(
+            User user,
+            Resource resource
+    ) {
+
+        return ratingRepository
+                .findByUserAndResource(
+                        user,
+                        resource
+                )
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Rating",
+                                resource.getId()
+                        )
+                );
 
     }
 

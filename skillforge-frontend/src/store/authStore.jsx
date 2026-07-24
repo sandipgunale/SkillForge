@@ -18,11 +18,11 @@ const getStoredSession = () => {
 export const useAuthStore = create((set) => ({
   session: getStoredSession(),
 
-  login: (authResponse) => {
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authResponse));
+  login: (session) => {
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
 
     set({
-      session: authResponse,
+      session,
     });
   },
 

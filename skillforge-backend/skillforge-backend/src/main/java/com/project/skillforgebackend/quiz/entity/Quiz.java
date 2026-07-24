@@ -1,5 +1,6 @@
 package com.project.skillforgebackend.quiz.entity;
 
+import com.project.skillforgebackend.learningpath.entity.LearningPath;
 import com.project.skillforgebackend.resource.entity.Resource;
 import com.project.skillforgebackend.resource.entity.Topic;
 import com.project.skillforgebackend.user.entity.User;
@@ -7,6 +8,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.UuidGenerator;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,9 +31,21 @@ public class Quiz {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "topic_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "topic_id")
     private Topic topic;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "learning_path_id")
+    private LearningPath learningPath;
+
+    @Column(name = "week_number")
+    private Integer weekNumber;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private QuizSource source = QuizSource.TOPIC;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -70,6 +84,23 @@ public class Quiz {
     @PrePersist
     public void onCreate() {
         this.startedAt = LocalDateTime.now();
+    }
+
+
+    @Transient
+    public int getDurationMinutes() {
+
+        if (startedAt == null || completedAt == null) {
+            return 0;
+        }
+
+        return (int) Duration
+                .between(
+                        startedAt,
+                        completedAt
+                )
+                .toMinutes();
+
     }
 
     public enum QuizStatus {

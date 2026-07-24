@@ -35,20 +35,5 @@ public interface BookmarkRepository extends JpaRepository<Bookmark, UUID> {
             Resource resource
     );
 
-    /**
-     * Count total bookmarks of a user.
-     * Used by Analytics Dashboard.
-     */
-    long countByUser(
-            User user
-    );
-
-    /**
-     * Remove a bookmark.
-     */
-    void deleteByUserAndResource(
-            User user,
-            Resource resource
-    );
 
 }

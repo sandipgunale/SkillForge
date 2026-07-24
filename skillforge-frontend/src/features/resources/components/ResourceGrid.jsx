@@ -1,6 +1,8 @@
+import { memo } from "react";
+
 import ResourceCard from "./ResourceCard";
 
-export default function ResourceGrid({ resources }) {
+function ResourceGrid({ resources }) {
   return (
     <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
       {resources.map((resource) => (
@@ -9,3 +11,5 @@ export default function ResourceGrid({ resources }) {
     </div>
   );
 }
+
+export default memo(ResourceGrid);

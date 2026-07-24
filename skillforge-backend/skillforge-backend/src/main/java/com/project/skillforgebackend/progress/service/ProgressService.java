@@ -20,10 +20,29 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional
 public class ProgressService {
-
+    private static final int QUIZ_DURATION_MINUTES = 10;
+    private static final short COMPLETION_PER_QUIZ = 10;
     private final ProgressRepository progressRepository;
     private final ProgressMapper progressMapper;
 
+
+    private Progress getOrCreateProgress(
+            User user,
+            Topic topic
+    ) {
+
+        return progressRepository
+                .findByUserAndTopic(user, topic)
+                .orElseGet(() ->
+
+                        Progress.builder()
+                                .user(user)
+                                .topic(topic)
+                                .build()
+
+                );
+
+    }
     /**
      * Updates user progress after every completed quiz.
      */
@@ -33,13 +52,10 @@ public class ProgressService {
             QuizResultDto result
     ) {
 
-        Progress progress = progressRepository
-                .findByUserAndTopic(user, topic)
-                .orElseGet(() ->
-                        Progress.builder()
-                                .user(user)
-                                .topic(topic)
-                                .build()
+        Progress progress =
+                getOrCreateProgress(
+                        user,
+                        topic
                 );
 
         // Previous quiz count
@@ -53,7 +69,9 @@ public class ProgressService {
                 .multiply(BigDecimal.valueOf(previousQuizCount));
 
         BigDecimal newAverage = previousTotal
-                .add(BigDecimal.valueOf(result.getPercentage()))
+                .add(BigDecimal.valueOf(
+                        result.getSummary().getPercentage()
+                ))
                 .divide(
                         BigDecimal.valueOf(progress.getQuizzesTaken()),
                         2,
@@ -64,12 +82,12 @@ public class ProgressService {
 
         // Temporary completion logic
         progress.setCompletionPercentage(
-                (short) Math.min(100, progress.getQuizzesTaken() * 10)
+                (short) Math.min(100, progress.getQuizzesTaken() * COMPLETION_PER_QUIZ)
         );
 
         // Temporary quiz duration (10 minutes)
         progress.setMinutesSpent(
-                progress.getMinutesSpent() + 10
+                progress.getMinutesSpent() + QUIZ_DURATION_MINUTES
         );
 
         progress.setLastActivityAt(

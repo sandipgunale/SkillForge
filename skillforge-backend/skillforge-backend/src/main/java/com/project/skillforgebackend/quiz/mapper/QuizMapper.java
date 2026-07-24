@@ -4,6 +4,7 @@ import com.project.skillforgebackend.quiz.dto.QuestionDto;
 import com.project.skillforgebackend.quiz.dto.QuizDto;
 import com.project.skillforgebackend.quiz.entity.Question;
 import com.project.skillforgebackend.quiz.entity.Quiz;
+import com.project.skillforgebackend.quiz.entity.QuizSource;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
@@ -24,7 +25,18 @@ public class QuizMapper {
 
         return QuizDto.builder()
                 .id(quiz.getId().toString())
-                .topic(quiz.getTopic().getName())
+                .title(getQuizTitle(quiz))
+                .source(quiz.getSource())
+
+                .learningPathId(
+                        quiz.getLearningPath() != null
+                                ? quiz.getLearningPath().getId().toString()
+                                : null
+                )
+
+                .weekNumber(
+                        quiz.getWeekNumber()
+                )
                 .difficulty(quiz.getDifficulty())
                 .status(quiz.getStatus())
                 .totalQuestions(quiz.getTotalQuestions())
@@ -67,6 +79,19 @@ public class QuizMapper {
                 .sorted(Comparator.comparingInt(Question::getOrderIndex))
                 .map(this::toQuestionDto)
                 .toList();
+    }
+
+
+    private String getQuizTitle(Quiz quiz) {
+
+        if (quiz.getSource() == QuizSource.TOPIC) {
+            return quiz.getTopic().getName();
+        }
+
+        return "%s - Week %d Quiz".formatted(
+                quiz.getLearningPath().getTitle(),
+                quiz.getWeekNumber()
+        );
     }
 
 }

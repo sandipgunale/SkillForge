@@ -69,15 +69,16 @@ public class Resource {
     @Builder.Default
     private Set<Tag> tags = new HashSet<>();
 
-    @Column(name = "is_active", nullable = false)
     @Builder.Default
-    private boolean isActive = true;
+    @Column(name = "is_active", nullable = false)
+    private Boolean active = true;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
 
     @PrePersist
     protected void onCreate() {

@@ -13,14 +13,23 @@ import QuestionPalette from "../components/QuestionPalette";
 
 import { useQuizStore } from "../store/quizStore";
 import { useSubmitQuiz } from "../hooks/useSubmitQuiz";
+import { useQuiz } from "../hooks/useQuiz";
 
 const QUIZ_DURATION = 600;
 
 export default function QuizPage() {
   const { quizId } = useParams();
 
+  const setQuiz = useQuizStore((state) => state.setQuiz);
+
   const { quiz, currentQuestion, answers, answerQuestion, setCurrentQuestion } =
     useQuizStore();
+
+  const {
+    data: fetchedQuiz,
+    isLoading,
+    isError,
+  } = useQuiz(quizId, !quiz || quiz.id !== quizId);
 
   const startTimer = useQuizStore((state) => state.startTimer);
   const remainingTime = useQuizStore((state) => state.remainingTime);
@@ -33,17 +42,31 @@ export default function QuizPage() {
     }
   }, [quiz, remainingTime, startTimer]);
 
+  useEffect(() => {
+    if (fetchedQuiz && (!quiz || quiz.id !== fetchedQuiz.id)) {
+      setQuiz(fetchedQuiz);
+    }
+  }, [fetchedQuiz, quiz, setQuiz]);
+
   // IMPORTANT:
   // Never access quiz.questions before this check.
-  if (!quiz || quiz.id !== quizId) {
+  if (isLoading) {
+    return <PageContainer>Loading quiz...</PageContainer>;
+  }
+
+  if (isError) {
     return (
       <PageContainer>
         <ErrorState
           title="Quiz not found"
-          description="Generate a new quiz to continue."
+          description="This quiz doesn't exist or you don't have access."
         />
       </PageContainer>
     );
+  }
+
+  if (!quiz) {
+    return null;
   }
 
   const answered = Object.keys(answers).length;

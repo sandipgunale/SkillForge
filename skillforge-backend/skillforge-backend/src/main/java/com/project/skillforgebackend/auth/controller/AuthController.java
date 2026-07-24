@@ -31,7 +31,12 @@ public class AuthController {
             HttpServletResponse response) {
 
         AuthResponse authResponse = authService.register(request);
+
         setRefreshTokenCookie(response, authResponse);
+
+// Remove refresh token before sending JSON response
+        authResponse.setRefreshToken(null);
+
         return ResponseEntity.status(201).body(authResponse);
     }
 
@@ -41,7 +46,11 @@ public class AuthController {
             HttpServletResponse response) {
 
         AuthResponse authResponse = authService.login(request);
+
         setRefreshTokenCookie(response, authResponse);
+
+        authResponse.setRefreshToken(null);
+
         return ResponseEntity.ok(authResponse);
     }
 
@@ -50,7 +59,11 @@ public class AuthController {
                                                 HttpServletResponse response) {
         String refreshToken = extractRefreshTokenFromCookie(request);
         AuthResponse authResponse = authService.refresh(refreshToken);
+
         setRefreshTokenCookie(response, authResponse);
+
+        authResponse.setRefreshToken(null);
+
         return ResponseEntity.ok(authResponse);
     }
 
@@ -68,19 +81,27 @@ public class AuthController {
 
     private void setRefreshTokenCookie(HttpServletResponse response,
                                        AuthResponse authResponse) {
-        // Note: in production set cookie.setSecure(true) for HTTPS
-        Cookie cookie = new Cookie("refreshToken",
-                generateRefreshTokenForCookie(authResponse));
+
+        Cookie cookie = new Cookie(
+                "refreshToken",
+                authResponse.getRefreshToken()
+        );
+
         cookie.setHttpOnly(true);
+
+        // false for localhost
+        cookie.setSecure(false);
+
         cookie.setPath("/api/auth");
-        cookie.setMaxAge((int)(refreshTokenExpiry / 1000));
+
+        cookie.setMaxAge((int) (refreshTokenExpiry / 1000));
+
         response.addCookie(cookie);
     }
-
     private String generateRefreshTokenForCookie(AuthResponse authResponse) {
         // Refresh token is generated inside AuthService; here we pass it through
         // via a thin wrapper — in production extract it from authResponse
-        return authResponse.getAccessToken(); // swap for refreshToken field
+        return authResponse.getRefreshToken(); // swap for refreshToken field
     }
 
     private String extractRefreshTokenFromCookie(HttpServletRequest request) {

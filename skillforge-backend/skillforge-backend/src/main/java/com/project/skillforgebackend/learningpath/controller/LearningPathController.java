@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import com.project.skillforgebackend.learningpath.dto.UpdateWeekCompletionRequest;
 
 import java.util.List;
 import java.util.UUID;
@@ -130,6 +131,33 @@ public class LearningPathController {
         return ResponseEntity.ok(
                 ApiResponse.success(
                         "Learning path status updated successfully.",
+                        response
+                )
+        );
+    }
+
+    /**
+     * Update completion status of a roadmap week.
+     */
+    @PatchMapping("/{learningPathId}/weeks/{weekNumber}")
+    public ResponseEntity<ApiResponse<LearningPathDto>> updateWeekCompletion(
+            @PathVariable UUID learningPathId,
+            @PathVariable Integer weekNumber,
+            @Valid @RequestBody UpdateWeekCompletionRequest request,
+            @AuthenticationPrincipal User user
+    ) {
+
+        LearningPathDto response =
+                learningPathService.updateWeekCompletion(
+                        learningPathId,
+                        weekNumber,
+                        request,
+                        user
+                );
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Week completion updated successfully.",
                         response
                 )
         );

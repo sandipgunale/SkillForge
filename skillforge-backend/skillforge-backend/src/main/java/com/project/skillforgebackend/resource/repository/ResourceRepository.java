@@ -15,20 +15,20 @@ import java.util.UUID;
 public interface ResourceRepository extends JpaRepository<Resource, UUID> {
 
     @Query("""
-        SELECT r
-        FROM Resource r
-        JOIN FETCH r.topic
-        WHERE r.isActive = true
-          AND (:topicId IS NULL OR r.topic.id = :topicId)
-          AND (:difficulty IS NULL OR r.difficulty = :difficulty)
-          AND (:type IS NULL OR r.type = :type)
-          AND (
-                :search IS NULL
-                OR :search = ''
-                OR LOWER(r.title) LIKE CONCAT('%', LOWER(CAST(:search AS string)), '%')
-          )
-        ORDER BY r.createdAt DESC
-    """)
+    SELECT r
+    FROM Resource r
+    JOIN r.topic t
+    WHERE r.active = true
+      AND (:topicId IS NULL OR t.id = :topicId)
+      AND (:difficulty IS NULL OR r.difficulty = :difficulty)
+      AND (:type IS NULL OR r.type = :type)
+      AND (
+            :search IS NULL
+            OR :search = ''
+            OR LOWER(r.title) LIKE LOWER(CONCAT('%', :search, '%'))
+      )
+    ORDER BY r.createdAt DESC
+""")
     Page<Resource> findAllWithFilters(
             @Param("topicId") UUID topicId,
             @Param("difficulty") Resource.Difficulty difficulty,
@@ -43,9 +43,9 @@ public interface ResourceRepository extends JpaRepository<Resource, UUID> {
         JOIN FETCH r.topic
         LEFT JOIN FETCH r.tags
         WHERE r.id = :id
-          AND r.isActive = true
+          AND r.active = true
     """)
     Optional<Resource> findByIdActive(@Param("id") UUID id);
 
-    Optional<Resource> findByIdAndIsActiveTrue(UUID id);
+    Optional<Resource> findByIdAndActiveTrue(UUID id);
 }

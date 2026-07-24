@@ -1,9 +1,14 @@
 import { Badge } from "@/components/ui/badge";
 
 export default function ResourceInfoCard({ resource }) {
+  const rating =
+    resource.avgRating != null
+      ? Number(resource.avgRating).toFixed(1)
+      : "Not Rated";
+
   return (
-    <div className="rounded-xl border bg-card p-6">
-      <h2 className="mb-5 text-lg font-semibold">Resource Information</h2>
+    <div className="rounded-xl border bg-card p-6 shadow-sm">
+      <h2 className="mb-5 text-xl font-semibold">Resource Information</h2>
 
       <div className="space-y-4">
         <Info label="Topic" value={resource.topicName} />
@@ -12,10 +17,10 @@ export default function ResourceInfoCard({ resource }) {
 
         <Info label="Type" value={resource.type} />
 
-        <Info label="Rating" value={resource.avgRating.toFixed(1)} />
+        <Info label="Rating" value={rating} />
       </div>
 
-      {resource.tags?.length > 0 && (
+      {Array.isArray(resource.tags) && resource.tags.length > 0 && (
         <div className="mt-6">
           <h3 className="mb-3 font-medium">Tags</h3>
 
@@ -34,10 +39,10 @@ export default function ResourceInfoCard({ resource }) {
 
 function Info({ label, value }) {
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-center justify-between border-b pb-2">
       <span className="text-muted-foreground">{label}</span>
 
-      <span className="font-medium">{value}</span>
+      <span className="font-medium">{value || "-"}</span>
     </div>
   );
 }

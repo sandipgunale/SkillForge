@@ -1,6 +1,7 @@
 package com.project.skillforgebackend.quiz.dto;
 
 import com.project.skillforgebackend.quiz.entity.Question;
+import com.project.skillforgebackend.quiz.entity.QuizSource;
 import com.project.skillforgebackend.resource.entity.Resource;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -13,8 +14,16 @@ import java.util.UUID;
 @Data
 public class QuizRequest {
 
-    @NotNull(message = "Topic Id is required")
+    @NotNull(message = "Quiz source is required")
+    private QuizSource source;
+
+    // Required only for TOPIC quiz
     private UUID topicId;
+
+    // Required only for LEARNING_PATH quiz
+    private UUID learningPathId;
+
+    private Integer weekNumber;
 
     @NotNull(message = "Difficulty is required")
     private Resource.Difficulty difficulty;

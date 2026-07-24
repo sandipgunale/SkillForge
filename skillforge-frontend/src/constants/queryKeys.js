@@ -24,6 +24,14 @@ export const QUERY_KEYS = {
     resourceId,
   ],
 
+  // ⭐ New
+  LEARNING_PATHS: ["learning-paths"],
+
+  LEARNING_PATH: (learningPathId) => [
+    "learning-path",
+    learningPathId,
+  ],
+
   QUIZ_HISTORY: ["quiz-history"],
 
   QUIZ: (quizId) => [

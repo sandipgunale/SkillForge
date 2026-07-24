@@ -12,12 +12,16 @@ export const ROUTES = {
   BOOKMARKS: "/bookmarks",
 
   QUIZ_SETUP: "/quiz",
+  QUIZ: "/quiz/:quizId",
+  QUIZ_RESULT: "/quiz/:quizId/result",
 
-QUIZ: "/quiz/:quizId",
+  LEARNING_PATH: "/learning-paths",
 
-QUIZ_RESULT: "/quiz/:quizId/result",
+  LEARNING_PATH_DETAIL:
+    "/learning-paths/:learningPathId",
 
-  LEARNING_PATH: "/learning-path",
+  learningPathDetail: (id) =>
+    `/learning-paths/${id}`,
 
   PROFILE: "/profile",
 };

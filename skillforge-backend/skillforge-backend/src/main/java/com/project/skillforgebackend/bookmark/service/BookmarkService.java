@@ -35,13 +35,7 @@ public class BookmarkService {
             User user,
             UUID resourceId
     ) {
-
-        Resource resource = resourceRepository.findByIdActive(resourceId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Resource",
-                                resourceId
-                        ));
+        Resource resource = getResource(resourceId);
 
         if (bookmarkRepository.existsByUserAndResource(user, resource)) {
             throw new DataIntegrityViolationException(
@@ -73,20 +67,9 @@ public class BookmarkService {
             UUID resourceId
     ) {
 
-        Resource resource = resourceRepository.findByIdActive(resourceId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Resource",
-                                resourceId
-                        ));
+        Resource resource = getResource(resourceId);
 
-        Bookmark bookmark = bookmarkRepository
-                .findByUserAndResource(user, resource)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Bookmark",
-                                resourceId
-                        ));
+        Bookmark bookmark = getBookmark(user, resource);
 
         bookmarkRepository.delete(bookmark);
 
@@ -121,12 +104,7 @@ public class BookmarkService {
             UUID resourceId
     ) {
 
-        Resource resource = resourceRepository.findByIdActive(resourceId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Resource",
-                                resourceId
-                        ));
+        Resource resource = getResource(resourceId);
 
         boolean bookmarked =
                 bookmarkRepository.existsByUserAndResource(
@@ -137,6 +115,37 @@ public class BookmarkService {
         return BookmarkStatusDto.builder()
                 .bookmarked(bookmarked)
                 .build();
+    }
+
+    private Resource getResource(
+            UUID resourceId
+    ) {
+
+        return resourceRepository
+                .findByIdActive(resourceId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Resource",
+                                resourceId
+                        )
+                );
+
+    }
+
+    private Bookmark getBookmark(
+            User user,
+            Resource resource
+    ) {
+
+        return bookmarkRepository
+                .findByUserAndResource(user, resource)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Bookmark",
+                                resource.getId()
+                        )
+                );
+
     }
 
 }

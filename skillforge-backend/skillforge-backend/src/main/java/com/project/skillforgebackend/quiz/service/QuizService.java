@@ -2,11 +2,9 @@ package com.project.skillforgebackend.quiz.service;
 
 import com.project.skillforgebackend.ai.service.AIService;
 import com.project.skillforgebackend.common.exception.ResourceNotFoundException;
+import com.project.skillforgebackend.learningpathprogress.service.LearningPathProgressService;
 import com.project.skillforgebackend.progress.service.ProgressService;
-import com.project.skillforgebackend.quiz.dto.QuizDto;
-import com.project.skillforgebackend.quiz.dto.QuizRequest;
-import com.project.skillforgebackend.quiz.dto.QuizResultDto;
-import com.project.skillforgebackend.quiz.dto.SubmitAnswersRequest;
+import com.project.skillforgebackend.quiz.dto.*;
 import com.project.skillforgebackend.quiz.entity.Quiz;
 import com.project.skillforgebackend.quiz.mapper.QuizMapper;
 import com.project.skillforgebackend.quiz.repository.QuizRepository;
@@ -20,10 +18,27 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
+import com.project.skillforgebackend.quiz.specification.QuizSpecification;
+import org.springframework.data.jpa.domain.Specification;
+import com.project.skillforgebackend.resource.entity.Resource;
+
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
+
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.project.skillforgebackend.learningpath.entity.LearningPath;
+import com.project.skillforgebackend.learningpath.repository.LearningPathRepository;
+import com.project.skillforgebackend.quiz.entity.QuizSource;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import com.project.skillforgebackend.quiz.validator.QuizRequestValidator;
+import com.project.skillforgebackend.quiz.mapper.QuizAnswerMapper;
 
 @Service
 @RequiredArgsConstructor
@@ -36,9 +51,39 @@ public class QuizService {
     private final AIService aiService;
     private final ProgressService progressService;
     private final QuizMapper quizMapper;
+    private final LearningPathRepository learningPathRepository;
+    private final LearningPathProgressService learningPathProgressService;
+    private final QuizRequestValidator quizRequestValidator;
+    private final QuizAnswerMapper quizAnswerMapper;
 
-    @Transactional
-    public QuizDto generateQuiz(User user, QuizRequest request) {
+  @Transactional
+    public QuizDto generateQuiz(
+            User user,
+            QuizRequest request
+    ) {
+      quizRequestValidator.validate(request);
+
+
+
+        return switch (request.getSource()) {
+
+            case TOPIC ->
+                    generateTopicQuiz(
+                            user,
+                            request
+                    );
+
+            case LEARNING_PATH ->
+                    generateLearningPathQuiz(
+                            user,
+                            request
+                    );
+
+        };
+
+    }
+
+    public QuizDto generateTopicQuiz(User user, QuizRequest request) {
 
         Topic topic = topicRepository.findById(request.getTopicId())
                 .orElseThrow(() ->
@@ -54,9 +99,11 @@ public class QuizService {
                 request.getQuestionTypes()
         );
 
+
         Quiz quiz = Quiz.builder()
                 .user(user)
                 .topic(topic)
+                .source(QuizSource.TOPIC)
                 .difficulty(request.getDifficulty())
                 .totalQuestions(questions.size())
                 .maxScore(questions.size())
@@ -72,6 +119,126 @@ public class QuizService {
                 "Quiz {} generated successfully for {}",
                 savedQuiz.getId(),
                 user.getEmail()
+        );
+
+        return quizMapper.toDto(savedQuiz);
+    }
+
+    private QuizDto generateLearningPathQuiz(
+            User user,
+            QuizRequest request
+    ) {
+
+        LearningPath learningPath = learningPathRepository
+                .findById(request.getLearningPathId())
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Learning Path",
+                                request.getLearningPathId()
+                        )
+                );
+
+        // Security Check
+        if (!learningPath.getUser().getId().equals(user.getId())) {
+            throw new ResourceNotFoundException(
+                    "Learning Path",
+                    request.getLearningPathId()
+            );
+        }
+
+        JsonNode roadmap = learningPath.getRoadmapJson();
+
+        ArrayNode weeks = (ArrayNode) roadmap.get("weeks");
+
+        if (weeks == null || weeks.isEmpty()) {
+            throw new IllegalStateException(
+                    "Learning path does not contain any weeks."
+            );
+        }
+
+        JsonNode selectedWeek = null;
+
+        for (JsonNode week : weeks) {
+
+            if (week.get("week").asInt() == request.getWeekNumber()) {
+                selectedWeek = week;
+                break;
+            }
+
+        }
+
+        if (selectedWeek == null) {
+            throw new ResourceNotFoundException(
+                    "Week",
+                    request.getWeekNumber()
+            );
+        }
+
+        JsonNode topicsNode = selectedWeek.get("topics");
+
+        if (topicsNode == null || !topicsNode.isArray() || topicsNode.isEmpty()) {
+            throw new IllegalStateException(
+                    "No topics found for week " + request.getWeekNumber()
+            );
+        }
+
+        List<String> topics = new ArrayList<>();
+
+        for (JsonNode topic : topicsNode) {
+
+            JsonNode name = topic.get("name");
+
+            if (name != null && !name.asText().isBlank()) {
+                topics.add(name.asText());
+            }
+
+        }
+
+        if (topics.isEmpty()) {
+            throw new IllegalStateException(
+                    "No valid topics found for week " + request.getWeekNumber()
+            );
+        }
+
+        var questions = aiService.generateQuestions(
+                topics,
+                request.getDifficulty(),
+                request.getQuestionCount(),
+                request.getQuestionTypes()
+        );
+
+
+
+
+        Quiz quiz = Quiz.builder()
+                .user(user)
+                .source(QuizSource.LEARNING_PATH)
+                .learningPath(learningPath)
+                .weekNumber(request.getWeekNumber())
+                .difficulty(request.getDifficulty())
+                .totalQuestions(questions.size())
+                .maxScore(questions.size())
+                .build();
+
+        questions.forEach(question -> question.setQuiz(quiz));
+
+        quiz.setQuestions(questions);
+
+        Quiz savedQuiz = quizRepository.save(quiz);
+
+        log.info("Questions generated = {}", questions.size());
+
+        log.info("Quiz.totalQuestions = {}", quiz.getTotalQuestions());
+
+        log.info("Quiz.maxScore = {}", quiz.getMaxScore());
+
+        log.info("Quiz.questions.size = {}", quiz.getQuestions().size());
+
+        log.info(
+                "Learning Path Quiz {} generated successfully for {} (Week {})",
+                savedQuiz.getId(),
+                user.getEmail(),
+                request.getWeekNumber()
         );
 
         return quizMapper.toDto(savedQuiz);
@@ -119,76 +286,21 @@ public class QuizService {
             SubmitAnswersRequest request
     ) {
 
-        Quiz quiz = quizRepository.findByIdAndUser(quizId, user)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Quiz",
-                                quizId
-                        ));
+        Quiz quiz = getQuizByIdAndUser(user, quizId);
 
-        if (quiz.getStatus() == Quiz.QuizStatus.COMPLETED) {
-            throw new IllegalStateException(
-                    "Quiz already submitted."
-            );
-        }
+        validateQuizSubmission(quiz);
 
-        Map<UUID, String> answerMap =
-                request.getAnswers()
-                        .stream()
-                        .collect(Collectors.toMap(
-                                SubmitAnswersRequest.AnswerItem::getQuestionId,
-                                SubmitAnswersRequest.AnswerItem::getAnswer
-                        ));
+        applyUserAnswers(quiz, request);
 
-        quiz.getQuestions().forEach(question ->
-                question.setUserAnswer(
-                        answerMap.getOrDefault(
-                                question.getId(),
-                                ""
-                        )
-                )
-        );
+        QuizResultDto result = aiService.evaluateQuiz(quiz);
 
-        QuizResultDto result =
-                aiService.evaluateQuiz(quiz);
+        applyEvaluationResults(quiz, result);
 
-        result.getQuestions().forEach(resultQuestion ->
-
-                quiz.getQuestions()
-                        .stream()
-                        .filter(question ->
-                                question.getId()
-                                        .toString()
-                                        .equals(resultQuestion.getQuestionId()))
-                        .findFirst()
-                        .ifPresent(question -> {
-
-                            question.setIsCorrect(
-                                    resultQuestion.isCorrect());
-
-                            question.setAiFeedback(
-                                    resultQuestion.getAiFeedback());
-
-                        })
-        );
-
-        quiz.setScore(result.getScore());
-
-        quiz.setStatus(
-                Quiz.QuizStatus.COMPLETED
-        );
-
-        quiz.setCompletedAt(
-                LocalDateTime.now()
-        );
+        updateQuizStatus(quiz, result);
 
         quizRepository.save(quiz);
 
-        progressService.updateAfterQuiz(
-                user,
-                quiz.getTopic(),
-                result
-        );
+        updateProgress(user, quiz, result);
 
         log.info(
                 "Quiz {} submitted by {}",
@@ -198,18 +310,201 @@ public class QuizService {
 
         return result;
     }
-
-    public Page<QuizDto> getHistory(
+    private Quiz getQuizByIdAndUser(
             User user,
-            Pageable pageable
+            UUID quizId
     ) {
 
         return quizRepository
-                .findByUserOrderByStartedAtDesc(
-                        user,
-                        pageable
+                .findByIdAndUser(quizId, user)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Quiz",
+                                quizId
+                        ));
+    }
+    private void validateQuizSubmission(
+            Quiz quiz
+    ) {
+
+        if (quiz.getStatus() == Quiz.QuizStatus.COMPLETED) {
+
+            throw new IllegalStateException(
+                    "Quiz already submitted."
+            );
+
+        }
+
+    }
+    private void applyUserAnswers(
+            Quiz quiz,
+            SubmitAnswersRequest request
+    ) {
+
+        Map<UUID, String> answerMap =
+                quizAnswerMapper.toAnswerMap(request);
+
+        quiz.getQuestions().forEach(question ->
+
+                question.setUserAnswer(
+
+                        answerMap.getOrDefault(
+                                question.getId(),
+                                ""
+                        )
+
                 )
-                .map(quizMapper::toDto);
+
+        );
+
+    }
+    private void applyEvaluationResults(
+            Quiz quiz,
+            QuizResultDto result
+    ) {
+
+        Map<String, com.project.skillforgebackend.quiz.entity.Question> questionMap =
+                quiz.getQuestions()
+                        .stream()
+                        .collect(java.util.stream.Collectors.toMap(
+                                question -> question.getId().toString(),
+                                question -> question
+                        ));
+
+        result.getQuestions().forEach(resultQuestion -> {
+
+            var question =
+                    questionMap.get(
+                            resultQuestion.getQuestionId()
+                    );
+
+            if (question != null) {
+
+                question.setIsCorrect(
+                        resultQuestion.isCorrect()
+                );
+
+                question.setAiFeedback(
+                        resultQuestion.getAiFeedback()
+                );
+
+            }
+
+        });
+
+    }
+    private void updateQuizStatus(
+            Quiz quiz,
+            QuizResultDto result
+    ) {
+
+        quiz.setScore(
+                result.getSummary().getScore()
+        );
+
+        quiz.setStatus(
+                Quiz.QuizStatus.COMPLETED
+        );
+
+        quiz.setCompletedAt(
+                LocalDateTime.now()
+        );
+
+    }
+    private void updateProgress(
+            User user,
+            Quiz quiz,
+            QuizResultDto result
+    ) {
+
+        if (quiz.getSource() == QuizSource.TOPIC) {
+
+            progressService.updateAfterQuiz(
+
+                    user,
+
+                    quiz.getTopic(),
+
+                    result
+
+            );
+
+            return;
+
+        }
+
+        learningPathProgressService
+                .updateAfterLearningPathQuiz(
+
+                        user,
+
+                        quiz.getLearningPath(),
+
+                        quiz.getWeekNumber(),
+
+                        result.getSummary().getPercentage(),
+
+                        quiz.getDurationMinutes()
+
+                );
+
+    }
+
+    public PagedResponse<QuizDto> getHistory(
+
+            User user,
+
+            QuizSource source,
+
+            Resource.Difficulty difficulty,
+
+            Quiz.QuizStatus status,
+
+            Pageable pageable
+
+    ) {
+
+        Specification<Quiz> specification =
+
+                QuizSpecification.hasUser(user)
+                        .and(QuizSpecification.hasSource(source))
+                        .and(QuizSpecification.hasDifficulty(difficulty))
+                        .and(QuizSpecification.hasStatus(status));
+
+        Page<Quiz> page =
+
+                quizRepository.findAll(
+                        specification,
+                        pageable
+                );
+
+        return PagedResponse.<QuizDto>builder()
+
+                .content(
+                        page.getContent()
+                                .stream()
+                                .map(quizMapper::toDto)
+                                .toList()
+                )
+
+                .page(page.getNumber())
+
+                .size(page.getSize())
+
+                .totalElements(page.getTotalElements())
+
+                .totalPages(page.getTotalPages())
+
+                .first(page.isFirst())
+
+                .last(page.isLast())
+
+                .hasNext(page.hasNext())
+
+                .hasPrevious(page.hasPrevious())
+
+                .build();
+
     }
 
 }

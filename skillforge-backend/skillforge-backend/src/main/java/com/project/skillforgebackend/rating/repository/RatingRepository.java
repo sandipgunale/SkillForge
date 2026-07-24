@@ -21,21 +21,6 @@ public interface RatingRepository extends JpaRepository<Rating, UUID> {
             Resource resource
     );
 
-    /**
-     * Check whether user has already rated a resource.
-     */
-    boolean existsByUserAndResource(
-            User user,
-            Resource resource
-    );
-
-    /**
-     * Delete user's rating.
-     */
-    void deleteByUserAndResource(
-            User user,
-            Resource resource
-    );
 
     /**
      * Count total ratings for a resource.

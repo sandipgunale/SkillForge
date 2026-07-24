@@ -94,4 +94,6 @@ public class DashboardDto {
      */
     private Boolean hasWeakAreas;
 
+    private List<LearningPathAnalyticsDto> learningPathAnalytics;
+
 }

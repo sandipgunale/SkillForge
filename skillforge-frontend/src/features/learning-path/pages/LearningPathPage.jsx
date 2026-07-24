@@ -1,9 +1,63 @@
-const LearningPathPage = () => {
+import { useState } from "react";
+
+import LearningPathCard from "../components/LearningPathCard";
+import LearningPathForm from "../components/LearningPathForm";
+
+import { useLearningPaths } from "../hooks/useLearningPaths";
+import { useCreateLearningPath } from "../hooks/useCreateLearningPath";
+
+import { Button } from "@/components/ui/button";
+import EmptyLearningPath from "../components/EmptyLearningPath";
+import LearningPathSkeleton from "../components/LearningPathSkeleton";
+
+export default function LearningPathPage() {
+  const [showForm, setShowForm] = useState(false);
+
+  const { data: learningPaths = [], isLoading } = useLearningPaths();
+
+  const createMutation = useCreateLearningPath();
+
+  function handleCreate(formData) {
+    createMutation.mutate(formData, {
+      onSuccess: () => {
+        setShowForm(false);
+      },
+    });
+  }
+
+  if (isLoading) {
+    return <LearningPathSkeleton />;
+  }
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen py-2">
-      <h1 className="text-4xl font-bold">Learning Path</h1>
+    <div className="container mx-auto space-y-6 py-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Learning Paths</h1>
+
+        <Button onClick={() => setShowForm((prev) => !prev)}>
+          {showForm ? "Cancel" : "Create Learning Path"}
+        </Button>
+      </div>
+
+      {showForm && (
+        <LearningPathForm
+          onSubmit={handleCreate}
+          isLoading={createMutation.isPending}
+        />
+      )}
+
+      {learningPaths.length === 0 ? (
+        <EmptyLearningPath onCreate={() => setShowForm(true)} />
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {learningPaths.map((learningPath) => (
+            <LearningPathCard
+              key={learningPath.id}
+              learningPath={learningPath}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
-};
-
-export default LearningPathPage;
+}

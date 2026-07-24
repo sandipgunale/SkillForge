@@ -1,16 +1,30 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { resourcesApi } from "../api/resources.api";
+import { resourcesService } from "../api/resourcesService";
 
-export function useRelatedResources(topicId, currentResourceId) {
+export function useRelatedResources(
+  topicId,
+  currentResourceId
+) {
   return useQuery({
-    queryKey: ["related-resources", topicId, currentResourceId],
+    queryKey: [
+      "related-resources",
+      topicId,
+      currentResourceId,
+    ],
 
     queryFn: () =>
-      resourcesApi.getRelatedResources(topicId, currentResourceId),
+      resourcesService.getRelatedResources(
+        topicId,
+        currentResourceId
+      ),
 
-    enabled: !!topicId,
+    enabled: Boolean(topicId),
 
     staleTime: 1000 * 60 * 5,
+
+    gcTime: 1000 * 60 * 30,
+
+    retry: 1,
   });
 }

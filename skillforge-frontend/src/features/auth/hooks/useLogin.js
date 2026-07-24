@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 import { toast } from "sonner";
 
@@ -9,20 +9,22 @@ import { ROUTES } from "@/constants/routes";
 
 export function useLogin() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const login = useAuthStore((state) => state.login);
 
   return useMutation({
-    mutationFn: async (credentials) => {
-      return await authService.login(credentials);
-    },
+    mutationFn: authService.login,
 
     onSuccess: (data) => {
       login(data);
 
       toast.success("Welcome back!");
 
-      navigate(ROUTES.DASHBOARD, {
+      const from =
+        location.state?.from?.pathname || ROUTES.DASHBOARD;
+
+      navigate(from, {
         replace: true,
       });
     },

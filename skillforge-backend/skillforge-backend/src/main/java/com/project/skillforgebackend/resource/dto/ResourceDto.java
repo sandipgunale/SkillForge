@@ -39,4 +39,6 @@ public class ResourceDto {
 
     private LocalDateTime createdAt;
 
+    private Integer estimatedMinutes;
+
 }

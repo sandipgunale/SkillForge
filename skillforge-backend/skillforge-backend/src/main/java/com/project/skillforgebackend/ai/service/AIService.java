@@ -1,18 +1,21 @@
 package com.project.skillforgebackend.ai.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.skillforgebackend.ai.client.GeminiClient;
-import com.project.skillforgebackend.ai.dto.AIEvaluationResponse;
-import com.project.skillforgebackend.ai.dto.AIQuizResponse;
-import com.project.skillforgebackend.ai.dto.QuestionResponse;
+import com.project.skillforgebackend.ai.parser.EvaluationParser;
+import com.project.skillforgebackend.ai.parser.QuizParser;
 import com.project.skillforgebackend.ai.exception.AIServiceException;
-import com.project.skillforgebackend.quiz.dto.QuizResultDto;
+import com.project.skillforgebackend.quiz.dto.*;
 import com.project.skillforgebackend.quiz.entity.Question;
 import com.project.skillforgebackend.quiz.entity.Quiz;
 import com.project.skillforgebackend.resource.entity.Resource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import com.project.skillforgebackend.ai.prompt.QuizPromptBuilder;
+import com.project.skillforgebackend.ai.prompt.LearningPathPromptBuilder;
+import com.project.skillforgebackend.ai.prompt.EvaluationPromptBuilder;
+import com.project.skillforgebackend.ai.parser.LearningPathParser;
 
 import java.util.List;
 
@@ -21,9 +24,13 @@ import java.util.List;
 @Slf4j
 public class AIService {
 
-//    private final GeminiClient openAIClient;
     private final GeminiClient geminiClient;
-    private final ObjectMapper objectMapper;
+    private final QuizParser quizParser;
+    private final EvaluationParser evaluationParser;
+    private final QuizPromptBuilder quizPromptBuilder;
+    private final LearningPathPromptBuilder learningPathPromptBuilder;
+    private final LearningPathParser learningPathParser;
+    private final EvaluationPromptBuilder evaluationPromptBuilder;
 
     /**
      * Generates quiz questions using OpenAI.
@@ -34,7 +41,7 @@ public class AIService {
             int count,
             List<Question.QuestionType> types) {
 
-        String prompt = buildQuizGenerationPrompt(
+        String prompt = quizPromptBuilder.build(
                 topicName,
                 difficulty,
                 count,
@@ -44,10 +51,12 @@ public class AIService {
         log.info(prompt);
         log.info("============================");
         String response = geminiClient.complete(prompt);
-        log.info("Raw OpenAI Response:\n{}", response);
+        log.info("========== RAW GEMINI RESPONSE ==========");
+        log.info(response);
+        log.info("=========================================");
         try {
 
-            return parseQuestionsFromJson(response);
+            return quizParser.parse(response);
 
         } catch (Exception ex) {
 
@@ -60,12 +69,53 @@ public class AIService {
         }
     }
 
+
+    public List<Question> generateQuestions(
+            List<String> topics,
+            Resource.Difficulty difficulty,
+            int count,
+            List<Question.QuestionType> types
+    ) {
+
+        String prompt = quizPromptBuilder.build(
+                topics,
+                difficulty,
+                count,
+                types
+        );
+
+        log.info("========== PROMPT ==========");
+        log.info(prompt);
+        log.info("============================");
+
+        String response = geminiClient.complete(prompt);
+
+        log.info("========== RAW GEMINI RESPONSE ==========");
+        log.info(response);
+        log.info("=========================================");
+
+        try {
+
+            return quizParser.parse(response);
+
+        } catch (Exception ex) {
+
+            throw new AIServiceException(
+                    "Failed to generate learning path quiz.",
+                    ex
+            );
+
+        }
+
+    }
+
+
     /**
      * Evaluates a completed quiz using AI.
      */
     public QuizResultDto evaluateQuiz(Quiz quiz) {
 
-        String prompt = buildEvaluationPrompt(quiz);
+        String prompt = evaluationPromptBuilder.build(quiz);
         log.info("========== PROMPT ==========");
         log.info(prompt);
         log.info("============================");
@@ -73,10 +123,8 @@ public class AIService {
         log.info("Raw OpenAI Response:\n{}", response);
         try {
 
-            return parseEvaluationFromJson(
-                    response,
-                    quiz
-            );
+            return evaluationParser.parse(response, quiz);
+
 
         } catch (Exception ex) {
 
@@ -97,7 +145,7 @@ public class AIService {
             Integer durationWeeks
     ) {
 
-        String prompt = buildLearningPathPrompt(
+        String prompt = learningPathPromptBuilder.build(
                 title,
                 goal,
                 skillLevel,
@@ -115,7 +163,7 @@ public class AIService {
 
         try {
 
-            return parseLearningPathJson(response);
+            return learningPathParser.parse(response);
 
         } catch (Exception ex) {
 
@@ -128,585 +176,5 @@ public class AIService {
         }
     }
 
-    private String buildLearningPathPrompt(
-            String title,
-            String goal,
-            String skillLevel,
-            Integer weeklyHours,
-            Integer durationWeeks
-    ) {
-
-        return """
-You are an expert Software Architect, Technical Mentor, and Career Coach.
-
-Generate a personalized learning roadmap.
-
-Title:
-%s
-
-Goal:
-%s
-
-Current Skill Level:
-%s
-
-Weekly Study Hours:
-%d
-
-Roadmap Duration:
-%d weeks
-
-IMPORTANT RULES
-
-1. Return ONLY valid JSON.
-2. Do NOT return markdown.
-3. Do NOT wrap JSON inside ```json.
-4. Do NOT explain anything.
-5. Generate EXACTLY %d weeks.
-6. The "weeks" array MUST contain exactly %d objects.
-7. Organize the roadmap from beginner to advanced.
-8. Distribute the workload according to %d study hours per week.
-9. Every week must contain:
-   - week
-   - title
-   - estimatedHours
-   - completed
-   - topics
-   - resources
-   - learningGoals
-10. completed must always be false.
-11. estimatedHours should approximately equal the weekly study hours.
-12. Resources should contain only resource names.
-13. Return UTF-8 JSON only.
-14. durationWeeks must equal %d.
-15. Week numbers must start from 1 and end at %d.
-
-JSON FORMAT
-
-{
-  "title":"%s",
-  "goal":"%s",
-  "durationWeeks": %d,
-  "weeks":[
-    {
-      "week":1,
-      "title":"",
-      "estimatedHours":%d,
-      "completed":false,
-      "topics":[
-        {
-          "name":"",
-          "difficulty":"BEGINNER"
-        }
-      ],
-      "resources":[
-        {
-          "title":"",
-          "type":"VIDEO"
-        }
-      ],
-      "learningGoals":[
-        ""
-      ]
-    }
-  ]
-}
-"""
-                .formatted(
-                        title,
-                        goal,
-                        skillLevel,
-                        weeklyHours,
-                        durationWeeks,
-
-                        durationWeeks,
-                        durationWeeks,
-                        weeklyHours,
-                        durationWeeks,
-                        durationWeeks,
-
-                        title,
-                        goal,
-                        durationWeeks,
-                        weeklyHours
-                );
-    }
-
-    // ==========================================================
-    // Prompt Builders
-    // ==========================================================
-
-    /**
-     * Builds the prompt used to generate quiz questions.
-     */
-    private String buildQuizGenerationPrompt(
-            String topic,
-            Resource.Difficulty difficulty,
-            int count,
-            List<Question.QuestionType> types) {
-
-        String questionTypes =
-                (types == null || types.isEmpty())
-                        ? "MCQ"
-                        : types.stream()
-                        .map(Enum::name)
-                        .reduce((a, b) -> a + ", " + b)
-                        .orElse("MCQ");
-
-        return """
-                You are an expert technical educator.
-
-                Generate exactly %d interview-quality quiz questions.
-
-                Topic:
-                %s
-
-                Difficulty:
-                %s
-
-                Question Types:
-                %s
-
-                IMPORTANT RULES
-
-                1. Return ONLY valid JSON.
-                2. Do NOT return markdown.
-                3. Do NOT wrap JSON inside ```json.
-                4. Do NOT return explanations.
-                5. Generate exactly %d questions.
-                6. Every MCQ must contain exactly 4 options.
-                7. Coding questions should include a coding problem.
-                8. Interview questions should test conceptual understanding.
-                9. Scenario questions should contain realistic situations.
-                10. Questions must be technically accurate.
-                11. Do not hallucinate APIs or concepts.
-                12. If unsure, generate another valid question.
-                13. correctAnswer must exactly match one option.
-                14. Return valid UTF-8 JSON only.
-
-                JSON FORMAT
-
-                {
-                  "questions":[
-                    {
-                      "type":"MCQ",
-                      "content":"Question",
-                      "options":[
-                        "Option A",
-                        "Option B",
-                        "Option C",
-                        "Option D"
-                      ],
-                      "correctAnswer":"Option A",
-                      "orderIndex":1
-                    }
-                  ]
-                }
-                """
-                .formatted(
-                        count,
-                        topic,
-                        difficulty.name(),
-                        questionTypes,
-                        count
-                );
-    }
-
-    /**
-     * Builds the prompt used to evaluate quiz answers.
-     */
-    private String buildEvaluationPrompt(Quiz quiz) {
-
-        StringBuilder prompt = new StringBuilder();
-
-        prompt.append("""
-                You are an expert technical interviewer.
-
-                Evaluate the following quiz answers.
-
-                Return ONLY valid JSON.
-
-                JSON FORMAT:
-
-                {
-                  "overallFeedback":"Overall performance summary",
-                  "strengths":[
-                    "Strength 1",
-                    "Strength 2"
-                  ],
-                  "weaknesses":[
-                    "Weakness 1"
-                  ],
-                  "improvements":[
-                    "Improvement 1"
-                  ],
-                  "evaluations":[
-                    {
-                      "questionId":"uuid",
-                      "isCorrect":true,
-                      "feedback":"Detailed explanation"
-                    }
-                  ]
-                }
-
-                Quiz Details
-
-                Topic: %s
-                Difficulty: %s
-
-                Questions:
-
-                """.formatted(
-                quiz.getTopic().getName(),
-                quiz.getDifficulty().name()
-        ));
-
-        for (Question question : quiz.getQuestions()) {
-
-            prompt.append("""
-                    --------------------------------------------------
-
-                    Question ID:
-                    %s
-
-                    Type:
-                    %s
-
-                    Question:
-                    %s
-
-                    Correct Answer:
-                    %s
-
-                    User Answer:
-                    %s
-                    
-                    IMPORTANT:
-                    
-                    1. If the user's answer exactly matches the correct answer,
-                       set "isCorrect" to true.
-                    
-                    2. Ignore whitespace differences.
-                    
-                    3. Ignore formatting differences.
-                    
-                    4. Every evaluation MUST contain:
-                    
-                       questionId
-                    
-                       isCorrect
-                    
-                       feedback
-                    
-                    5. feedback must never be null.
-                    
-                    6. If the answer is correct,
-                       provide positive feedback.
-                    
-                    7. If incorrect,
-                       explain why and give the correct reasoning.
-
-                    """
-                    .formatted(
-                            question.getId(),
-                            question.getType(),
-                            question.getContent(),
-                            question.getCorrectAnswer(),
-                            question.getUserAnswer()
-                    ));
-        }
-
-        return prompt.toString();
-    }
-    // ==========================================================
-    // JSON Parsers
-    // ==========================================================
-
-    /**
-     * Converts the AI JSON response into Question entities.
-     */
-    private List<Question> parseQuestionsFromJson(String json)
-            throws Exception {
-
-        AIQuizResponse response = objectMapper.readValue(
-                cleanJson(json),
-                AIQuizResponse.class
-        );
-
-        if (response == null
-                || response.getQuestions() == null
-                || response.getQuestions().isEmpty()) {
-
-            throw new AIServiceException(
-                    "No questions were generated by AI."
-            );
-        }
-
-        return response.getQuestions()
-                .stream()
-                .filter(question ->
-                        question.getContent() != null
-                                && !question.getContent().isBlank()
-                                && question.getCorrectAnswer() != null
-                                && !question.getCorrectAnswer().isBlank()
-                )
-                .map(this::mapToQuestion)
-                .toList();
-    }
-
-    /**
-     * Maps QuestionResponse DTO to Question entity.
-     */
-    private Question mapToQuestion(
-            QuestionResponse dto) {
-
-        try {
-
-            if (dto.getContent() == null
-                    || dto.getContent().isBlank()) {
-
-                throw new AIServiceException(
-                        "AI returned an empty question."
-                );
-            }
-
-            if (dto.getCorrectAnswer() == null
-                    || dto.getCorrectAnswer().isBlank()) {
-
-                throw new AIServiceException(
-                        "AI returned an invalid correct answer."
-                );
-            }
-
-            if (dto.getType() == Question.QuestionType.MCQ) {
-
-                if (dto.getOptions() == null
-                        || dto.getOptions().size() != 4) {
-
-                    throw new AIServiceException(
-                            "MCQ must contain exactly 4 options."
-                    );
-                }
-
-                if (!dto.getOptions().contains(dto.getCorrectAnswer())) {
-
-                    throw new AIServiceException(
-                            "Correct answer is not present in options."
-                    );
-                }
-            }
-
-            String optionsJson = dto.getOptions() == null
-                    ? null
-                    : objectMapper.writeValueAsString(dto.getOptions());
-
-            return Question.builder()
-                    .type(dto.getType())
-                    .content(dto.getContent())
-                    .optionsJson(optionsJson)
-                    .correctAnswer(dto.getCorrectAnswer())
-                    .orderIndex(
-                            dto.getOrderIndex() == null
-                                    ? 0
-                                    : dto.getOrderIndex()
-                    )
-                    .build();
-
-        } catch (AIServiceException ex) {
-
-            throw ex;
-
-        } catch (Exception ex) {
-
-            throw new AIServiceException(
-                    "Failed to convert AI question.",
-                    ex
-            );
-        }
-    }
-    /**
-     * Parses AI evaluation response and converts it into QuizResultDto.
-     */
-    private QuizResultDto parseEvaluationFromJson(
-            String json,
-            Quiz quiz) throws Exception {
-
-        AIEvaluationResponse response =
-                objectMapper.readValue(
-                        cleanJson(json),
-                        AIEvaluationResponse.class
-                );
-
-        if (response == null) {
-            throw new AIServiceException(
-                    "Invalid AI evaluation response."
-            );
-        }
-
-        if (response.getEvaluations() != null) {
-
-            response.getEvaluations().forEach(evaluation ->
-
-                    quiz.getQuestions().stream()
-                            .filter(question ->
-                                    question.getId().equals(
-                                            evaluation.getQuestionId()
-                                    )
-                            )
-                            .findFirst()
-                            .ifPresent(question -> {
-
-                                question.setIsCorrect(
-                                        evaluation.getIsCorrect()
-                                );
-
-                                question.setAiFeedback(
-                                        evaluation.getFeedback()
-                                );
-
-                            })
-            );
-        }
-
-        int score = (int) quiz.getQuestions()
-                .stream()
-                .filter(question ->
-                        Boolean.TRUE.equals(question.getIsCorrect()))
-                .count();
-
-        quiz.setScore(score);
-
-        List<QuizResultDto.QuestionResultDto> questionResults =
-                quiz.getQuestions()
-                        .stream()
-                        .map(question ->
-
-                                QuizResultDto.QuestionResultDto.builder()
-
-                                        .questionId(
-                                                question.getId().toString()
-                                        )
-
-                                        .content(
-                                                question.getContent()
-                                        )
-
-                                        .correctAnswer(
-                                                question.getCorrectAnswer()
-                                        )
-
-                                        .userAnswer(
-                                                question.getUserAnswer()
-                                        )
-
-                                        .isCorrect(
-                                                Boolean.TRUE.equals(
-                                                        question.getIsCorrect()
-                                                )
-                                        )
-
-                                        .aiFeedback(
-                                                question.getAiFeedback()
-                                        )
-
-                                        .build()
-
-                        )
-                        .toList();
-
-        double percentage = quiz.getMaxScore() == 0
-                ? 0
-                : ((double) score / quiz.getMaxScore()) * 100;
-
-        return QuizResultDto.builder()
-
-                .quizId(
-                        quiz.getId().toString()
-                )
-
-                .score(score)
-
-                .maxScore(
-                        quiz.getMaxScore()
-                )
-
-                .percentage(
-                        Math.round(percentage * 100.0) / 100.0
-                )
-
-                .overallFeedback(
-                        response.getOverallFeedback()
-                )
-
-                .strengths(
-                        response.getStrengths()
-                )
-
-                .weaknesses(
-                        response.getWeaknesses()
-                )
-
-                .improvements(
-                        response.getImprovements()
-                )
-
-                .questions(
-                        questionResults
-                )
-
-                .build();
-    }
-
-    /**
-     * Cleans AI response before JSON parsing.
-     */
-    private String cleanJson(String response) {
-
-        if (response == null) {
-            return "";
-        }
-
-        response = response.trim();
-
-        response = response.replace("```json", "");
-        response = response.replace("```", "");
-
-        int first = response.indexOf('{');
-        int last = response.lastIndexOf('}');
-
-        if (first >= 0 && last > first) {
-            response = response.substring(first, last + 1);
-        }
-
-        return response.trim();
-    }
-
-    private String parseLearningPathJson(
-            String json
-    ) {
-
-        String cleaned = cleanJson(json);
-
-        if (cleaned == null || cleaned.isBlank()) {
-
-            throw new AIServiceException(
-                    "AI returned an empty learning path."
-            );
-        }
-
-        try {
-
-            objectMapper.readTree(cleaned);
-
-            return cleaned;
-
-        } catch (Exception ex) {
-
-            throw new AIServiceException(
-                    "AI returned invalid roadmap JSON.",
-                    ex
-            );
-        }
-    }
 
 }

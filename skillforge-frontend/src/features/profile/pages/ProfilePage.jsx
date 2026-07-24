@@ -1,9 +1,9 @@
-const ProfilePage = () => {
+import ProfileForm from "../components/ProfileForm";
+
+export default function ProfilePage() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen py-2">
-      <h1 className="text-4xl font-bold">Profile</h1>
+    <div className="container mx-auto max-w-3xl py-8">
+      <ProfileForm />
     </div>
   );
-};
-
-export default ProfilePage;
+}

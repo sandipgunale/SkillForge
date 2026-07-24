@@ -1,13 +1,14 @@
 package com.project.skillforgebackend.analytics.service;
 
-import com.project.skillforgebackend.analytics.dto.DashboardDto;
-import com.project.skillforgebackend.analytics.dto.QuizScoreDto;
-import com.project.skillforgebackend.analytics.dto.TopicAnalyticsDto;
+import com.project.skillforgebackend.analytics.dto.*;
 import com.project.skillforgebackend.analytics.enums.LearningLevel;
 import com.project.skillforgebackend.analytics.enums.RecommendationPriority;
+import com.project.skillforgebackend.learningpathprogress.entity.LearningPathProgress;
+import com.project.skillforgebackend.learningpathprogress.repository.LearningPathProgressRepository;
 import com.project.skillforgebackend.progress.entity.Progress;
 import com.project.skillforgebackend.progress.repository.ProgressRepository;
 import com.project.skillforgebackend.quiz.entity.Quiz;
+import com.project.skillforgebackend.quiz.entity.QuizSource;
 import com.project.skillforgebackend.quiz.repository.QuizRepository;
 import com.project.skillforgebackend.user.entity.User;
 import lombok.RequiredArgsConstructor;
@@ -19,13 +20,9 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.*;
 
-import com.project.skillforgebackend.analytics.dto.TopicSummaryDto;
-import com.project.skillforgebackend.analytics.dto.LastQuizDto;
-import com.project.skillforgebackend.analytics.dto.RecommendationDto;
-
-import com.project.skillforgebackend.analytics.dto.WeeklyActivityDto;
-
 import java.time.DayOfWeek;
+import com.project.skillforgebackend.analytics.util.AnalyticsUtils;
+import com.project.skillforgebackend.analytics.builder.WeeklyActivityBuilder;
 
 @Service
 @RequiredArgsConstructor
@@ -34,11 +31,15 @@ public class AnalyticsService {
 
     private final ProgressRepository progressRepository;
     private final QuizRepository quizRepository;
+    private final LearningPathProgressRepository learningPathProgressRepository;
+    private final WeeklyActivityBuilder weeklyActivityBuilder;
 
     public DashboardDto getDashboard(User user) {
 
         List<Progress> progressList =
                 progressRepository.findByUserOrderByLastActivityAtDesc(user);
+        List<LearningPathProgress> learningPathProgressList =
+                learningPathProgressRepository.findByUser(user);
 
         List<Quiz> recentQuizzes =
                 quizRepository.findTop10ByUserAndStatusOrderByCompletedAtDesc(
@@ -54,10 +55,19 @@ public class AnalyticsService {
 
 
 
-        // Total learning time
-        int totalLearningMinutes = progressList.stream()
+        // Topic learning time
+        int topicLearningMinutes = progressList.stream()
                 .mapToInt(Progress::getMinutesSpent)
                 .sum();
+
+// Learning Path learning time
+        int learningPathLearningMinutes = learningPathProgressList.stream()
+                .mapToInt(LearningPathProgress::getMinutesSpent)
+                .sum();
+
+// Total learning time
+        int totalLearningMinutes =
+                topicLearningMinutes + learningPathLearningMinutes;
 
         String studyHours = String.format(
                 "%dh %dm",
@@ -67,6 +77,12 @@ public class AnalyticsService {
 
         // Total topics started
         int totalTopicsStarted = progressList.size();
+
+        int totalLearningPathsStarted =
+                learningPathProgressList.size();
+
+        int totalLearningItems =
+                totalTopicsStarted + totalLearningPathsStarted;
 
         // Total quizzes taken
         // Total completed quizzes
@@ -108,7 +124,7 @@ public class AnalyticsService {
 
                             +
 
-                            (Math.min(totalTopicsStarted, 10))
+                            (Math.min(totalLearningItems, 10))
                             +
 
                             (Math.min(totalQuizzesTaken, 20) * 0.5)
@@ -172,30 +188,8 @@ public class AnalyticsService {
 
                                 .count();
 
-        Map<DayOfWeek, Integer> activityMap =
-                new LinkedHashMap<>();
-
-        for (DayOfWeek day : DayOfWeek.values()) {
-
-            activityMap.put(day, 0);
-
-        }
-
-        weeklyProgress.forEach(progress -> {
-
-            DayOfWeek day =
-                    progress.getLastActivityAt().getDayOfWeek();
-
-            activityMap.put(
-                    day,
-                    activityMap.get(day)
-                            + progress.getMinutesSpent()
-            );
-
-        });
-
         List<WeeklyActivityDto> weeklyActivity =
-                buildWeeklyActivity(weeklyProgress);
+                weeklyActivityBuilder.build(weeklyProgress);
 
         // Topic-wise analytics
         List<TopicAnalyticsDto> topicAnalytics =
@@ -238,6 +232,50 @@ public class AnalyticsService {
                                         .minutesSpent(progress.getMinutesSpent())
 
                                         .averageScore(progress.getAverageScore())
+
+                                        .build()
+
+                        )
+
+                        .toList();
+
+
+        List<LearningPathAnalyticsDto> learningPathAnalytics =
+                learningPathProgressList.stream()
+
+                        .sorted(
+                                Comparator.comparing(
+                                        LearningPathProgress::getAverageQuizScore
+                                ).reversed()
+                        )
+
+                        .map(progress ->
+
+                                LearningPathAnalyticsDto.builder()
+
+                                        .learningPathId(
+                                                progress.getLearningPath().getId().toString()
+                                        )
+
+                                        .learningPathTitle(
+                                                progress.getLearningPath().getTitle()
+                                        )
+
+                                        .completionPercentage(
+                                                progress.getCompletionPercentage()
+                                        )
+
+                                        .quizzesTaken(
+                                                progress.getQuizzesTaken()
+                                        )
+
+                                        .minutesSpent(
+                                                progress.getMinutesSpent()
+                                        )
+
+                                        .averageQuizScore(
+                                                progress.getAverageQuizScore()
+                                        )
 
                                         .build()
 
@@ -320,6 +358,7 @@ public class AnalyticsService {
 
                 .weeklyActivity(weeklyActivity)
                 .topicAnalytics(topicAnalytics)
+                .learningPathAnalytics(learningPathAnalytics)
                 .recentQuizScores(recentQuizScores)
                 .weakAreas(weakAreas)
                 .hasWeakAreas(!weakAreas.isEmpty())
@@ -339,18 +378,29 @@ public class AnalyticsService {
 
     }
 
+    private String getQuizTitle(Quiz quiz) {
+
+        if (quiz.getSource() == QuizSource.TOPIC) {
+            return quiz.getTopic().getName();
+        }
+
+        return quiz.getLearningPath().getTitle()
+                + " - Week "
+                + quiz.getWeekNumber();
+
+    }
+
     private QuizScoreDto buildQuizScore(Quiz quiz) {
 
         BigDecimal percentage =
-                quiz.getMaxScore() == 0
-                        ? BigDecimal.ZERO
-                        : BigDecimal.valueOf(
-                        ((double) quiz.getScore() / quiz.getMaxScore()) * 100
-                ).setScale(2, RoundingMode.HALF_UP);
+                AnalyticsUtils.calculatePercentage(
+                        quiz.getScore(),
+                        quiz.getMaxScore()
+                );
 
         return QuizScoreDto.builder()
                 .quizId(quiz.getId().toString())
-                .topicName(quiz.getTopic().getName())
+                .topicName(getQuizTitle(quiz))
                 .score(quiz.getScore())
                 .maxScore(quiz.getMaxScore())
                 .percentage(percentage)
@@ -362,15 +412,14 @@ public class AnalyticsService {
     private LastQuizDto buildLastQuiz(Quiz quiz) {
 
         BigDecimal percentage =
-                quiz.getMaxScore() == 0
-                        ? BigDecimal.ZERO
-                        : BigDecimal.valueOf(
-                        ((double) quiz.getScore() / quiz.getMaxScore()) * 100
-                ).setScale(2, RoundingMode.HALF_UP);
+                AnalyticsUtils.calculatePercentage(
+                        quiz.getScore(),
+                        quiz.getMaxScore()
+                );
 
         return LastQuizDto.builder()
                 .quizId(quiz.getId().toString())
-                .topicName(quiz.getTopic().getName())
+                .topicName(getQuizTitle(quiz))
                 .score(quiz.getScore())
                 .maxScore(quiz.getMaxScore())
                 .percentage(percentage)
@@ -506,38 +555,5 @@ public class AnalyticsService {
 
     }
 
-    private List<WeeklyActivityDto> buildWeeklyActivity(
-            List<Progress> weeklyProgress
-    ) {
-
-        Map<DayOfWeek, Integer> activityMap = new LinkedHashMap<>();
-
-        for (DayOfWeek day : DayOfWeek.values()) {
-            activityMap.put(day, 0);
-        }
-
-        weeklyProgress.forEach(progress -> {
-
-            DayOfWeek day =
-                    progress.getLastActivityAt().getDayOfWeek();
-
-            activityMap.put(
-                    day,
-                    activityMap.get(day) + progress.getMinutesSpent()
-            );
-
-        });
-
-        return activityMap.entrySet()
-                .stream()
-                .map(entry ->
-                        WeeklyActivityDto.builder()
-                                .day(entry.getKey().name().substring(0, 3))
-                                .minutes(entry.getValue())
-                                .build()
-                )
-                .toList();
-
-    }
 }
 

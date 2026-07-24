@@ -18,6 +18,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.project.skillforgebackend.learningpath.dto.UpdateWeekCompletionRequest;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -37,17 +41,12 @@ public class LearningPathService {
             User user
     ) {
 
-        String roadmapJson = aiService.generateLearningPath(
-                request.getTitle(),
-                request.getGoal(),
-                request.getSkillLevel().name(),
-                request.getWeeklyHours(),
-                request.getDurationWeeks()
-        );
-
         JsonNode roadmap =
-                parseAndValidateRoadmap(
-                        roadmapJson,
+                generateRoadmap(
+                        request.getTitle(),
+                        request.getGoal(),
+                        request.getSkillLevel().name(),
+                        request.getWeeklyHours(),
                         request.getDurationWeeks()
                 );
 
@@ -64,7 +63,6 @@ public class LearningPathService {
                         .status(LearningPathStatus.ACTIVE)
                         .build();
 
-        learningPath.setRoadmapJson(roadmap);
         LearningPath saved =
                 learningPathRepository.save(learningPath);
 
@@ -90,14 +88,10 @@ public class LearningPathService {
     ) {
 
         LearningPath learningPath =
-                learningPathRepository
-                        .findByIdAndUser(learningPathId, user)
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException(
-                                        "Learning Path",
-                                        learningPathId
-                                )
-                        );
+                findLearningPath(
+                        learningPathId,
+                        user
+                );
 
         return learningPathMapper.toDto(learningPath);
     }
@@ -109,32 +103,24 @@ public class LearningPathService {
     ) {
 
         LearningPath learningPath =
-                learningPathRepository
-                        .findByIdAndUser(
-                                learningPathId,
-                                user
-                        )
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException(
-                                        "Learning Path",
-                                        learningPathId
-                                )
-                        );
+                findLearningPath(
+                        learningPathId,
+                        user
+                );
 
         /*
          * Update metadata
          */
-        learningPath.setTitle(request.getTitle());
-        learningPath.setGoal(request.getGoal());
-        learningPath.setSkillLevel(request.getSkillLevel());
-        learningPath.setWeeklyHours(request.getWeeklyHours());
-        learningPath.setDurationWeeks(request.getDurationWeeks());
+        updateMetadata(
+                learningPath,
+                request
+        );
 
         /*
          * Regenerate roadmap using updated values
          */
-        String roadmapJson =
-                aiService.generateLearningPath(
+        JsonNode roadmap =
+                generateRoadmap(
                         request.getTitle(),
                         request.getGoal(),
                         request.getSkillLevel().name(),
@@ -142,13 +128,6 @@ public class LearningPathService {
                         request.getDurationWeeks()
                 );
 
-        JsonNode roadmap =
-                parseAndValidateRoadmap(
-                        roadmapJson,
-                        request.getDurationWeeks()
-                );
-
-        learningPath.setRoadmapJson(roadmap);
 
         LearningPath updated =
                 learningPathRepository.save(learningPath);
@@ -164,14 +143,10 @@ public class LearningPathService {
     ) {
 
         LearningPath learningPath =
-                learningPathRepository
-                        .findByIdAndUser(learningPathId, user)
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException(
-                                        "Learning Path",
-                                        learningPathId
-                                )
-                        );
+                findLearningPath(
+                        learningPathId,
+                        user
+                );
 
         learningPath.setStatus(status);
 
@@ -191,22 +166,138 @@ public class LearningPathService {
         return learningPathMapper.toDto(updated);
     }
 
+    public LearningPathDto updateWeekCompletion(
+            UUID learningPathId,
+            Integer weekNumber,
+            UpdateWeekCompletionRequest request,
+            User user
+    ) {
+
+        LearningPath learningPath =
+                findLearningPath(
+                        learningPathId,
+                        user
+                );
+
+        ObjectNode roadmap =
+                (ObjectNode) learningPath.getRoadmapJson();
+
+        ArrayNode weeks =
+                (ArrayNode) roadmap.get("weeks");
+
+        boolean weekFound = false;
+
+        for (JsonNode weekNode : weeks) {
+
+            ObjectNode week = (ObjectNode) weekNode;
+
+            if (week.get("week").asInt() == weekNumber) {
+
+                week.put(
+                        "completed",
+                        request.getCompleted()
+                );
+
+                weekFound = true;
+                break;
+            }
+        }
+
+        if (!weekFound) {
+
+            throw new ResourceNotFoundException(
+                    "Week",
+                    weekNumber
+            );
+
+        }
+
+
+        updateLearningPathStatus(learningPath);
+
+        LearningPath updated =
+                learningPathRepository.save(learningPath);
+
+        return learningPathMapper.toDto(updated);
+
+    }
+
+    private void updateLearningPathStatus(
+            LearningPath learningPath
+    ) {
+
+        ObjectNode roadmap =
+                (ObjectNode) learningPath.getRoadmapJson();
+
+        ArrayNode weeks =
+                (ArrayNode) roadmap.get("weeks");
+
+        boolean allCompleted = true;
+
+        for (JsonNode weekNode : weeks) {
+
+            if (!weekNode.get("completed").asBoolean()) {
+
+                allCompleted = false;
+                break;
+
+            }
+
+        }
+
+        if (allCompleted) {
+
+            learningPath.setStatus(
+                    LearningPathStatus.COMPLETED
+            );
+
+            learningPath.setCompletedAt(
+                    LocalDateTime.now()
+            );
+
+        } else {
+
+            learningPath.setStatus(
+                    LearningPathStatus.ACTIVE
+            );
+
+            learningPath.setCompletedAt(null);
+
+        }
+
+    }
+
     public void deleteLearningPath(
             UUID learningPathId,
             User user
     ) {
 
         LearningPath learningPath =
-                learningPathRepository
-                        .findByIdAndUser(learningPathId, user)
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException(
-                                        "Learning Path",
-                                        learningPathId
-                                )
-                        );
+                findLearningPath(
+                        learningPathId,
+                        user
+                );
 
         learningPathRepository.delete(learningPath);
+    }
+
+    private LearningPath findLearningPath(
+            UUID learningPathId,
+            User user
+    ) {
+
+        return learningPathRepository
+                .findByIdAndUser(
+                        learningPathId,
+                        user
+                )
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Learning Path",
+                                learningPathId
+                        )
+                );
+
     }
 
     /**
@@ -325,6 +416,7 @@ public class LearningPathService {
 
     }
 
+
     /**
      * Validates that a JSON field exists and is not null.
      */
@@ -343,4 +435,43 @@ public class LearningPathService {
         }
 
     }
+
+    private JsonNode generateRoadmap(
+            String title,
+            String goal,
+            String skillLevel,
+            Integer weeklyHours,
+            Integer durationWeeks
+    ) {
+
+        String roadmapJson =
+                aiService.generateLearningPath(
+                        title,
+                        goal,
+                        skillLevel,
+                        weeklyHours,
+                        durationWeeks
+                );
+
+        return parseAndValidateRoadmap(
+                roadmapJson,
+                durationWeeks
+        );
+
+    }
+
+    private void updateMetadata(
+            LearningPath learningPath,
+            UpdateLearningPathRequest request
+    ) {
+
+        learningPath.setTitle(request.getTitle());
+        learningPath.setGoal(request.getGoal());
+        learningPath.setSkillLevel(request.getSkillLevel());
+        learningPath.setWeeklyHours(request.getWeeklyHours());
+        learningPath.setDurationWeeks(request.getDurationWeeks());
+
+    }
+
+
 }

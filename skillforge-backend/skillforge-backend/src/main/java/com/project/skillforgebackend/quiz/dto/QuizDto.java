@@ -1,6 +1,7 @@
 package com.project.skillforgebackend.quiz.dto;
 
 import com.project.skillforgebackend.quiz.entity.Quiz;
+import com.project.skillforgebackend.quiz.entity.QuizSource;
 import com.project.skillforgebackend.resource.entity.Resource;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,7 +19,7 @@ public class QuizDto {
 
     private String id;
 
-    private String topic;
+    private String title;
 
     private Resource.Difficulty difficulty;
 
@@ -36,4 +37,9 @@ public class QuizDto {
 
     private List<QuestionDto> questions;
 
+    private QuizSource source;
+
+    private String learningPathId;
+
+    private Integer weekNumber;
 }

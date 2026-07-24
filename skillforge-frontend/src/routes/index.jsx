@@ -41,6 +41,9 @@ const QuizResultPage = lazy(
 const LearningPathPage = lazy(
   () => import("@/features/learning-path/pages/LearningPathPage"),
 );
+const LearningPathDetailPage = lazy(
+  () => import("@/features/learning-path/pages/LearningPathDetailPage"),
+);
 
 const ProfilePage = lazy(() => import("@/features/profile/pages/ProfilePage"));
 
@@ -137,6 +140,11 @@ export const router = createBrowserRouter([
           {
             path: ROUTES.LEARNING_PATH,
             element: withSuspense(LearningPathPage),
+          },
+
+          {
+            path: ROUTES.LEARNING_PATH_DETAIL,
+            element: withSuspense(LearningPathDetailPage),
           },
 
           {
