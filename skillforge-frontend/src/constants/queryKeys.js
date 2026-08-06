@@ -12,7 +12,11 @@ export const QUERY_KEYS = {
 
   TOPICS: ["topics"],
 
+  PROFILE: ["profile"],
+
   BOOKMARKS: ["bookmarks"],
+
+  BOOKMARK_FOLDERS: ["bookmark-folders"],
 
   BOOKMARK_STATUS: (resourceId) => [
     "bookmark-status",

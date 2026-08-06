@@ -10,6 +10,11 @@ import ErrorBoundary from "@/components/common/ErrorBoundary";
 import "@/index.css";
 import "@/services/api/interceptors";
 
+import { useAuthStore } from "@/store/authStore";
+
+// Restore the session from the httpOnly refresh cookie (silent refresh)
+useAuthStore.getState().bootstrap();
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <ErrorBoundary>

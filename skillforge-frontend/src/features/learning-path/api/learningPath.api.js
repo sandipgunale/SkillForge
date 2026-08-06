@@ -5,32 +5,32 @@ export const learningPathApi = {
    * Get all learning paths
    */
   getLearningPaths: async () => {
-    const response = await apiClient.get("/learning-paths");
+    const { data } = await apiClient.get("/v1/learning-paths");
 
-    return response.data.data;
+    return data;
   },
 
   /**
    * Get learning path by id
    */
   getLearningPath: async (learningPathId) => {
-    const response = await apiClient.get(
-      `/learning-paths/${learningPathId}`
+    const { data } = await apiClient.get(
+      `/v1/learning-paths/${learningPathId}`
     );
 
-    return response.data.data;
+    return data;
   },
 
   /**
    * Create new learning path
    */
   createLearningPath: async (payload) => {
-    const response = await apiClient.post(
-      "/learning-paths",
+    const { data } = await apiClient.post(
+      "/v1/learning-paths",
       payload
     );
 
-    return response.data.data;
+    return data;
   },
 
   /**
@@ -40,12 +40,12 @@ export const learningPathApi = {
     learningPathId,
     payload
   ) => {
-    const response = await apiClient.put(
-      `/learning-paths/${learningPathId}`,
+    const { data } = await apiClient.put(
+      `/v1/learning-paths/${learningPathId}`,
       payload
     );
 
-    return response.data.data;
+    return data;
   },
 
   /**
@@ -55,8 +55,8 @@ export const learningPathApi = {
     learningPathId,
     status
   ) => {
-    const response = await apiClient.patch(
-      `/learning-paths/${learningPathId}/status`,
+    const { data } = await apiClient.patch(
+      `/v1/learning-paths/${learningPathId}/status`,
       null,
       {
         params: {
@@ -65,7 +65,7 @@ export const learningPathApi = {
       }
     );
 
-    return response.data.data;
+    return data;
   },
 
     /**
@@ -76,14 +76,14 @@ export const learningPathApi = {
     weekNumber,
     completed
   ) => {
-    const response = await apiClient.patch(
-      `/learning-paths/${learningPathId}/weeks/${weekNumber}`,
+    const { data } = await apiClient.patch(
+      `/v1/learning-paths/${learningPathId}/weeks/${weekNumber}`,
       {
         completed,
       }
     );
 
-    return response.data.data;
+    return data;
   },
 
   /**
@@ -92,11 +92,11 @@ export const learningPathApi = {
   deleteLearningPath: async (
     learningPathId
   ) => {
-    const response = await apiClient.delete(
-      `/learning-paths/${learningPathId}`
+    const { data } = await apiClient.delete(
+      `/v1/learning-paths/${learningPathId}`
     );
 
-    return response.data.data;
+    return data;
   },
 
   

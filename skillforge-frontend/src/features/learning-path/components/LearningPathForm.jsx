@@ -4,6 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function LearningPathForm({
   initialValues,
@@ -50,18 +57,25 @@ export default function LearningPathForm({
       <div>
         <Label>Skill Level</Label>
 
-        <select
+        <Select
           name="skillLevel"
           value={formData.skillLevel}
-          onChange={handleChange}
-          className="w-full rounded-md border px-3 py-2"
+          onValueChange={(value) =>
+            handleChange({ target: { name: "skillLevel", value } })
+          }
         >
-          <option value="BEGINNER">Beginner</option>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select Skill Level" />
+          </SelectTrigger>
 
-          <option value="INTERMEDIATE">Intermediate</option>
+          <SelectContent>
+            <SelectItem value="BEGINNER">Beginner</SelectItem>
 
-          <option value="ADVANCED">Advanced</option>
-        </select>
+            <SelectItem value="INTERMEDIATE">Intermediate</SelectItem>
+
+            <SelectItem value="ADVANCED">Advanced</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div>

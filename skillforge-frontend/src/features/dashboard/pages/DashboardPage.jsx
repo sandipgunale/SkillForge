@@ -7,21 +7,21 @@ import WeakAreasCard from "../components/WeakAreasCard";
 import DashboardSkeleton from "../skeletons/DashboardSkeleton";
 
 import { useDashboard } from "../hooks/useDashboard";
+
 import PageHeader from "@/components/common/PageHeader";
+import FadeIn from "@/components/common/FadeIn";
+
+import DashboardHero from "../components/DashboardHero";
+import RecommendationCard from "../components/RecommendationCard";
+import WeeklyActivityChart from "../components/WeeklyActivityChart";
 
 import QuizTrendChart from "../components/charts/QuizTrendChart";
 import TopicMasteryChart from "../components/charts/TopicMasteryChart";
 
 import InsightsCard from "../components/InsightsCard";
-
-import DashboardHero from "../components/DashboardHero";
-
-import WeeklyActivityChart from "../components/WeeklyActivityChart";
-
-import RecommendationCard from "../components/RecommendationCard";
 import TopicSummaryCard from "../components/TopicSummaryCard";
 
-import FadeIn from "@/components/common/FadeIn";
+import GamificationCard from "@/features/gamification/components/GamificationCard";
 
 export default function DashboardPage() {
   const { data, isLoading, isError } = useDashboard();
@@ -32,8 +32,12 @@ export default function DashboardPage() {
 
   if (isError) {
     return (
-      <div className="rounded-lg border border-red-500 p-6">
-        Failed to load dashboard.
+      <div className="rounded-xl border border-destructive bg-destructive/5 p-6 text-center">
+        <h2 className="text-lg font-semibold">Failed to load dashboard</h2>
+
+        <p className="mt-2 text-sm text-muted-foreground">
+          Please refresh the page or try again later.
+        </p>
       </div>
     );
   }
@@ -43,44 +47,67 @@ export default function DashboardPage() {
   return (
     <main className="space-y-10">
       <PageHeader
+        eyebrow="Your workspace"
         title="Dashboard"
-        description="Welcome back! Continue your learning journey."
+        description="A single view of your forge — momentum, mastery, and what's next."
       />
+
+      {/* HERO */}
 
       <FadeIn delay={0.1}>
         <DashboardHero analytics={data} />
       </FadeIn>
 
+      {/* STATS */}
+
+      <FadeIn delay={0.15}>
+        <StatsGrid analytics={data} />
+      </FadeIn>
+
+      {/* CONTINUE + AI */}
+
       <FadeIn delay={0.2}>
         <DashboardSection
-          title="Overview"
-          description="Track your learning progress."
+          title="Continue Learning"
+          description="Resume your progress and discover what to learn next."
         >
-          <StatsGrid analytics={data} />
+          <div className="grid gap-6 xl:grid-cols-2">
+            <ContinueLearningCard topic={continueLearning} />
 
-          <div className="grid gap-6 lg:grid-cols-2">
-            <QuizTrendChart quizzes={data.recentQuizScores} />
-
-            <TopicMasteryChart topics={data.topicAnalytics} />
+            <RecommendationCard recommendations={data.recommendations} />
           </div>
         </DashboardSection>
       </FadeIn>
 
+      {/* ANALYTICS */}
+
       <FadeIn delay={0.3}>
         <DashboardSection
-          title="Weekly Activity"
-          description="Track your daily learning consistency."
+          title="Learning Analytics"
+          description="Visualise your consistency and quiz performance."
         >
-          <WeeklyActivityChart data={data.weeklyActivity} />
+          <div className="grid gap-6 xl:grid-cols-2">
+            <WeeklyActivityChart data={data.weeklyActivity} />
+
+            <QuizTrendChart quizzes={data.recentQuizScores} />
+          </div>
         </DashboardSection>
       </FadeIn>
 
+      {/* INSIGHTS */}
+
       <FadeIn delay={0.4}>
         <DashboardSection
-          title="Performance Highlights"
-          description="Your strongest and weakest learning areas."
+          title="Performance Insights"
+          description="Understand your strengths and opportunities."
         >
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-6 xl:grid-cols-2">
+            <TopicMasteryChart topics={data.topicAnalytics} />
+
+            <InsightsCard analytics={data} />
+          </div>
+
+          <div className="mt-6 grid gap-6 xl:grid-cols-2">
             <TopicSummaryCard
               title="Best Performing Topic"
               topic={data.bestTopic}
@@ -96,31 +123,22 @@ export default function DashboardPage() {
         </DashboardSection>
       </FadeIn>
 
+      {/* TIMELINE + IMPROVEMENT */}
+
       <FadeIn delay={0.5}>
         <DashboardSection
-          title="Learning"
-          description="Continue your learning journey."
+          title="Learning Journey"
+          description="Track your recent progress and improve weaker areas."
         >
-          <div className="grid gap-6 lg:grid-cols-2">
-            <ContinueLearningCard topic={continueLearning} />
-
+          <div className="grid gap-6 xl:grid-cols-2">
             <RecentQuizList quizzes={data.recentQuizScores} />
+
+            <WeakAreasCard weakAreas={data.weakAreas} />
           </div>
 
-          <div className="mt-6 grid gap-6 lg:grid-cols-2">
-            <RecommendationCard recommendations={data.recommendations} />
-
-            <InsightsCard analytics={data} />
+          <div className="mt-6">
+            <GamificationCard />
           </div>
-        </DashboardSection>
-      </FadeIn>
-
-      <FadeIn delay={0.6}>
-        <DashboardSection
-          title="Performance"
-          description="Areas that need attention."
-        >
-          <WeakAreasCard weakAreas={data.weakAreas} />
         </DashboardSection>
       </FadeIn>
     </main>

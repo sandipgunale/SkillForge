@@ -1,12 +1,16 @@
 package com.project.skillforgebackend.common.exception;
 
 
+import com.project.skillforgebackend.ai.exception.AIServiceException;
+import com.project.skillforgebackend.ai.guardrail.QuestionQuotaExceededException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.*;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.LocalDateTime;
@@ -28,16 +32,36 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
 
-        ApiError error = ApiError.builder()
-                .status(HttpStatus.CONFLICT.value())
-                .error(HttpStatus.CONFLICT.getReasonPhrase())
-                .message(ex.getMessage())
-                .path(request.getRequestURI())
-                .timestamp(LocalDateTime.now())
-                .build();
+        log.warn("Data integrity violation at {}: {}", request.getRequestURI(), ex.getMessage());
 
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(error);
+        return buildError(HttpStatus.CONFLICT,
+                "The operation conflicts with existing data",
+                request);
+    }
+
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<ApiError> handleDuplicateResource(
+            DuplicateResourceException ex,
+            HttpServletRequest request) {
+        return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiError> handleMissingParameter(
+            MissingServletRequestParameterException ex,
+            HttpServletRequest request) {
+        return buildError(HttpStatus.BAD_REQUEST,
+                "Required parameter '" + ex.getParameterName() + "' is missing",
+                request);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiError> handleUnreadableBody(
+            HttpMessageNotReadableException ex,
+            HttpServletRequest request) {
+        return buildError(HttpStatus.BAD_REQUEST,
+                "Request body is missing or malformed",
+                request);
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
@@ -61,11 +85,32 @@ public class GlobalExceptionHandler {
                 "Invalid email or password", request);
     }
 
+    @ExceptionHandler(RateLimitException.class)
+    public ResponseEntity<ApiError> handleRateLimit(
+            RateLimitException ex,
+            HttpServletRequest request) {
+        return buildError(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(QuestionQuotaExceededException.class)
+    public ResponseEntity<ApiError> handleQuestionQuota(
+            QuestionQuotaExceededException ex,
+            HttpServletRequest request) {
+        return buildError(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), request);
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiError> handleNotFound(
             ResourceNotFoundException ex,
             HttpServletRequest request) {
         return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(QuizExpiredException.class)
+    public ResponseEntity<ApiError> handleQuizExpired(
+            QuizExpiredException ex,
+            HttpServletRequest request) {
+        return buildError(HttpStatus.GONE, ex.getMessage(), request);
     }
 
     // Handles @Valid annotation failures
@@ -93,6 +138,32 @@ public class GlobalExceptionHandler {
                 .build();
 
         return ResponseEntity.badRequest().body(error);
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiError> handleIllegalState(
+            IllegalStateException ex,
+            HttpServletRequest request) {
+        return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiError> handleIllegalArgument(
+            IllegalArgumentException ex,
+            HttpServletRequest request) {
+        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(AIServiceException.class)
+    public ResponseEntity<ApiError> handleAiService(
+            AIServiceException ex,
+            HttpServletRequest request) {
+        // Log the upstream detail (raw model/API errors) server-side only —
+        // never leak internals to the client.
+        log.error("AI service error at {}: {}", request.getRequestURI(), ex.getMessage(), ex);
+        return buildError(HttpStatus.BAD_GATEWAY,
+                "The AI service is temporarily unavailable. Please try again later.",
+                request);
     }
 
     @ExceptionHandler(Exception.class)

@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from "react-router-dom";
+import { createBrowserRouter } from "react-router-dom";
 import { lazy, Suspense } from "react";
 
 import { ROUTES } from "@/constants/routes";
@@ -9,10 +9,13 @@ import RouteFallback from "./RouteFallback";
 
 import MainLayout from "@/layouts/MainLayout";
 import AuthLayout from "@/layouts/AuthLayout";
+import LandingLayout from "@/layouts/LandingLayout";
 
 import PageLoader from "@/components/common/PageLoader";
 
 import AppError from "@/components/common/AppError";
+
+import RequireRole from "@/components/common/RequireRole";
 
 /* -------------------------------------------------------------------------- */
 /*                               Lazy Loaded Pages                            */
@@ -38,6 +41,16 @@ const QuizResultPage = lazy(
   () => import("@/features/quiz/pages/QuizResultPage"),
 );
 
+const QuizHistoryPage = lazy(
+  () => import("@/features/quiz/pages/QuizHistoryPage"),
+);
+
+const AdminPage = lazy(() => import("@/features/admin/pages/AdminPage"));
+
+const InstructorPage = lazy(
+  () => import("@/features/instructor/pages/InstructorPage"),
+);
+
 const LearningPathPage = lazy(
   () => import("@/features/learning-path/pages/LearningPathPage"),
 );
@@ -51,8 +64,24 @@ const LoginPage = lazy(() => import("@/features/auth/pages/LoginPage"));
 
 const RegisterPage = lazy(() => import("@/features/auth/pages/RegisterPage"));
 
+const ForgotPasswordPage = lazy(
+  () => import("@/features/auth/pages/ForgotPasswordPage"),
+);
+
+const ResetPasswordPage = lazy(
+  () => import("@/features/auth/pages/ResetPasswordPage"),
+);
+
 const BookmarkPage = lazy(
   () => import("@/features/bookmark/pages/BookmarksPage"),
+);
+
+const AchievementsPage = lazy(
+  () => import("@/features/gamification/pages/AchievementsPage"),
+);
+
+const LandingPage = lazy(
+  () => import("@/features/landing/pages/LandingPage"),
 );
 
 /* -------------------------------------------------------------------------- */
@@ -71,7 +100,20 @@ const withSuspense = (Component) => (
 
 export const router = createBrowserRouter([
   // ------------------------------------------------------------------------
-  // Public Routes
+  // Public: Landing
+  // ------------------------------------------------------------------------
+  {
+    element: <LandingLayout />,
+    children: [
+      {
+        index: true,
+        element: withSuspense(LandingPage),
+      },
+    ],
+  },
+
+  // ------------------------------------------------------------------------
+  // Public Routes (auth)
   // ------------------------------------------------------------------------
   {
     element: <PublicRoute />,
@@ -86,6 +128,14 @@ export const router = createBrowserRouter([
           {
             path: ROUTES.REGISTER,
             element: withSuspense(RegisterPage),
+          },
+          {
+            path: ROUTES.FORGOT_PASSWORD,
+            element: withSuspense(ForgotPasswordPage),
+          },
+          {
+            path: ROUTES.RESET_PASSWORD,
+            element: withSuspense(ResetPasswordPage),
           },
         ],
       },
@@ -102,11 +152,6 @@ export const router = createBrowserRouter([
       {
         element: <MainLayout />,
         children: [
-          {
-            index: true,
-            element: <Navigate to={ROUTES.DASHBOARD} replace />,
-          },
-
           {
             path: ROUTES.DASHBOARD,
             element: withSuspense(DashboardPage),
@@ -138,6 +183,29 @@ export const router = createBrowserRouter([
           },
 
           {
+            path: ROUTES.QUIZ_HISTORY,
+            element: withSuspense(QuizHistoryPage),
+          },
+
+          {
+            path: ROUTES.ADMIN,
+            element: (
+              <RequireRole role="ADMIN">
+                {withSuspense(AdminPage)}
+              </RequireRole>
+            ),
+          },
+
+          {
+            path: ROUTES.INSTRUCTOR,
+            element: (
+              <RequireRole role="INSTRUCTOR">
+                {withSuspense(InstructorPage)}
+              </RequireRole>
+            ),
+          },
+
+          {
             path: ROUTES.LEARNING_PATH,
             element: withSuspense(LearningPathPage),
           },
@@ -154,6 +222,10 @@ export const router = createBrowserRouter([
           {
             path: ROUTES.BOOKMARKS,
             element: withSuspense(BookmarkPage),
+          },
+          {
+            path: ROUTES.ACHIEVEMENTS,
+            element: withSuspense(AchievementsPage),
           },
         ],
       },

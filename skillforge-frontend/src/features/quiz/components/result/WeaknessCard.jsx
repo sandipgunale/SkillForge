@@ -13,7 +13,7 @@ export default function WeaknessCard({ weaknesses }) {
           ) : (
             weaknesses.map((item) => (
               <div key={item} className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-orange-500" />
+                <AlertTriangle className="h-4 w-4 text-warning" />
 
                 {item}
               </div>

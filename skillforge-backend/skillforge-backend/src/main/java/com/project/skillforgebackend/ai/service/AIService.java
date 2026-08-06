@@ -16,6 +16,7 @@ import com.project.skillforgebackend.ai.prompt.QuizPromptBuilder;
 import com.project.skillforgebackend.ai.prompt.LearningPathPromptBuilder;
 import com.project.skillforgebackend.ai.prompt.EvaluationPromptBuilder;
 import com.project.skillforgebackend.ai.parser.LearningPathParser;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.List;
 
@@ -32,8 +33,11 @@ public class AIService {
     private final LearningPathParser learningPathParser;
     private final EvaluationPromptBuilder evaluationPromptBuilder;
 
+    @Value("${gemini.max-parse-retries:2}")
+    private int maxParseRetries;
+
     /**
-     * Generates quiz questions using OpenAI.
+     * Generates quiz questions via Gemini.
      */
     public List<Question> generateQuestions(
             String topicName,
@@ -47,26 +51,11 @@ public class AIService {
                 count,
                 types
         );
-        log.info("========== PROMPT ==========");
-        log.info(prompt);
-        log.info("============================");
-        String response = geminiClient.complete(prompt);
-        log.info("========== RAW GEMINI RESPONSE ==========");
-        log.info(response);
-        log.info("=========================================");
-        try {
 
-            return quizParser.parse(response);
-
-        } catch (Exception ex) {
-
-            log.error("Failed to parse generated questions.", ex);
-
-            throw new AIServiceException(
-                    "Failed to generate quiz questions.",
-                    ex
-            );
-        }
+        return completeWithParseRetry(
+                prompt,
+                "quiz questions"
+        );
     }
 
 
@@ -84,29 +73,54 @@ public class AIService {
                 types
         );
 
-        log.info("========== PROMPT ==========");
-        log.info(prompt);
-        log.info("============================");
+        return completeWithParseRetry(
+                prompt,
+                "learning path quiz"
+        );
+    }
 
-        String response = geminiClient.complete(prompt);
+    /**
+     * Schema validation retry loop: a malformed AI payload is not fatal —
+     * the same prompt is re-sent until it validates or the retry budget
+     * is exhausted. Transport/rate-limit failures are handled inside
+     * {@link GeminiClient} (model rotation), so only parse failures land
+     * here.
+     */
+    private List<Question> completeWithParseRetry(
+            String prompt,
+            String purpose
+    ) {
+        int attempts = Math.max(1, maxParseRetries + 1);
 
-        log.info("========== RAW GEMINI RESPONSE ==========");
-        log.info(response);
-        log.info("=========================================");
+        Exception lastFailure = null;
 
-        try {
+        for (int attempt = 1; attempt <= attempts; attempt++) {
 
-            return quizParser.parse(response);
+            String response = geminiClient.complete(prompt);
 
-        } catch (Exception ex) {
+            try {
 
-            throw new AIServiceException(
-                    "Failed to generate learning path quiz.",
-                    ex
-            );
+                return quizParser.parse(response);
 
+            } catch (Exception ex) {
+
+                lastFailure = ex;
+
+                log.warn(
+                        "Schema validation failed for {} (attempt {}/{}): {}",
+                        purpose,
+                        attempt,
+                        attempts,
+                        ex.getMessage()
+                );
+            }
         }
 
+        throw new AIServiceException(
+                "Failed to generate " + purpose
+                        + " after " + attempts + " attempts.",
+                lastFailure
+        );
     }
 
 
@@ -116,15 +130,10 @@ public class AIService {
     public QuizResultDto evaluateQuiz(Quiz quiz) {
 
         String prompt = evaluationPromptBuilder.build(quiz);
-        log.info("========== PROMPT ==========");
-        log.info(prompt);
-        log.info("============================");
         String response = geminiClient.complete(prompt);
-        log.info("Raw OpenAI Response:\n{}", response);
         try {
 
             return evaluationParser.parse(response, quiz);
-
 
         } catch (Exception ex) {
 
@@ -153,13 +162,7 @@ public class AIService {
                 durationWeeks
         );
 
-        log.info("========== PROMPT ==========");
-        log.info(prompt);
-        log.info("============================");
-
         String response = geminiClient.complete(prompt);
-
-        log.info("Raw Gemini Response:\n{}", response);
 
         try {
 

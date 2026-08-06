@@ -10,8 +10,16 @@ const types = [
     label: "Article",
   },
   {
-    value: "PDF",
-    label: "PDF",
+    value: "DOCS",
+    label: "Documentation",
+  },
+  {
+    value: "BOOK",
+    label: "Book",
+  },
+  {
+    value: "COURSE",
+    label: "Course",
   },
 ];
 

@@ -6,7 +6,7 @@ import { QUERY_KEYS } from "@/constants/queryKeys";
 
 export function useQuiz(quizId, enabled = true) {
   return useQuery({
-    queryKey: [...QUERY_KEYS.QUIZ, quizId],
+    queryKey: QUERY_KEYS.QUIZ(quizId),
 
     queryFn: () => quizApi.getQuiz(quizId),
 

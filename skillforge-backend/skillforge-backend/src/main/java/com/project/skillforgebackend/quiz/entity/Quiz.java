@@ -78,8 +78,16 @@ public class Quiz {
     @Column(name = "started_at", nullable = false)
     private LocalDateTime startedAt;
 
+    @Column(name = "expires_at")
+    private LocalDateTime expiresAt;
+
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
+
+    public boolean isExpired() {
+        return expiresAt != null
+                && LocalDateTime.now().isAfter(expiresAt);
+    }
 
     @PrePersist
     public void onCreate() {

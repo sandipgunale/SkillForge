@@ -19,6 +19,7 @@ public class CreateLearningPathRequest {
     @Size(max = 200)
     private String title;
 
+    @NotBlank(message = "Goal is required.")
     @Size(max = 300)
     private String goal;
 

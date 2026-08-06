@@ -1,63 +1,117 @@
-import { Clock3, BrainCircuit, Trophy, BookOpen } from "lucide-react";
+import {
+  Clock3,
+  BrainCircuit,
+  Trophy,
+  BookOpen,
+  TrendingUp,
+} from "lucide-react";
+import { motion } from "framer-motion";
 
+import CountUp from "@/components/common/CountUp";
 import { Card, CardContent } from "@/components/ui/card";
+import { staggerList, staggerListItem } from "@/lib/motion";
 
-const stats = (analytics) => [
+const stats = [
   {
     title: "Study Time",
-    value: analytics.studyHours,
+    value: (an) => {
+      const hours = (an.totalLearningMinutes ?? 0) / 60;
+
+      return (
+        <>
+          <CountUp to={hours} decimals={hours % 1 !== 0 ? 1 : 0} />
+          <span className="text-xl font-semibold text-muted-foreground">h</span>
+        </>
+      );
+    },
+    subtitle: "Keep building consistency",
     icon: Clock3,
-    color: "text-blue-500",
-    bg: "bg-blue-500/10",
+    color: "text-info",
+    bg: "bg-info/10",
   },
   {
-    title: "Health Score",
-    value: `${analytics.learningHealthScore}/100`,
+    title: "Learning Health",
+    value: (an) => (
+      <>
+        <CountUp to={an.learningHealthScore} />
+        <span className="text-xl font-semibold text-muted-foreground">
+          /100
+        </span>
+      </>
+    ),
+    subtitle: "Overall learning score",
     icon: BrainCircuit,
-    color: "text-green-500",
-    bg: "bg-green-500/10",
+    color: "text-success",
+    bg: "bg-success/10",
   },
   {
     title: "Average Score",
-    value: `${analytics.overallAverageScore}%`,
+    value: (an) => (
+      <>
+        <CountUp to={an.overallAverageScore} />
+        <span className="text-xl font-semibold text-muted-foreground">%</span>
+      </>
+    ),
+    subtitle: "Across all quizzes",
     icon: Trophy,
-    color: "text-yellow-500",
-    bg: "bg-yellow-500/10",
+    color: "text-warning",
+    bg: "bg-warning/10",
   },
   {
     title: "Topics Started",
-    value: analytics.totalTopicsStarted,
+    value: (an) => <CountUp to={an.totalTopicsStarted} />,
+    subtitle: "Topics explored",
     icon: BookOpen,
-    color: "text-purple-500",
-    bg: "bg-purple-500/10",
+    color: "text-chart-3",
+    bg: "bg-chart-3/10",
   },
 ];
 
 export default function StatsGrid({ analytics }) {
   return (
-    <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-      {stats(analytics).map((item) => {
+    <motion.section
+      variants={staggerList(0.08)}
+      initial="hidden"
+      animate="visible"
+      className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4"
+    >
+      {stats.map((item) => {
         const Icon = item.icon;
 
         return (
-          <Card
-            key={item.title}
-            className="transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-          >
-            <CardContent className="flex items-center justify-between p-6">
-              <div>
-                <p className="text-sm text-muted-foreground">{item.title}</p>
+          <motion.div key={item.title} variants={staggerListItem}>
+            <Card className="group overflow-hidden border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+              <CardContent className="relative p-6">
+                <div className="absolute right-4 top-4 opacity-10 transition-all duration-300 group-hover:scale-125">
+                  <TrendingUp className="h-14 w-14" />
+                </div>
 
-                <h2 className="mt-2 text-3xl font-bold">{item.value}</h2>
-              </div>
+                <div className="flex items-start justify-between">
+                  <div
+                    className={`rounded-xl p-3 transition-transform duration-300 group-hover:scale-110 ${item.bg}`}
+                  >
+                    <Icon className={`h-6 w-6 ${item.color}`} />
+                  </div>
+                </div>
 
-              <div className={`rounded-xl p-4 ${item.bg}`}>
-                <Icon className={`h-7 w-7 ${item.color}`} />
-              </div>
-            </CardContent>
-          </Card>
+                <div className="mt-6">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {item.title}
+                  </p>
+
+                  <h2 className="mt-2 text-4xl font-extrabold tracking-tight">
+                    {item.value(analytics)}
+                  </h2>
+
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {item.subtitle}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         );
       })}
-    </div>
+    </motion.section>
   );
 }

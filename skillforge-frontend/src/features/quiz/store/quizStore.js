@@ -4,133 +4,93 @@ import { persist } from "zustand/middleware";
 export const useQuizStore = create(
   persist(
     (set, get) => ({
-      /*
-       * ==========================
-       * State
-       * ==========================
-       */
-
       quiz: null,
-
-      currentQuestion: 0,
 
       answers: {},
 
+      currentQuestion: 0,
+
       remainingTime: 0,
 
-      submitting: false,
-
-      /*
-       * ==========================
-       * Quiz
-       * ==========================
-       */
+      quizEndsAt: null,
 
       setQuiz: (quiz) =>
         set({
           quiz,
           currentQuestion: 0,
           answers: {},
+          remainingTime: 0,
+          quizEndsAt: null,
         }),
+
+      answerQuestion: (questionId, answer) =>
+        set((state) => ({
+          answers: {
+            ...state.answers,
+            [questionId]: answer,
+          },
+        })),
+
+      setCurrentQuestion: (index) =>
+        set((state) => {
+          const total =
+            state.quiz?.questions?.length ?? 0;
+
+          return {
+            currentQuestion: Math.max(
+              0,
+              Math.min(index, total - 1)
+            ),
+          };
+        }),
+
+      startTimer: (seconds) => {
+        const endsAt =
+          Date.now() + seconds * 1000;
+
+        set({
+          quizEndsAt: endsAt,
+          remainingTime: seconds,
+        });
+      },
+
+      tick: () => {
+        const { quizEndsAt } = get();
+
+        if (!quizEndsAt) return;
+
+        const remaining = Math.max(
+          0,
+          Math.floor(
+            (quizEndsAt - Date.now()) / 1000
+          )
+        );
+
+        set({
+          remainingTime: remaining,
+        });
+      },
 
       resetQuiz: () =>
         set({
           quiz: null,
+          answers: {},
           currentQuestion: 0,
-          answers: {},
           remainingTime: 0,
-          submitting: false,
-        }),
-
-      /*
-       * ==========================
-       * Navigation
-       * ==========================
-       */
-
-      setCurrentQuestion: (index) => {
-        const quiz = get().quiz;
-
-        if (!quiz) return;
-
-        const maxIndex = quiz.questions.length - 1;
-
-        set({
-          currentQuestion: Math.max(
-            0,
-            Math.min(index, maxIndex)
-          ),
-        });
-      },
-
-      /*
-       * ==========================
-       * Answers
-       * ==========================
-       */
-
-      answerQuestion: (questionId, answer) =>
-        set((state) => {
-          if (state.answers[questionId] === answer) {
-            return state;
-          }
-
-          return {
-            answers: {
-              ...state.answers,
-              [questionId]: answer,
-            },
-          };
-        }),
-
-      clearAnswers: () =>
-        set({
-          answers: {},
-        }),
-
-      /*
-       * ==========================
-       * Timer
-       * ==========================
-       */
-
-      startTimer: (seconds) =>
-        set({
-          remainingTime: seconds,
-        }),
-
-      tick: () =>
-        set((state) => ({
-          remainingTime: Math.max(
-            0,
-            state.remainingTime - 1
-          ),
-        })),
-
-      setRemainingTime: (seconds) =>
-        set({
-          remainingTime: Math.max(0, seconds),
-        }),
-
-      /*
-       * ==========================
-       * Submission
-       * ==========================
-       */
-
-      setSubmitting: (value) =>
-        set({
-          submitting: value,
+          quizEndsAt: null,
         }),
     }),
     {
-      name: "skillforge-quiz-store",
+      name: "quiz-storage",
 
       partialize: (state) => ({
         quiz: state.quiz,
-        currentQuestion: state.currentQuestion,
         answers: state.answers,
-        remainingTime: state.remainingTime,
+        currentQuestion:
+          state.currentQuestion,
+        remainingTime:
+          state.remainingTime,
+        quizEndsAt: state.quizEndsAt,
       }),
     }
   )

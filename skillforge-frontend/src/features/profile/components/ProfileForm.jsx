@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { profileSchema, defaultProfileValues } from "../schemas/profile.schema";
@@ -12,6 +12,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function ProfileForm() {
   const { data: user, isLoading } = useProfile();
@@ -20,6 +28,7 @@ export default function ProfileForm() {
 
   const {
     register,
+    control,
     reset,
     handleSubmit,
     formState: { errors },
@@ -48,7 +57,23 @@ export default function ProfileForm() {
   };
 
   if (isLoading) {
-    return <div className="flex justify-center py-20">Loading profile...</div>;
+    return (
+      <Card className="shadow-lg">
+        <CardContent className="space-y-4 p-6">
+          <Skeleton className="h-8 w-1/3" />
+
+          <Skeleton className="h-4 w-2/3" />
+
+          <Skeleton className="h-10 w-full" />
+
+          <Skeleton className="h-10 w-full" />
+
+          <Skeleton className="h-10 w-full" />
+
+          <Skeleton className="h-10 w-full" />
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
@@ -69,7 +94,7 @@ export default function ProfileForm() {
             <Input {...register("fullName")} />
 
             {errors.fullName && (
-              <p className="text-sm text-red-500">{errors.fullName.message}</p>
+              <p className="text-sm text-destructive">{errors.fullName.message}</p>
             )}
           </div>
 
@@ -94,15 +119,28 @@ export default function ProfileForm() {
           <div className="space-y-2">
             <Label>Skill Level</Label>
 
-            <select
-              {...register("skillLevel")}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            >
-              <option value="">Select Skill Level</option>
-              <option value="BEGINNER">Beginner</option>
-              <option value="INTERMEDIATE">Intermediate</option>
-              <option value="ADVANCED">Advanced</option>
-            </select>
+            <Controller
+              name="skillLevel"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  value={field.value || null}
+                  onValueChange={field.onChange}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Skill Level" />
+                  </SelectTrigger>
+
+                  <SelectContent>
+                    <SelectItem value="BEGINNER">Beginner</SelectItem>
+
+                    <SelectItem value="INTERMEDIATE">Intermediate</SelectItem>
+
+                    <SelectItem value="ADVANCED">Advanced</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
 
           <Button

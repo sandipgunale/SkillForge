@@ -13,6 +13,12 @@ export const authService = {
   refresh: () =>
     api.post("/auth/refresh").then((res) => res.data),
 
+  forgotPassword: (data) =>
+    api.post("/auth/forgot-password", data).then((res) => res.data),
+
+  resetPassword: (data) =>
+    api.post("/auth/reset-password", data).then((res) => res.data),
+
   getProfile: () =>
     api.get("/users/me").then((res) => res.data),
 

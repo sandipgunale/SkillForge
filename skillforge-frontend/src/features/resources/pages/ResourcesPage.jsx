@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 import PageContainer from "@/components/common/PageContainer";
 import PageHeader from "@/components/common/PageHeader";
@@ -33,6 +33,7 @@ export default function ResourcesPage() {
     useResources(queryFilters);
 
   const { data: topics = [], isLoading: topicsLoading } = useTopics();
+
   const handlePageChange = useCallback(
     (page) => {
       updateFilter("page", page);
@@ -62,7 +63,7 @@ export default function ResourcesPage() {
     page = 0,
     totalPages = 0,
     totalElements = 0,
-    pageSize = 12,
+    size = 12,
   } = data ?? {};
 
   return (
@@ -75,11 +76,11 @@ export default function ResourcesPage() {
       <section className="mb-8">
         <FilterBar
           filters={filters}
-          updateFilter={updateFilter}
-          resetFilters={resetFilters}
           topics={topics}
           topicsLoading={topicsLoading}
           isSearching={isFetching}
+          onFilterChange={updateFilter}
+          onReset={resetFilters}
         />
       </section>
 
@@ -98,7 +99,7 @@ export default function ResourcesPage() {
         page={page}
         totalPages={totalPages}
         totalElements={totalElements}
-        pageSize={pageSize}
+        pageSize={size}
         isLoading={isFetching}
         onPageChange={handlePageChange}
       />

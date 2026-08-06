@@ -3,6 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import { quizSetupSchema } from "../schemas/quizSetup.schema";
 import { useGenerateQuiz } from "../hooks/useGenerateQuiz";
+import { getQuizDurationSeconds } from "../constants/quiz.constants";
 import { useTopics } from "@/features/resources/hooks/useTopics";
 import { useLearningPaths } from "@/features/learning-path/hooks/useLearningPaths";
 
@@ -23,7 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export default function QuizSetupForm() {
+export default function QuizSetupForm({ preselection = {} }) {
   const { data: topics = [] } = useTopics();
 
   const { data: learningPaths = [] } = useLearningPaths();
@@ -41,10 +42,10 @@ export default function QuizSetupForm() {
     resolver: zodResolver(quizSetupSchema),
 
     defaultValues: {
-      source: "TOPIC",
-      topicId: "",
-      learningPathId: "",
-      weekNumber: 1,
+      source: preselection.source ?? "TOPIC",
+      topicId: preselection.topicId ?? "",
+      learningPathId: preselection.learningPathId ?? "",
+      weekNumber: preselection.weekNumber ?? 1,
       difficulty: "BEGINNER",
       questionCount: 10,
       questionTypes: ["MCQ"],
@@ -63,7 +64,9 @@ export default function QuizSetupForm() {
     (path) => path.id === selectedLearningPathId,
   );
 
-  const estimatedMinutes = Math.ceil(questionCount * 1.5);
+  const estimatedMinutes = Math.ceil(
+    getQuizDurationSeconds(questionCount) / 60,
+  );
 
   const onSubmit = (values) => {
     const payload = {
@@ -138,7 +141,7 @@ export default function QuizSetupForm() {
             />
 
             {errors.topicId && (
-              <p className="text-sm text-red-500">{errors.topicId.message}</p>
+              <p className="text-sm text-destructive">{errors.topicId.message}</p>
             )}
           </div>
         )}
@@ -170,7 +173,7 @@ export default function QuizSetupForm() {
             />
 
             {errors.learningPathId && (
-              <p className="text-sm text-red-500">
+              <p className="text-sm text-destructive">
                 {errors.learningPathId.message}
               </p>
             )}
@@ -212,7 +215,7 @@ export default function QuizSetupForm() {
             />
 
             {errors.weekNumber && (
-              <p className="text-sm text-red-500">
+              <p className="text-sm text-destructive">
                 {errors.weekNumber.message}
               </p>
             )}
@@ -303,7 +306,7 @@ export default function QuizSetupForm() {
           </ToggleGroup>
 
           {errors.questionTypes && (
-            <p className="text-sm text-red-500">
+            <p className="text-sm text-destructive">
               {errors.questionTypes.message}
             </p>
           )}

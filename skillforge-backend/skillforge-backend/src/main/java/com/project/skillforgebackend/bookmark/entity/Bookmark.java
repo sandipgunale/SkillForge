@@ -54,6 +54,13 @@ public class Bookmark {
     private Resource resource;
 
     /**
+     * Optional folder the bookmark belongs to.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "folder_id")
+    private BookmarkFolder folder;
+
+    /**
      * Bookmark creation timestamp.
      */
     @Column(

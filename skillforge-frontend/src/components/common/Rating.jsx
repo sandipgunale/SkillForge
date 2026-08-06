@@ -12,7 +12,7 @@ export default function Rating({ value = 0, size = 16, showValue = true }) {
             size={size}
             className={
               star <= rounded
-                ? "fill-yellow-500 text-yellow-500"
+                ? "fill-warning text-warning"
                 : "text-muted-foreground"
             }
           />

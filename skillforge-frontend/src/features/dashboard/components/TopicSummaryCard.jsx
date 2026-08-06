@@ -15,7 +15,8 @@ export default function TopicSummaryCard({ title, topic, variant = "best" }) {
 
   const Icon = variant === "best" ? Trophy : TrendingDown;
 
-  const iconColor = variant === "best" ? "text-yellow-500" : "text-orange-500";
+  const iconColor =
+    variant === "best" ? "text-success" : "text-warning";
 
   return (
     <Card className="shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">

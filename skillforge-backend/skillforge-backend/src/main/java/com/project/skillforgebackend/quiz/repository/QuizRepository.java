@@ -7,6 +7,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -53,6 +55,38 @@ public interface QuizRepository extends JpaRepository<Quiz, UUID>, JpaSpecificat
     long countByUserAndStatus(
             User user,
             Quiz.QuizStatus status
+    );
+
+    long countByStatus(
+            Quiz.QuizStatus status
+    );
+
+    Optional<Quiz> findTopByUserAndStatusOrderByStartedAtDesc(
+            User user,
+            Quiz.QuizStatus status
+    );
+
+    @Query("""
+            SELECT COUNT(q) > 0
+            FROM Quiz q
+            WHERE q.user = :user
+              AND q.status = :status
+              AND q.maxScore > 0
+              AND q.score = q.maxScore
+            """)
+    boolean existsPerfectScore(
+            @Param("user") User user,
+            @Param("status") Quiz.QuizStatus status
+    );
+
+    long countByUserAndStatusAndCompletedAtAfter(
+            User user,
+            Quiz.QuizStatus status,
+            java.time.LocalDateTime completedAtAfter
+    );
+
+    void deleteByLearningPath(
+            com.project.skillforgebackend.learningpath.entity.LearningPath learningPath
     );
 
 }

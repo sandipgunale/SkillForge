@@ -13,7 +13,7 @@ export default function StrengthCard({ strengths }) {
           ) : (
             strengths.map((item) => (
               <div key={item} className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <CheckCircle2 className="h-4 w-4 text-success" />
 
                 {item}
               </div>

@@ -1,5 +1,6 @@
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva } from "class-variance-authority";
+import { Children } from "react";
 
 import { cn } from "@/lib/utils"
 
@@ -44,13 +45,30 @@ function Button({
   className,
   variant = "default",
   size = "default",
+  asChild = false,
+  children,
   ...props
 }) {
+  const buttonClassName = cn(buttonVariants({ variant, size, className }));
+
+  if (asChild) {
+    return (
+      <ButtonPrimitive
+        data-slot="button"
+        className={buttonClassName}
+        nativeButton={false}
+        render={Children.only(children)}
+        {...props} />
+    );
+  }
+
   return (
     <ButtonPrimitive
       data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props} />
+      className={buttonClassName}
+      {...props}>
+      {children}
+    </ButtonPrimitive>
   );
 }
 

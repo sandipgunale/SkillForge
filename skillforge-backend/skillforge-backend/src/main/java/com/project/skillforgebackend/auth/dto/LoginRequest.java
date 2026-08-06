@@ -12,5 +12,8 @@ public class LoginRequest {
     private String email;
 
     @NotBlank(message = "Password is required")
+    @Size(max = 200, message = "Password is too long")
     private String password;
+
+    private boolean rememberMe;
 }

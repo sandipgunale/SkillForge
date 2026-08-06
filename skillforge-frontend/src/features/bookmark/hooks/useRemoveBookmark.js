@@ -17,6 +17,10 @@ export function useRemoveBookmark() {
       });
 
       queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.BOOKMARK_FOLDERS,
+      });
+
+      queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.BOOKMARK_STATUS(resourceId),
       });
 

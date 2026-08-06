@@ -1,56 +1,96 @@
-import { ArrowRight, BookOpen } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ArrowRight, BookOpen, Clock3, Trophy, PlayCircle } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+
 import AppCard from "@/components/common/AppCard";
 import EmptyState from "@/components/common/EmptyState";
 
+import { ROUTES } from "@/constants/routes";
+
 export default function ContinueLearningCard({ topic }) {
+  const navigate = useNavigate();
+
   if (!topic) {
     return (
       <EmptyState
-        title="No topic data"
-        description="Complete some quizzes to unlock analytics."
+        title="Nothing to continue"
+        description="Complete a quiz to unlock your personalised learning path."
       />
     );
   }
 
+  const progress = topic.completionPercentage ?? 0;
+
+  const resume = () => {
+    navigate(`${ROUTES.RESOURCES}?topicId=${encodeURIComponent(topic.topicId)}`);
+  };
+
   return (
-    <AppCard className="transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+    <AppCard className="group overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
       <CardContent className="space-y-6 p-6">
-        <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-primary/10 p-3 text-primary">
-            <BookOpen size={24} />
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-4">
+            <div className="rounded-2xl bg-primary/10 p-4 text-primary transition-transform duration-300 group-hover:scale-110">
+              <BookOpen className="h-7 w-7" />
+            </div>
+
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                Continue Learning
+              </p>
+
+              <h2 className="text-2xl font-bold">{topic.topicName}</h2>
+            </div>
           </div>
 
-          <div>
-            <h2 className="text-xl font-semibold">Continue Learning</h2>
+          <PlayCircle className="h-8 w-8 text-primary opacity-80" />
+        </div>
 
-            <p className="text-sm text-muted-foreground">
-              Pick up where you left off
-            </p>
+        <div className="rounded-xl border bg-muted/40 p-4">
+          <div className="mb-3 flex justify-between text-sm">
+            <span className="font-medium">Course Progress</span>
+
+            <span className="font-semibold">{progress}%</span>
+          </div>
+
+          <Progress value={progress} className="h-3" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="rounded-xl border p-4">
+            <div className="mb-2 flex items-center gap-2 text-muted-foreground">
+              <Clock3 className="h-4 w-4" />
+
+              <span className="text-sm">Study Time</span>
+            </div>
+
+            <p className="text-xl font-bold">{topic.minutesSpent} mins</p>
+          </div>
+
+          <div className="rounded-xl border p-4">
+            <div className="mb-2 flex items-center gap-2 text-muted-foreground">
+              <Trophy className="h-4 w-4" />
+
+              <span className="text-sm">Average Score</span>
+            </div>
+
+            <p className="text-xl font-bold">{topic.averageScore}%</p>
           </div>
         </div>
 
-        <div>
-          <h3 className="text-lg font-bold">{topic.topicName}</h3>
-
+        <div className="rounded-xl bg-primary/5 p-4">
           <p className="text-sm text-muted-foreground">
-            {topic.minutesSpent} minutes learned
+            Keep going! You're making consistent progress in this topic.
+            Completing it will improve your overall learning health.
           </p>
         </div>
 
-        <Progress value={topic.completionPercentage} className="h-3" />
-
-        <div className="flex items-center justify-between text-sm">
-          <span>{topic.completionPercentage}% Completed</span>
-
-          <span>Avg {topic.averageScore}%</span>
-        </div>
-
-        <Button className="w-full">
+        <Button className="w-full gap-2" size="lg" onClick={resume}>
           Resume Learning
-          <ArrowRight className="ml-2 h-4 w-4" />
+          <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
         </Button>
       </CardContent>
     </AppCard>

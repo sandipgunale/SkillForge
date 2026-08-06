@@ -1,26 +1,32 @@
-import { useState } from "react";
+import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-
-import { Eye, EyeOff, BookOpen } from "lucide-react";
 
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { loginSchema, defaultLoginValues } from "../schemas/login.schema";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useLogin } from "../hooks/useLogin";
 
-export default function LoginForm() {
-  const [showPassword, setShowPassword] = useState(false);
+import AuthCard from "./AuthCard";
+import AuthLogo from "./AuthLogo";
+import FloatingField from "./FloatingField";
+import AuthSubmitButton from "./AuthSubmitButton";
 
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+
+import { staggerList, staggerListItem } from "@/lib/motion";
+import { TYPOGRAPHY } from "@/lib/design-system";
+import { cn } from "@/lib/utils";
+
+import { ROUTES } from "@/constants/routes";
+
+export default function LoginForm() {
   const {
     register,
     control,
+    watch,
     handleSubmit,
     formState: { errors },
   } = useForm({
@@ -30,79 +36,68 @@ export default function LoginForm() {
 
   const loginMutation = useLogin();
 
+  const email = watch("email");
+  const password = watch("password");
+
+  const status = loginMutation.isPending
+    ? "loading"
+    : loginMutation.isSuccess
+      ? "success"
+      : "idle";
+
   const onSubmit = (data) => {
     loginMutation.mutate(data);
   };
 
   return (
-    <Card className="w-full border shadow-xl">
-      <CardContent className="space-y-8 p-8">
-        {/* Logo */}
+    <AuthCard>
+      <div className="space-y-8 p-8 sm:p-10">
+        {/* Header — breathing mark + editorial type */}
+        <motion.div
+          variants={staggerList(0.08)}
+          initial="hidden"
+          animate="visible"
+          className="flex flex-col items-center gap-4 text-center"
+        >
+          <motion.div variants={staggerListItem}>
+            <AuthLogo size="lg" showWordmark={false} />
+          </motion.div>
 
-        <div className="flex flex-col items-center gap-3">
-          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <BookOpen size={28} />
-          </div>
+          <motion.div variants={staggerListItem}>
+            <h1 className={TYPOGRAPHY.display}>Welcome back</h1>
 
-          <div className="text-center">
-            <h1 className="text-4xl font-bold">Welcome Back</h1>
-
-            <p className="mt-2 text-muted-foreground">
-              Login to continue learning
+            <p className={cn("mt-2", TYPOGRAPHY.subtitle)}>
+              Pick up where you left off — your momentum is waiting.
             </p>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Form */}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <FloatingField
+            id="email"
+            label="Email"
+            icon="mail"
+            type="email"
+            autoComplete="email"
+            field={register("email")}
+            error={errors.email?.message}
+            valid={!errors.email && email?.length > 0}
+          />
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* Email */}
+          <FloatingField
+            id="password"
+            label="Password"
+            icon="lock"
+            isPassword
+            autoComplete="current-password"
+            field={register("password")}
+            error={errors.password?.message}
+            valid={!errors.password && password?.length > 0}
+          />
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-
-            <Input
-              id="email"
-              type="email"
-              placeholder="Enter your email"
-              {...register("email")}
-            />
-
-            {errors.email && (
-              <p className="text-sm text-red-500">{errors.email.message}</p>
-            )}
-          </div>
-
-          {/* Password */}
-
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-
-            <div className="relative">
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="Enter password"
-                {...register("password")}
-              />
-
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-
-            {errors.password && (
-              <p className="text-sm text-red-500">{errors.password.message}</p>
-            )}
-          </div>
-
-          {/* Remember Me */}
-
-          <div className="flex items-center justify-between">
+          {/* Remember me / forgot */}
+          <div className="flex items-center justify-between pt-1">
             <div className="flex items-center gap-2">
               <Controller
                 name="rememberMe"
@@ -116,40 +111,41 @@ export default function LoginForm() {
                 )}
               />
 
-              <Label htmlFor="rememberMe">Remember me</Label>
+              <Label
+                htmlFor="rememberMe"
+                className="text-sm font-medium text-muted-foreground"
+              >
+                Remember me
+              </Label>
             </div>
 
-            <button
-              type="button"
-              className="text-sm text-primary hover:underline"
+            <Link
+              to={ROUTES.FORGOT_PASSWORD}
+              className={cn(TYPOGRAPHY.link, "text-sm font-semibold")}
             >
               Forgot Password?
-            </button>
+            </Link>
           </div>
 
-          {/* Login Button */}
-
-          <Button
-            type="submit"
-            className="h-11 w-full"
+          <AuthSubmitButton
+            status={status}
             disabled={loginMutation.isPending}
           >
-            {loginMutation.isPending ? "Signing In..." : "Sign In"}
-          </Button>
+            {loginMutation.isPending ? "Signing in" : "Sign In"}
+          </AuthSubmitButton>
         </form>
 
         {/* Footer */}
-
         <div className="text-center text-sm text-muted-foreground">
-          Don't have an account?{" "}
+          Don&apos;t have an account?{" "}
           <Link
-            to="/register"
-            className="font-semibold text-primary hover:underline"
+            to={ROUTES.REGISTER}
+            className={cn(TYPOGRAPHY.link, "font-bold")}
           >
             Create Account
           </Link>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </AuthCard>
   );
 }

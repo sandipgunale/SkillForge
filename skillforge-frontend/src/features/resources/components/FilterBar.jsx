@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 export default function FilterBar({
   filters,
   topics = [],
+  topicsLoading = false,
+  isSearching = false,
   onFilterChange,
   onReset,
 }) {
@@ -24,12 +26,14 @@ export default function FilterBar({
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <SearchBar
           value={filters.search}
+          isSearching={isSearching}
           onChange={(value) => onFilterChange("search", value)}
         />
 
         <TopicFilter
           value={filters.topicId}
           topics={topics}
+          isLoading={topicsLoading}
           onChange={(value) => onFilterChange("topicId", value)}
         />
 
@@ -52,6 +56,7 @@ export default function FilterBar({
         </p>
 
         <Button
+          type="button"
           variant="outline"
           onClick={onReset}
           disabled={!hasActiveFilters}

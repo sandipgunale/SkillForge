@@ -18,7 +18,10 @@ public class QuizAnswerMapper {
                 .stream()
                 .collect(Collectors.toMap(
                         SubmitAnswersRequest.AnswerItem::getQuestionId,
-                        SubmitAnswersRequest.AnswerItem::getAnswer
+                        item -> item.getAnswer() != null
+                                ? item.getAnswer()
+                                : "",
+                        (existing, replacement) -> existing
                 ));
     }
 

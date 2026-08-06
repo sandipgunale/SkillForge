@@ -14,9 +14,9 @@ import ResourceActionCard from "../components/detail/ResourceActionCard";
 import RelatedResources from "../components/detail/RelatedResources";
 
 export default function ResourceDetailPage() {
-  const { id } = useParams();
+  const { resourceId } = useParams();
 
-  const { data: resource, isLoading, isError, refetch } = useResource(id);
+  const { data: resource, isLoading, isError, refetch } = useResource(resourceId);
 
   if (isLoading) {
     return (

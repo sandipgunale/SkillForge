@@ -22,7 +22,7 @@ export default function EditLearningPathDialog({ learningPath }) {
     updateLearningPath.mutate(
       {
         learningPathId: learningPath.id,
-        learningPathData: formData,
+        payload: formData,
       },
       {
         onSuccess: () => {

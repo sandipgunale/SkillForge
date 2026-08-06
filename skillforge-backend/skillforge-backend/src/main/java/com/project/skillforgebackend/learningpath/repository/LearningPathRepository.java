@@ -42,4 +42,9 @@ public interface LearningPathRepository
             UUID id,
             User user
     );
+
+    long countByUserAndStatus(
+            User user,
+            LearningPathStatus status
+    );
 }

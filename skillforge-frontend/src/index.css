@@ -5,9 +5,29 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ==========================================================================
+   SkillForge Design System — "The Forge"
+   Identity: ember (energy / achievement) on deep ink (focus). Aurora for AI.
+   --------------------------------------------------------------------------
+   Token architecture: primitive -> semantic -> component
+   ========================================================================== */
+
 @theme inline {
     --font-heading: var(--font-sans);
     --font-sans: 'Geist Variable', sans-serif;
+
+    /* Brand */
+    --color-ember: var(--ember);
+    --color-ember-foreground: var(--ember-foreground);
+    --color-aurora: var(--aurora);
+    --color-aurora-foreground: var(--aurora-foreground);
+
+    /* Status */
+    --color-success: var(--success);
+    --color-warning: var(--warning);
+    --color-info: var(--info);
+
+    /* Semantic (shadcn-compatible) */
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -39,6 +59,8 @@
     --color-card: var(--card);
     --color-foreground: var(--foreground);
     --color-background: var(--background);
+
+    /* Radii */
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
     --radius-lg: var(--radius);
@@ -46,85 +68,572 @@
     --radius-2xl: calc(var(--radius) * 1.8);
     --radius-3xl: calc(var(--radius) * 2.2);
     --radius-4xl: calc(var(--radius) * 2.6);
+
+    /* Motion tokens */
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --duration-fast: 150ms;
+    --duration-base: 250ms;
+    --duration-slow: 450ms;
+    --duration-slower: 700ms;
+
+    /* Elevation — layered depth for the app workspace */
+    --shadow-elevated: 0 1px 2px color-mix(in oklch, var(--foreground) 4%, transparent),
+        0 8px 24px -8px color-mix(in oklch, var(--foreground) 10%, transparent);
+    --shadow-floating: 0 2px 4px color-mix(in oklch, var(--foreground) 5%, transparent),
+        0 16px 40px -16px color-mix(in oklch, var(--foreground) 18%, transparent);
+
+    /* Ambient animations */
+    --animate-aurora: aurora 18s ease-in-out infinite alternate;
+    --animate-float: float 7s ease-in-out infinite;
+    --animate-shimmer: shimmer 2.2s linear infinite;
+    --animate-ember-glow: ember-glow 4s ease-in-out infinite;
+    --animate-grid-drift: grid-drift 24s linear infinite;
+    --animate-scroll-dot: scroll-dot 2s ease-in-out infinite;
+    --animate-gradient-shift: gradient-shift 8s ease-in-out infinite;
+    --animate-float-subtle: float-subtle 9s ease-in-out infinite;
+    --animate-logo-breathe: logo-breathe 6s ease-in-out infinite;
 }
 
+/* ==========================================================================
+   Light theme — warm paper, ink text, ember primary
+   ========================================================================== */
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
+    --background: oklch(0.985 0.003 80);
+    --foreground: oklch(0.2 0.02 60);
+
     --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
+    --card-foreground: oklch(0.2 0.02 60);
+
     --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.2 0.02 60);
+
+    --primary: oklch(0.45 0.145 55);
+    --primary-foreground: oklch(0.99 0.005 60);
+
+    --secondary: oklch(0.955 0.008 70);
+    --secondary-foreground: oklch(0.26 0.03 60);
+
+    --muted: oklch(0.955 0.008 70);
+    --muted-foreground: oklch(0.5 0.02 65);
+
+    --accent: oklch(0.945 0.012 70);
+    --accent-foreground: oklch(0.3 0.04 55);
+
     --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    --destructive-foreground: oklch(0.985 0.005 60);
+
+    --border: oklch(0.9 0.01 70);
+    --input: oklch(0.9 0.01 70);
+    --ring: oklch(0.62 0.12 60);
+
+    --chart-1: oklch(0.55 0.15 55);    /* ember */
+    --chart-2: oklch(0.6 0.12 230);    /* aurora cyan */
+    --chart-3: oklch(0.55 0.15 285);   /* violet */
+    --chart-4: oklch(0.6 0.16 160);    /* verdant */
+    --chart-5: oklch(0.62 0.2 350);    /* rose */
+
+    --radius: 0.7rem;
+
+    --ember: oklch(0.45 0.145 55);
+    --ember-foreground: oklch(0.99 0.005 60);
+    --aurora: oklch(0.55 0.13 235);
+    --aurora-foreground: oklch(0.99 0.005 60);
+    --success: oklch(0.52 0.15 160);
+    --warning: oklch(0.6 0.16 75);
+    --info: oklch(0.55 0.13 235);
+
+    --sidebar: oklch(0.985 0.003 80);
+    --sidebar-foreground: oklch(0.2 0.02 60);
+    --sidebar-primary: oklch(0.45 0.145 55);
+    --sidebar-primary-foreground: oklch(0.99 0.005 60);
+    --sidebar-accent: oklch(0.945 0.012 70);
+    --sidebar-accent-foreground: oklch(0.3 0.04 55);
+    --sidebar-border: oklch(0.9 0.01 70);
+    --sidebar-ring: oklch(0.62 0.12 60);
+
+    /* Glass materials — frosted ceramic surfaces (light theme) */
+    --glass-tint: color-mix(in oklch, var(--card) 68%, transparent);
+    --glass-border: color-mix(in oklch, var(--foreground) 9%, transparent);
+    --glass-border-strong: color-mix(in oklch, var(--foreground) 11%, transparent);
+    --glass-edge: color-mix(in oklch, var(--foreground) 12%, transparent);
+    --glass-sheen: color-mix(in oklch, var(--foreground) 5%, transparent);
+    --glass-halo: color-mix(in oklch, var(--ember) 12%, transparent);
+    --glass-reflect: rgba(255, 255, 255, 0.08);
 }
 
+/* ==========================================================================
+   Dark theme — deep ink, warm surfaces, luminous ember
+   ========================================================================== */
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
+    --background: oklch(0.145 0.012 260);
+    --foreground: oklch(0.965 0.004 90);
+
+    --card: oklch(0.185 0.014 260);
+    --card-foreground: oklch(0.965 0.004 90);
+
+    --popover: oklch(0.185 0.014 260);
+    --popover-foreground: oklch(0.965 0.004 90);
+
+    --primary: oklch(0.78 0.16 65);
+    --primary-foreground: oklch(0.18 0.02 60);
+
+    --secondary: oklch(0.245 0.016 260);
+    --secondary-foreground: oklch(0.965 0.004 90);
+
+    --muted: oklch(0.245 0.016 260);
+    --muted-foreground: oklch(0.7 0.01 90);
+
+    --accent: oklch(0.265 0.018 260);
+    --accent-foreground: oklch(0.965 0.004 90);
+
     --destructive: oklch(0.704 0.191 22.216);
+    --destructive-foreground: oklch(0.985 0.005 60);
+
     --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --input: oklch(1 0 0 / 14%);
+    --ring: oklch(0.75 0.14 65);
+
+    --chart-1: oklch(0.78 0.16 65);    /* ember */
+    --chart-2: oklch(0.75 0.12 230);   /* aurora cyan */
+    --chart-3: oklch(0.7 0.16 285);    /* violet */
+    --chart-4: oklch(0.75 0.16 160);   /* verdant */
+    --chart-5: oklch(0.74 0.2 350);    /* rose */
+
+    --ember: oklch(0.78 0.16 65);
+    --ember-foreground: oklch(0.18 0.02 60);
+    --aurora: oklch(0.75 0.12 230);
+    --aurora-foreground: oklch(0.16 0.02 260);
+    --success: oklch(0.74 0.17 160);
+    --warning: oklch(0.82 0.14 75);
+    --info: oklch(0.75 0.12 230);
+
+    --sidebar: oklch(0.17 0.014 260);
+    --sidebar-foreground: oklch(0.965 0.004 90);
+    --sidebar-primary: oklch(0.78 0.16 65);
+    --sidebar-primary-foreground: oklch(0.18 0.02 60);
+    --sidebar-accent: oklch(0.245 0.016 260);
+    --sidebar-accent-foreground: oklch(0.965 0.004 90);
     --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --sidebar-ring: oklch(0.75 0.14 65);
+
+    /* Glass materials — frosted ceramic surfaces (dark theme) */
+    --glass-tint: color-mix(in oklch, var(--card) 58%, transparent);
+    --glass-border: color-mix(in oklch, var(--foreground) 12%, transparent);
+    --glass-border-strong: color-mix(in oklch, var(--foreground) 14%, transparent);
+    --glass-edge: color-mix(in oklch, var(--foreground) 18%, transparent);
+    --glass-sheen: color-mix(in oklch, var(--foreground) 6%, transparent);
+    --glass-halo: color-mix(in oklch, var(--ember) 10%, transparent);
+    --glass-reflect: rgba(255, 255, 255, 0.07);
 }
 
+/* ==========================================================================
+   Base
+   ========================================================================== */
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
+    * {
+        @apply border-border outline-ring/50;
     }
-  body {
-    @apply bg-background text-foreground;
+
+    html {
+        @apply font-sans antialiased;
+        scroll-behavior: smooth;
+        text-rendering: optimizeLegibility;
     }
-  html {
-    @apply font-sans;
+
+    body {
+        @apply bg-background text-foreground;
+        font-feature-settings: "cv11", "ss01";
+        transition:
+            background-color 600ms ease,
+            color 600ms ease;
+    }
+
+    /* Cinematic theme morph — surfaces, borders and cards follow the mood */
+    .glass,
+    .glass-strong,
+    .card {
+        transition:
+            background-color 600ms ease,
+            border-color 600ms ease,
+            box-shadow 600ms ease;
+    }
+
+    ::selection {
+        background: color-mix(in oklch, var(--ember) 25%, transparent);
+    }
+
+    /* Accessible focus for keyboard users */
+    :focus-visible {
+        outline: 2px solid var(--ring);
+        outline-offset: 2px;
+        border-radius: 4px;
+    }
+
+    /* Skip link */
+    .skip-link {
+        position: fixed;
+        top: -100%;
+        left: 1rem;
+        z-index: 100;
+        padding: 0.625rem 1rem;
+        border-radius: 999px;
+        background: var(--primary);
+        color: var(--primary-foreground);
+        font-weight: 600;
+        transition: top 150ms var(--ease-out-expo);
+    }
+
+    .skip-link:focus-visible {
+        top: 1rem;
+    }
+
+    /* Motion safety */
+    @media (prefers-reduced-motion: reduce) {
+        html {
+            scroll-behavior: auto;
+        }
+
+        *,
+        *::before,
+        *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+        }
+    }
+}
+
+/* ==========================================================================
+   Scrollbar
+   ========================================================================== */
+@layer base {
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in oklch, var(--foreground) 22%, transparent) transparent;
+    }
+
+    *::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    *::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    *::-webkit-scrollbar-thumb {
+        background: color-mix(in oklch, var(--foreground) 22%, transparent);
+        border-radius: 8px;
+    }
+
+    *::-webkit-scrollbar-thumb:hover {
+        background: color-mix(in oklch, var(--foreground) 34%, transparent);
+    }
+}
+
+/* ==========================================================================
+   Keyframes
+   ========================================================================== */
+@keyframes aurora {
+    0% {
+        transform: translate3d(-6%, -3%, 0) rotate(-2deg) scale(1);
+        opacity: 0.55;
+    }
+    50% {
+        transform: translate3d(4%, 3%, 0) rotate(1.5deg) scale(1.08);
+        opacity: 0.8;
+    }
+    100% {
+        transform: translate3d(-2%, 5%, 0) rotate(-1deg) scale(1.02);
+        opacity: 0.6;
+    }
+}
+
+@keyframes float {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+@keyframes ember-glow {
+    0%,
+    100% {
+        opacity: 0.55;
+        filter: blur(48px);
+    }
+    50% {
+        opacity: 0.9;
+        filter: blur(56px);
+    }
+}
+
+@keyframes grid-drift {
+    0% {
+        background-position: 0 0;
+    }
+    100% {
+        background-position: 56px 56px;
+    }
+}
+
+@keyframes scroll-dot {
+    0% {
+        opacity: 0;
+        transform: translateY(0);
+    }
+    40% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+}
+
+@keyframes gradient-shift {
+    0%,
+    100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+/* Almost-invisible card float — the interface feels alive */
+@keyframes float-subtle {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
+}
+
+/* Logo flame breathing — one pulse every six seconds, never distracting */
+@keyframes logo-breathe {
+    0%,
+    100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(0.94);
+    }
+}
+
+/* Text gradient helper */
+.text-gradient-ember {
+    background: linear-gradient(
+        100deg,
+        var(--ember) 0%,
+        color-mix(in oklch, var(--ember) 60%, var(--aurora)) 55%,
+        var(--aurora) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+/* Glassmorphism helper — frosted ceramic surface for panels nested on
+   rich backgrounds. Transparency keeps the scene glowing through, while
+   blur + saturation frosted the texture behind. */
+.glass {
+    background:
+        linear-gradient(180deg, var(--glass-edge) 0, var(--glass-edge) 1px, transparent 1.5px),
+        linear-gradient(
+            145deg,
+            color-mix(in oklch, var(--glass-tint) 92%, var(--card)) 0%,
+            var(--glass-tint) 55%,
+            color-mix(in oklch, var(--glass-tint) 86%, var(--card)) 100%
+        );
+    backdrop-filter: blur(20px) saturate(1.6);
+    -webkit-backdrop-filter: blur(20px) saturate(1.6);
+    border-color: var(--glass-border);
+}
+
+/* Glass ceramic panel — the auth experience card.
+   Deep frosted blur, an edge-lit top hairline, layered inner/outer depth,
+   a warm halo, and scattered light via ::before. All tokens, both themes. */
+.glass-strong {
+    position: relative;
+    background:
+        linear-gradient(180deg, var(--glass-edge) 0, var(--glass-edge) 1px, transparent 1.5px),
+        linear-gradient(
+            145deg,
+            color-mix(in oklch, var(--glass-tint) 90%, var(--card)) 0%,
+            var(--glass-tint) 48%,
+            color-mix(in oklch, var(--glass-tint) 82%, var(--card)) 100%
+        );
+    backdrop-filter: blur(36px) saturate(1.9) brightness(1.02);
+    -webkit-backdrop-filter: blur(36px) saturate(1.9) brightness(1.02);
+    border: 1px solid var(--glass-border-strong);
+    box-shadow:
+        /* edge-lit inner rim — light entering from above */
+        inset 0 1px 0 var(--glass-edge),
+        inset 0 -1px 0 color-mix(in oklch, var(--glass-edge) 55%, transparent),
+        /* inner ambient ember glow — expensive-looking depth */
+        inset 0 0 48px -16px var(--glass-halo),
+        /* layered outer depth, never a single heavy shadow */
+        0 1px 1px color-mix(in oklch, var(--foreground) 6%, transparent),
+        0 12px 32px -12px color-mix(in oklch, var(--foreground) 14%, transparent),
+        0 32px 80px -24px color-mix(in oklch, var(--foreground) 26%, transparent),
+        /* soft warm under-glow */
+        0 24px 60px -32px var(--glass-halo);
+}
+
+/* Light scattering — a soft top-left caustic + diagonal sheen sweeping the
+   ceramic, sitting beneath all content (AuthCard renders content above). */
+.glass-strong::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background:
+        radial-gradient(120% 64% at 18% -6%, var(--glass-reflect) 0%, transparent 55%),
+        linear-gradient(115deg, transparent 28%, var(--glass-sheen) 46%, transparent 62%);
+    opacity: 0.8;
+}
+
+/* Inner ember edge glow — kept for non-ceramic panels */
+.edge-glow {
+    box-shadow:
+        inset 0 1px 0 color-mix(in oklch, var(--foreground) 8%, transparent),
+        inset 0 0 48px -16px color-mix(in oklch, var(--ember) 14%, transparent);
+}
+
+/* Cinematic vignette for the auth experience */
+.vignette {
+    background: radial-gradient(
+        ellipse at center,
+        transparent 52%,
+        color-mix(in oklch, var(--background) 55%, transparent) 100%
+    );
+}
+
+/* Film-grain noise layer — the premium texture (Apple/Framer/Arc style) */
+.noise-overlay {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+    opacity: 0.02;
+}
+
+/* Browser autofill — match the glass field so Chrome's yellow never leaks */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--foreground);
+    caret-color: var(--foreground);
+    -webkit-box-shadow: 0 0 0 1000px
+        color-mix(in oklch, var(--background) 40%, var(--card)) inset;
+    box-shadow: 0 0 0 1000px
+        color-mix(in oklch, var(--background) 40%, var(--card)) inset;
+    transition: background-color 6000s ease-in-out 0s;
+}
+
+/* Animated link underline — draws left-to-right on hover and focus */
+.link-underline {
+    position: relative;
+}
+
+.link-underline::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: -2px;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.6;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 300ms var(--ease-out-expo);
+}
+
+.link-underline:hover::after,
+.link-underline:focus-visible::after {
+    transform: scaleX(1);
+    transform-origin: left;
+}
+
+/* Auth focus mask — calms the background behind the card so the panel
+   remains the visual focal point */
+.focus-mask {
+    background: radial-gradient(
+        ellipse 46% 44% at 50% 46%,
+        color-mix(in oklch, var(--background) 55%, transparent) 0%,
+        transparent 72%
+    );
+}
+
+/* Card hover elevation */
+.card-hover {
+    transition:
+        transform 250ms var(--ease-out-expo),
+        box-shadow 250ms var(--ease-out-expo),
+        border-color 250ms var(--ease-out-expo);
+}
+
+.card-hover:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 18px 44px -18px color-mix(in oklch, var(--foreground) 28%, transparent);
+}
+
+/* Elevation utilities — layered depth for app workspaces */
+.elevate {
+    box-shadow: var(--shadow-elevated);
+}
+
+.elevate-float {
+    box-shadow: var(--shadow-floating);
+}
+
+/* Editorial display type — tight, confident, high-impact */
+.display {
+    font-feature-settings: "cv11", "ss01";
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+}
+
+/* Animated dual-tone gradient text */
+.text-gradient-shift {
+    background: linear-gradient(
+        100deg,
+        var(--ember) 0%,
+        color-mix(in oklch, var(--ember) 55%, var(--aurora)) 35%,
+        var(--aurora) 50%,
+        color-mix(in oklch, var(--ember) 55%, var(--aurora)) 65%,
+        var(--ember) 100%
+    );
+    background-size: 220% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+/* Serene pulse for live/active indicators */
+@keyframes pulse-soft {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.45;
     }
 }

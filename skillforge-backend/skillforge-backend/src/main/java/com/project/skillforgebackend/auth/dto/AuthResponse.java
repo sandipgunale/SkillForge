@@ -11,6 +11,7 @@ public class AuthResponse {
     private long expiresIn;
     private UserSummary user;
     private String refreshToken;
+    private boolean rememberMe;
 
     @Data
     @Builder

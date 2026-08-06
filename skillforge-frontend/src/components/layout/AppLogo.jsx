@@ -1,17 +1,24 @@
-import { GraduationCap } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Flame } from "lucide-react";
 
-export default function AppLogo() {
+import { cn } from "@/lib/utils";
+import { ROUTES } from "@/constants/routes";
+
+export default function AppLogo({ className }) {
   return (
-    <div className="flex items-center gap-3">
-      <div className="rounded-xl bg-primary p-2 text-primary-foreground">
-        <GraduationCap className="h-6 w-6" />
+    <Link
+      to={ROUTES.DASHBOARD}
+      className={cn(
+        "flex items-center gap-2.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        className,
+      )}
+      aria-label="SkillForge dashboard"
+    >
+      <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-lg shadow-primary/25">
+        <Flame className="size-[18px]" />
       </div>
 
-      <div>
-        <h1 className="text-lg font-bold tracking-tight">SkillForge</h1>
-
-        <p className="text-xs text-muted-foreground">Learn • Practice • Grow</p>
-      </div>
-    </div>
+      <span className="text-base font-bold tracking-tight">SkillForge</span>
+    </Link>
   );
 }

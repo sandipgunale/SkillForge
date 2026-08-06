@@ -1,18 +1,25 @@
 package com.project.skillforgebackend.quiz.mapper;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.project.skillforgebackend.quiz.dto.QuestionDto;
 import com.project.skillforgebackend.quiz.dto.QuizDto;
 import com.project.skillforgebackend.quiz.entity.Question;
 import com.project.skillforgebackend.quiz.entity.Quiz;
 import com.project.skillforgebackend.quiz.entity.QuizSource;
 import org.springframework.stereotype.Component;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
 @Component
+
 public class QuizMapper {
+
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * Convert Quiz Entity to QuizDto.
@@ -25,7 +32,17 @@ public class QuizMapper {
 
         return QuizDto.builder()
                 .id(quiz.getId().toString())
-                .title(getQuizTitle(quiz))
+                .topicName(
+                        quiz.getTopic() != null
+                                ? quiz.getTopic().getName()
+                                : null
+                )
+
+                .learningPathTitle(
+                        quiz.getLearningPath() != null
+                                ? quiz.getLearningPath().getTitle()
+                                : null
+                )
                 .source(quiz.getSource())
 
                 .learningPathId(
@@ -43,6 +60,7 @@ public class QuizMapper {
                 .score(quiz.getScore())
                 .maxScore(quiz.getMaxScore())
                 .startedAt(quiz.getStartedAt())
+                .expiresAt(quiz.getExpiresAt())
                 .completedAt(quiz.getCompletedAt())
                 .questions(toQuestionDtoList(quiz.getQuestions()))
                 .build();
@@ -61,7 +79,7 @@ public class QuizMapper {
                 .id(question.getId().toString())
                 .type(question.getType())
                 .content(question.getContent())
-                .optionsJson(question.getOptionsJson())
+                .options(parseOptions(question.getOptionsJson()))
                 .orderIndex(question.getOrderIndex())
                 .build();
     }
@@ -82,16 +100,24 @@ public class QuizMapper {
     }
 
 
-    private String getQuizTitle(Quiz quiz) {
 
-        if (quiz.getSource() == QuizSource.TOPIC) {
-            return quiz.getTopic().getName();
+    private List<String> parseOptions(String optionsJson) {
+
+        if (optionsJson == null || optionsJson.isBlank()) {
+            return Collections.emptyList();
         }
 
-        return "%s - Week %d Quiz".formatted(
-                quiz.getLearningPath().getTitle(),
-                quiz.getWeekNumber()
-        );
-    }
+        try {
 
+            return objectMapper.readValue(
+                    optionsJson,
+                    new TypeReference<List<String>>() {}
+            );
+
+        } catch (Exception ex) {
+
+            return Collections.emptyList();
+
+        }
+    }
 }

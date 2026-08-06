@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 const DEFAULT_FILTERS = Object.freeze({
   page: 0,
@@ -10,11 +11,26 @@ const DEFAULT_FILTERS = Object.freeze({
 });
 
 export function useResourceFilters() {
-  const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [searchParams] = useSearchParams();
+
+  const [filters, setFilters] = useState(() => {
+    const urlSearch = searchParams.get("search") ?? "";
+
+    const urlTopicId = searchParams.get("topicId") ?? "";
+
+    return {
+      ...DEFAULT_FILTERS,
+      search: urlSearch,
+      topicId: urlTopicId,
+    };
+  });
 
   const updateFilter = useCallback((key, value) => {
+    if (!(key in DEFAULT_FILTERS)) {
+      return;
+    }
+
     setFilters((previous) => {
-      // Avoid unnecessary state updates
       if (previous[key] === value) {
         return previous;
       }
@@ -33,7 +49,7 @@ export function useResourceFilters() {
         (key) => previous[key] !== DEFAULT_FILTERS[key]
       );
 
-      return hasChanges ? DEFAULT_FILTERS : previous;
+      return hasChanges ? { ...DEFAULT_FILTERS } : previous;
     });
   }, []);
 

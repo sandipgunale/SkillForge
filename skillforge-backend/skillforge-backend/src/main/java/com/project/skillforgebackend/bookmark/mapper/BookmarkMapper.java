@@ -20,6 +20,11 @@ public class BookmarkMapper {
                 .bookmarkId(bookmark.getId().toString())
                 .bookmarkedAt(bookmark.getCreatedAt())
 
+                .folderId(bookmark.getFolder() != null
+                        ? bookmark.getFolder().getId().toString() : null)
+                .folderName(bookmark.getFolder() != null
+                        ? bookmark.getFolder().getName() : null)
+
                 .resourceId(bookmark.getResource().getId().toString())
                 .title(bookmark.getResource().getTitle())
                 .description(bookmark.getResource().getDescription())

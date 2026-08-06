@@ -1,16 +1,29 @@
-import OptionItem from "./OptionItem";
+import { memo } from "react";
+import { motion } from "framer-motion";
 
-export default function OptionList({ options, selected, onSelect }) {
+import OptionItem from "./OptionItem";
+import { staggerList, staggerListItem } from "@/lib/motion";
+
+function OptionList({ options, selected, onSelect }) {
   return (
-    <div className="space-y-3">
-      {options.map((option) => (
-        <OptionItem
-          key={option}
-          label={option}
-          selected={selected === option}
-          onClick={() => onSelect(option)}
-        />
+    <motion.div
+      variants={staggerList(0.05)}
+      initial="hidden"
+      animate="visible"
+      className="space-y-3"
+    >
+      {options.map((option, index) => (
+        <motion.div key={option} variants={staggerListItem}>
+          <OptionItem
+            label={option}
+            index={index}
+            selected={selected === option}
+            onClick={onSelect}
+          />
+        </motion.div>
       ))}
-    </div>
+    </motion.div>
   );
 }
+
+export default memo(OptionList);

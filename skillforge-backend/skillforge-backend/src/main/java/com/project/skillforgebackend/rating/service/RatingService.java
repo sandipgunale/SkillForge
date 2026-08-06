@@ -1,6 +1,7 @@
 package com.project.skillforgebackend.rating.service;
 
 import com.project.skillforgebackend.common.exception.ResourceNotFoundException;
+import com.project.skillforgebackend.gamification.service.GamificationService;
 import com.project.skillforgebackend.rating.dto.RatingRequest;
 import com.project.skillforgebackend.rating.dto.RatingResponseDto;
 import com.project.skillforgebackend.rating.dto.UserRatingDto;
@@ -28,6 +29,7 @@ public class RatingService {
     private final RatingRepository ratingRepository;
     private final ResourceRepository resourceRepository;
     private final RatingMapper ratingMapper;
+    private final GamificationService gamificationService;
 
     /**
      * Add or update a rating.
@@ -41,10 +43,13 @@ public class RatingService {
         Resource resource =
                 getResource(resourceId);
 
-        Rating rating =
-                getRating(
-                        user,
-                        resource
+        Rating rating = ratingRepository
+                .findByUserAndResource(user, resource)
+                .orElseGet(() ->
+                        Rating.builder()
+                                .user(user)
+                                .resource(resource)
+                                .build()
                 );
 
         rating.setValue(request.getValue());
@@ -52,6 +57,9 @@ public class RatingService {
         ratingRepository.save(rating);
 
         updateResourceStatistics(resource);
+
+        gamificationService.checkAndAwardBadges(user);
+
         log.info(
                 "User {} rated resource {} with {} stars",
                 user.getEmail(),
@@ -72,20 +80,18 @@ public class RatingService {
         Resource resource =
                 getResource(resourceId);
 
-        Rating rating =
-                getRating(
-                        user,
-                        resource
-                );
+        ratingRepository.findByUserAndResource(user, resource)
+                .ifPresent(rating -> {
+                    ratingRepository.delete(rating);
 
-        ratingRepository.delete(rating);
-        log.info(
-                "User {} removed rating for resource {}",
-                user.getEmail(),
-                resource.getId()
-        );
+                    updateResourceStatistics(resource);
 
-        updateResourceStatistics(resource);
+                    log.info(
+                            "User {} removed rating for resource {}",
+                            user.getEmail(),
+                            resource.getId()
+                    );
+                });
     }
 
     /**
@@ -143,30 +149,11 @@ public class RatingService {
     ) {
 
         return resourceRepository
-                .findByIdActive(resourceId)
+                .findByIdAndActiveTrue(resourceId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Resource",
                                 resourceId
-                        )
-                );
-
-    }
-
-    private Rating getRating(
-            User user,
-            Resource resource
-    ) {
-
-        return ratingRepository
-                .findByUserAndResource(
-                        user,
-                        resource
-                )
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Rating",
-                                resource.getId()
                         )
                 );
 

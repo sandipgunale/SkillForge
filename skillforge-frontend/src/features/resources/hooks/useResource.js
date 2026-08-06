@@ -8,10 +8,9 @@ export function useResource(id) {
   return useQuery({
     queryKey: QUERY_KEYS.RESOURCE(id),
 
-    queryFn: () =>
-      resourcesService.getResourceById(id),
+    queryFn: () => resourcesService.getResource(id),
 
-    enabled: Boolean(id),
+    enabled: !!id,
 
     staleTime: 1000 * 60 * 5,
 

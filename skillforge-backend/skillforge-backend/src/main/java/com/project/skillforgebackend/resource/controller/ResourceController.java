@@ -13,6 +13,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -21,6 +22,8 @@ import java.util.UUID;
 @RequestMapping("/api/v1/resources")
 @RequiredArgsConstructor
 public class ResourceController {
+
+    public static final int MAX_PAGE_SIZE = 50;
 
     private final ResourceService resourceService;
 
@@ -34,7 +37,10 @@ public class ResourceController {
             @RequestParam(defaultValue = "12") int size
     ) {
 
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(
+                Math.max(0, page),
+                Math.min(Math.max(1, size), MAX_PAGE_SIZE)
+        );
 
         return ResponseEntity.ok(
                 ApiResponse.success(
@@ -64,6 +70,7 @@ public class ResourceController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'INSTRUCTOR')")
     public ResponseEntity<ApiResponse<ResourceDto>> createResource(
             @Valid @RequestBody CreateResourceRequest request
     ) {
@@ -81,6 +88,7 @@ public class ResourceController {
     }
 
     @PutMapping("/{resourceId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'INSTRUCTOR')")
     public ResponseEntity<ApiResponse<ResourceDto>> updateResource(
             @PathVariable UUID resourceId,
             @Valid @RequestBody UpdateResourceRequest request
@@ -98,6 +106,7 @@ public class ResourceController {
     }
 
     @DeleteMapping("/{resourceId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'INSTRUCTOR')")
     public ResponseEntity<ApiResponse<Void>> deleteResource(
             @PathVariable UUID resourceId
     ) {

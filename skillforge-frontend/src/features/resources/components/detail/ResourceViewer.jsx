@@ -28,7 +28,7 @@ export default function ResourceViewer({ resource }) {
       );
     }
 
-    case "PDF":
+    case "DOCS":
       return (
         <iframe
           className="h-200 w-full rounded-xl border"

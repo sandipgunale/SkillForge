@@ -29,7 +29,7 @@ export default function RatingButton({ resourceId, size = "icon" }) {
         ) : (
           <Star
             className={
-              rated ? "h-5 w-5 fill-yellow-400 text-yellow-400" : "h-5 w-5"
+              rated ? "h-5 w-5 fill-warning text-warning" : "h-5 w-5"
             }
           />
         )}

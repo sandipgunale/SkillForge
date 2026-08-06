@@ -1,6 +1,8 @@
 package com.project.skillforgebackend.resource.repository;
 
 import com.project.skillforgebackend.resource.entity.Resource;
+import com.project.skillforgebackend.resource.entity.Tag;
+import com.project.skillforgebackend.resource.entity.Topic;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,37 +17,37 @@ import java.util.UUID;
 public interface ResourceRepository extends JpaRepository<Resource, UUID> {
 
     @Query("""
-    SELECT r
-    FROM Resource r
-    JOIN r.topic t
-    WHERE r.active = true
-      AND (:topicId IS NULL OR t.id = :topicId)
-      AND (:difficulty IS NULL OR r.difficulty = :difficulty)
-      AND (:type IS NULL OR r.type = :type)
-      AND (
-            :search IS NULL
-            OR :search = ''
-            OR LOWER(r.title) LIKE LOWER(CONCAT('%', :search, '%'))
-      )
-    ORDER BY r.createdAt DESC
+SELECT DISTINCT r
+FROM Resource r
+LEFT JOIN FETCH r.topic
+LEFT JOIN FETCH r.tags
+WHERE r.active = true
+AND (:topicId IS NULL OR r.topic.id = :topicId)
+AND (:difficulty IS NULL OR r.difficulty = :difficulty)
+AND (:type IS NULL OR r.type = :type)
+AND (
+    :search IS NULL
+    OR LOWER(r.title) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))
+    OR LOWER(r.description) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))
+    OR LOWER(r.topic.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))
+    OR EXISTS (
+        SELECT t
+        FROM r.tags t
+        WHERE LOWER(t.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))
+    )
+)
 """)
     Page<Resource> findAllWithFilters(
-            @Param("topicId") UUID topicId,
-            @Param("difficulty") Resource.Difficulty difficulty,
-            @Param("type") Resource.ResourceType type,
-            @Param("search") String search,
+            UUID topicId,
+            Resource.Difficulty difficulty,
+            Resource.ResourceType type,
+            String search,
             Pageable pageable
     );
 
-    @Query("""
-        SELECT DISTINCT r
-        FROM Resource r
-        JOIN FETCH r.topic
-        LEFT JOIN FETCH r.tags
-        WHERE r.id = :id
-          AND r.active = true
-    """)
-    Optional<Resource> findByIdActive(@Param("id") UUID id);
-
     Optional<Resource> findByIdAndActiveTrue(UUID id);
+
+    boolean existsByTopic(Topic topic);
+
+    boolean existsByTagsContaining(Tag tag);
 }

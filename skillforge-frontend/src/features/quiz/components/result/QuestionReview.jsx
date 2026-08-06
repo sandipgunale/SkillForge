@@ -32,17 +32,17 @@ export default function QuestionReview({ questions = [] }) {
                 "rounded-xl border p-5 transition-all duration-300 hover:shadow-md",
 
                 question.correct
-                  ? "border-green-500/30 bg-green-500/5"
-                  : "border-red-500/30 bg-red-500/5",
+                  ? "border-success/30 bg-success/5"
+                  : "border-destructive/30 bg-destructive/5",
               )}
             >
               {/* Header */}
               <div className="mb-5 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {question.correct ? (
-                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    <CheckCircle2 className="h-5 w-5 text-success" />
                   ) : (
-                    <XCircle className="h-5 w-5 text-red-600" />
+                    <XCircle className="h-5 w-5 text-destructive" />
                   )}
 
                   <h4 className="font-semibold">Question {index + 1}</h4>
@@ -53,8 +53,8 @@ export default function QuestionReview({ questions = [] }) {
                     "rounded-full px-3 py-1 text-xs font-medium",
 
                     question.correct
-                      ? "bg-green-100 text-green-700"
-                      : "bg-red-100 text-red-700",
+                      ? "bg-success/15 text-success"
+                      : "bg-destructive/15 text-destructive",
                   )}
                 >
                   {question.correct ? "Correct" : "Incorrect"}

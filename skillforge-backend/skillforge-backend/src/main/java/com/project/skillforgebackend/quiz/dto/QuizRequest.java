@@ -5,7 +5,9 @@ import com.project.skillforgebackend.quiz.entity.QuizSource;
 import com.project.skillforgebackend.resource.entity.Resource;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.util.List;
@@ -32,6 +34,8 @@ public class QuizRequest {
     @Max(value = 20, message = "Maximum 20 questions allowed")
     private int questionCount;
 
+    @NotEmpty(message = "At least one question type is required")
+    @Size(max = 4, message = "Too many question types")
     private List<Question.QuestionType> questionTypes;
 
 }

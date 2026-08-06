@@ -646,54 +646,51 @@ Root Object
 
 "title":"",
 
-"description":"",
-
 "goal":"",
 
-"difficulty":"BEGINNER",
+"durationWeeks":12,
 
-"estimatedDurationWeeks":12,
-
-"estimatedTotalHours":120,
-
-"phases":[
+"weeks":[
 
 {
 
-"phase":1,
+"week":1,
 
 "title":"",
 
-"objective":"",
+"estimatedHours":10,
 
-"recommendedWeeks":[1,2],
+"completed":false,
 
 "topics":[
-"Variables",
-"Loops"
-],
 
-"practiceTasks":[
-"..."
-],
+{
 
-"projects":[
-"..."
+"name":"Variables",
+
+"difficulty":"BEGINNER"
+
+}
+
 ],
 
 "resources":[
-"..."
+
+{
+
+"title":"",
+
+"type":"ARTICLE"
+
+}
+
 ],
 
-"interviewFocus":[
-"..."
-],
+"learningGoals":[
 
-"commonMistakes":[
-"..."
-],
+""
 
-"milestone":""
+]
 
 }
 
@@ -703,33 +700,45 @@ Root Object
 
 Rules
 
-Every phase MUST contain:
+The weeks array MUST contain exactly the requested number of weeks.
 
-phase
+Each week number MUST be sequential starting from 1.
+
+Every week MUST contain:
+
+week
 
 title
 
-objective
+estimatedHours
 
-recommendedWeeks
+completed
 
 topics
 
-practiceTasks
-
-projects
-
 resources
 
-interviewFocus
+learningGoals
 
-commonMistakes
+Every topic MUST contain:
 
-milestone
+name
+
+difficulty (one of: BEGINNER, INTERMEDIATE, ADVANCED)
+
+Every resource MUST contain:
+
+title
+
+type (one of: VIDEO, ARTICLE, COURSE, DOCS, BOOK)
 
 Do NOT omit any field.
 
 Do NOT return null values.
+
+Do NOT rename any field.
+
+Do NOT use alternative names like phases, estimatedDurationWeeks, or objectives.
 
 """;
     }

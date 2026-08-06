@@ -51,7 +51,7 @@ export default function SubmitDialog({ answered, total, onSubmit, loading }) {
           <div className="mt-4 space-y-2">
             <Progress
               value={(answered / total) * 100}
-              className={answered === total ? "[&>div]:bg-green-500" : ""}
+              className={answered === total ? "[&>div]:bg-success" : ""}
             />
 
             <p className="text-center text-sm text-muted-foreground">

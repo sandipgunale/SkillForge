@@ -19,7 +19,9 @@ public class QuizDto {
 
     private String id;
 
-    private String title;
+    private String topicName;
+
+    private String learningPathTitle;
 
     private Resource.Difficulty difficulty;
 
@@ -32,6 +34,8 @@ public class QuizDto {
     private int maxScore;
 
     private LocalDateTime startedAt;
+
+    private LocalDateTime expiresAt;
 
     private LocalDateTime completedAt;
 

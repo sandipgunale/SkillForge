@@ -7,7 +7,7 @@ export const quizApi = {
   async generateQuiz(payload) {
     const { data } = await apiClient.post("/v1/quizzes", payload);
 
-    return data.data;
+    return data;
   },
 
   /**
@@ -16,7 +16,7 @@ export const quizApi = {
   async getQuiz(quizId) {
     const { data } = await apiClient.get(`/v1/quizzes/${quizId}`);
 
-    return data.data;
+    return data;
   },
 
   /**
@@ -28,7 +28,7 @@ export const quizApi = {
       payload
     );
 
-    return data.data;
+    return data;
   },
 
   /**
@@ -39,7 +39,7 @@ export const quizApi = {
       `/v1/quizzes/${quizId}/result`
     );
 
-    return data.data;
+    return data;
   },
 
   /**
@@ -70,6 +70,6 @@ export const quizApi = {
       }
     );
 
-    return data.data;
+    return data;
   },
 };

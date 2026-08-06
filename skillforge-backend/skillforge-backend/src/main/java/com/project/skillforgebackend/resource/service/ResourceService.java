@@ -52,12 +52,12 @@ public class ResourceService {
             String search,
             Pageable pageable) {
 
-        if (search != null) {
-            search = search.trim();
+        search = search == null
+                ? null
+                : search.trim();
 
-            if (search.isBlank()) {
-                search = null;
-            }
+        if (search != null && search.isBlank()) {
+            search = null;
         }
 
         return resourceRepository
@@ -68,7 +68,7 @@ public class ResourceService {
     public ResourceDto getResourceById(UUID id) {
 
         Resource resource = resourceRepository
-                .findByIdActive(id)
+                .findByIdAndActiveTrue(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Resource", id));
 

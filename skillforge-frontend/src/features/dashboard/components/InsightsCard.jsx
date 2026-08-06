@@ -1,75 +1,86 @@
-import { Brain, Activity, Clock3, Target, GraduationCap } from "lucide-react";
+import {
+  Brain,
+  TrendingUp,
+  Target,
+  AlertTriangle,
+  Sparkles,
+} from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
-import EmptyState from "@/components/common/EmptyState";
-
-function InsightItem({ icon: Icon, title, value }) {
-  if (!value) {
-    return (
-      <EmptyState
-        title="No insights available"
-        description="Complete some quizzes to unlock insights."
-      />
-    );
-  }
-
-  return (
-    <div className="flex items-center gap-4 rounded-lg border p-4 transition hover:bg-muted/40">
-      <div className="rounded-lg bg-primary/10 p-3">
-        <Icon className="h-5 w-5 text-primary" />
-      </div>
-
-      <div>
-        <p className="text-sm text-muted-foreground">{title}</p>
-
-        <p className="text-lg font-semibold">{value}</p>
-      </div>
-    </div>
-  );
-}
 
 export default function InsightsCard({ analytics }) {
-  return (
-    <Card className="shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-      <CardContent className="space-y-4 p-6">
-        <div>
-          <h3 className="text-lg font-semibold">Learning Insights</h3>
+  const health = analytics.learningHealthScore;
 
-          <p className="text-sm text-muted-foreground">
-            AI generated overview of your learning journey.
-          </p>
+  const momentum =
+    health >= 85 ? "Excellent" : health >= 70 ? "Good" : "Needs Improvement";
+
+  return (
+    <Card className="overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+      <CardContent className="space-y-6 p-6">
+        <div className="flex items-center gap-4">
+          <div className="rounded-2xl bg-primary/10 p-4">
+            <Brain className="h-7 w-7 text-primary" />
+          </div>
+
+          <div>
+            <h2 className="text-xl font-bold">AI Learning Insights</h2>
+
+            <p className="text-sm text-muted-foreground">
+              Personalised analysis of your learning behaviour.
+            </p>
+          </div>
         </div>
 
-        <InsightItem
-          icon={Brain}
-          title="Learning Level"
-          value={analytics.learningLevel}
+        <Insight
+          icon={TrendingUp}
+          title="Current Momentum"
+          value={momentum}
+          description="Based on your recent quiz performance and study consistency."
         />
 
-        <InsightItem
-          icon={Activity}
-          title="Health Score"
-          value={`${analytics.learningHealthScore}/100`}
-        />
-
-        <InsightItem
+        <Insight
           icon={Target}
-          title="Quiz Accuracy"
-          value={`${analytics.quizAccuracy}%`}
-        />
-
-        <InsightItem
-          icon={Clock3}
-          title="Study Time"
-          value={analytics.studyHours}
-        />
-
-        <InsightItem
-          icon={GraduationCap}
-          title="Most Active Topic"
+          title="Strongest Area"
           value={analytics.mostActiveTopic}
+          description="You've spent the most time mastering this topic."
+        />
+
+        <Insight
+          icon={AlertTriangle}
+          title="Focus Area"
+          value={analytics.weakAreas?.[0] ?? "No major weak areas"}
+          description="Improving this topic will increase your learning health."
+        />
+
+        <Insight
+          icon={Sparkles}
+          title="AI Recommendation"
+          value="Stay consistent"
+          description="Even 20–30 minutes of daily learning creates long-term improvement."
         />
       </CardContent>
     </Card>
+  );
+}
+
+function Insight({ icon: Icon, title, value, description }) {
+  return (
+    <div className="rounded-xl border p-4 transition hover:bg-muted/40">
+      <div className="flex gap-4">
+        <div className="rounded-lg bg-primary/10 p-3">
+          <Icon className="h-5 w-5 text-primary" />
+        </div>
+
+        <div>
+          <h3 className="font-semibold">{title}</h3>
+
+          <p className="mt-1 text-lg font-bold">{value}</p>
+
+          <p className="mt-1 text-sm text-muted-foreground leading-6">
+            {description}
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }

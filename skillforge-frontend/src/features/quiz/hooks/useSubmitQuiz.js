@@ -1,25 +1,23 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 
 import { toast } from "sonner";
 
 import { quizApi } from "../api/quiz.api";
-import { ROUTES } from "@/constants/routes";
+import { useQuizStore } from "../store/quizStore";
 
-import { useQueryClient } from "@tanstack/react-query";
+import { ROUTES } from "@/constants/routes";
 import { QUERY_KEYS } from "@/constants/queryKeys";
 
 export function useSubmitQuiz() {
   const navigate = useNavigate();
-const queryClient = useQueryClient();
+  const queryClient = useQueryClient();
+
+  const resetQuiz = useQuizStore((state) => state.resetQuiz);
 
   return useMutation({
     mutationFn: ({ quizId, answers }) =>
-      quizApi.submitQuiz(quizId, {
-        answers,
-      }),
-
-      
+      quizApi.submitQuiz(quizId, { answers }),
 
     onSuccess: async (result) => {
       await Promise.all([
@@ -34,16 +32,23 @@ const queryClient = useQueryClient();
         queryClient.invalidateQueries({
           queryKey: QUERY_KEYS.QUIZ_HISTORY,
         }),
+
+        queryClient.removeQueries({
+          queryKey: QUERY_KEYS.QUIZ,
+        }),
       ]);
+
+      resetQuiz();
 
       toast.success("Quiz submitted successfully!");
 
-    navigate(
-  ROUTES.QUIZ_RESULT.replace(":quizId", result.quizId),
-  {
-    state: result,
-  }
-);
+      navigate(
+        ROUTES.QUIZ_RESULT.replace(":quizId", result.quizId),
+        {
+          state: result,
+          replace: true,
+        }
+      );
     },
 
     onError: (error) => {

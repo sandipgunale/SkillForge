@@ -27,7 +27,7 @@ public class AuthService {
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new EmailAlreadyExistsException(request.getEmail());
+            throw new EmailAlreadyExistsException();
         }
 
         User user = User.builder()
@@ -41,7 +41,7 @@ public class AuthService {
         User saved = userRepository.save(user);
         log.info("New user registered: {}", saved.getEmail());
 
-        return buildAuthResponse(saved);
+        return buildAuthResponse(saved, false);
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -57,10 +57,15 @@ public class AuthService {
         }
 
         log.info("User logged in: {}", user.getEmail());
-        return buildAuthResponse(user);
+        return buildAuthResponse(user, request.isRememberMe());
     }
 
     public AuthResponse refresh(String refreshToken) {
+        // Only REFRESH tokens may be used at the refresh endpoint
+        if (!jwtService.isRefreshToken(refreshToken)) {
+            throw new InvalidCredentialsException();
+        }
+
         String email = jwtService.extractEmail(refreshToken);
         User user = userRepository.findByEmail(email)
                 .orElseThrow(InvalidCredentialsException::new);
@@ -69,19 +74,24 @@ public class AuthService {
             throw new InvalidCredentialsException();
         }
 
-        return buildAuthResponse(user);
+        boolean rememberMe = Boolean.parseBoolean(
+                jwtService.extractClaim(refreshToken, JwtService.CLAIM_REMEMBER_ME)
+        );
+
+        return buildAuthResponse(user, rememberMe);
     }
 
-    private AuthResponse buildAuthResponse(User user) {
+    private AuthResponse buildAuthResponse(User user, boolean rememberMe) {
         Map<String, Object> claims = Map.of("role", user.getRole().name());
         String accessToken  = jwtService.generateAccessToken(user.getEmail(), claims);
-        String refreshToken = jwtService.generateRefreshToken(user.getEmail());
+        String refreshToken = jwtService.generateRefreshToken(user.getEmail(), rememberMe);
 
         return AuthResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .tokenType("Bearer")
                 .expiresIn(900)
+                .rememberMe(rememberMe)
                 .user(AuthResponse.UserSummary.builder()
                         .id(user.getId().toString())
                         .email(user.getEmail())

@@ -9,9 +9,9 @@ import com.project.skillforgebackend.resource.entity.Resource;
 import com.project.skillforgebackend.user.entity.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -23,6 +23,9 @@ import java.util.UUID;
 @RequestMapping("/api/v1/quizzes")
 @RequiredArgsConstructor
 public class QuizController {
+
+    private static final java.util.Set<String> SORTABLE_FIELDS =
+            java.util.Set.of("completedAt", "createdAt", "score", "status", "difficulty");
 
     private final QuizService quizService;
 
@@ -67,6 +70,20 @@ public class QuizController {
                 ApiResponse.success(
                         "Quiz submitted successfully.",
                         result
+                )
+        );
+    }
+
+    @GetMapping("/active")
+    public ResponseEntity<ApiResponse<QuizDto>> getActiveQuiz(
+            @AuthenticationPrincipal User user
+    ) {
+        QuizDto quiz = quizService.getActiveQuiz(user);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Active quiz fetched successfully.",
+                        quiz
                 )
         );
     }
@@ -119,13 +136,36 @@ public class QuizController {
             @RequestParam(required = false)
             Quiz.QuizStatus status,
 
-            @PageableDefault(
-                    size = 10,
-                    sort = "completedAt"
-            )
-            Pageable pageable
+            @RequestParam(defaultValue = "0")
+            int page,
+
+            @RequestParam(defaultValue = "10")
+            int size,
+
+            @RequestParam(defaultValue = "completedAt,desc")
+            String sort
 
     ) {
+
+        String[] sortParts = sort.split(",");
+        String sortField = sortParts[0].trim();
+
+        if (!SORTABLE_FIELDS.contains(sortField)) {
+            throw new IllegalArgumentException(
+                    "Invalid sort field '" + sortField + "'"
+            );
+        }
+
+        Sort.Direction sortDirection = sortParts.length > 1
+                && "asc".equalsIgnoreCase(sortParts[1].trim())
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+
+        Pageable pageable = PageRequest.of(
+                Math.max(0, page),
+                Math.min(Math.max(1, size), 50),
+                Sort.by(sortDirection, sortField)
+        );
 
         PagedResponse<QuizDto> history =
                 quizService.getHistory(

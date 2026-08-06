@@ -5,7 +5,7 @@ import {
 } from "@tanstack/react-query";
 
 import { learningPathApi } from "../api/learningPath.api";
-import { QUERY_KEYS } from "@/lib/constants/queryKeys";
+import { QUERY_KEYS } from "@/constants/queryKeys";
 
 export const useUpdateWeekCompletion = () => {
   const queryClient = useQueryClient();

@@ -3,8 +3,9 @@ import { useNavigate, useLocation } from "react-router-dom";
 
 import { toast } from "sonner";
 
-import { authService } from "@/services/auth.service";
+import { authService } from "../api/authService";
 import { useAuthStore } from "@/store/authStore";
+import { useAuthSceneStore } from "@/features/auth/store/authSceneStore";
 import { ROUTES } from "@/constants/routes";
 
 export function useLogin() {
@@ -12,9 +13,14 @@ export function useLogin() {
   const location = useLocation();
 
   const login = useAuthStore((state) => state.login);
+  const setBusy = useAuthSceneStore((state) => state.setBusy);
 
   return useMutation({
     mutationFn: authService.login,
+
+    onMutate: () => {
+      setBusy(true);
+    },
 
     onSuccess: (data) => {
       login(data);
@@ -24,9 +30,16 @@ export function useLogin() {
       const from =
         location.state?.from?.pathname || ROUTES.DASHBOARD;
 
-      navigate(from, {
-        replace: true,
-      });
+      // Let the success morph + accelerated core play before the switch
+      setTimeout(() => {
+        navigate(from, {
+          replace: true,
+        });
+      }, 750);
+    },
+
+    onSettled: () => {
+      setBusy(false);
     },
 
     onError: (error) => {

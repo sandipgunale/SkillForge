@@ -29,6 +29,8 @@ public interface RatingRepository extends JpaRepository<Rating, UUID> {
             Resource resource
     );
 
+    long countByUser(User user);
+
     /**
      * Calculate average rating of a resource.
      */

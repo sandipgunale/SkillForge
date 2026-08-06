@@ -1,7 +1,9 @@
 import { Checkbox as CheckboxPrimitive } from "@base-ui/react/checkbox";
+import { motion } from "framer-motion";
 
 import { cn } from "@/lib/utils";
 import { CheckIcon } from "lucide-react";
+import { SPRING_TACTILE } from "@/lib/motion";
 
 function Checkbox({ className, ...props }) {
   return (
@@ -15,9 +17,16 @@ function Checkbox({ className, ...props }) {
     >
       <CheckboxPrimitive.Indicator
         data-slot="checkbox-indicator"
-        className="grid place-content-center text-current transition-none [&>svg]:size-3.5"
+        className="grid place-content-center text-current"
       >
-        <CheckIcon />
+        <motion.span
+          initial={{ scale: 0, opacity: 0, rotate: -30 }}
+          animate={{ scale: 1, opacity: 1, rotate: 0 }}
+          transition={SPRING_TACTILE}
+          className="[&>svg]:size-3.5"
+        >
+          <CheckIcon />
+        </motion.span>
       </CheckboxPrimitive.Indicator>
     </CheckboxPrimitive.Root>
   );

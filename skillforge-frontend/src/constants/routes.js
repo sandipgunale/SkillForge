@@ -3,6 +3,8 @@ export const ROUTES = {
 
   LOGIN: "/login",
   REGISTER: "/register",
+  FORGOT_PASSWORD: "/forgot-password",
+  RESET_PASSWORD: "/reset-password",
 
   DASHBOARD: "/dashboard",
 
@@ -14,6 +16,9 @@ export const ROUTES = {
   QUIZ_SETUP: "/quiz",
   QUIZ: "/quiz/:quizId",
   QUIZ_RESULT: "/quiz/:quizId/result",
+  QUIZ_HISTORY: "/quiz/history",
+
+  ACHIEVEMENTS: "/achievements",
 
   LEARNING_PATH: "/learning-paths",
 
@@ -24,4 +29,8 @@ export const ROUTES = {
     `/learning-paths/${id}`,
 
   PROFILE: "/profile",
+
+  ADMIN: "/admin",
+
+  INSTRUCTOR: "/instructor",
 };

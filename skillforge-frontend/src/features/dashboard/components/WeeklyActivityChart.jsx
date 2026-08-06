@@ -6,33 +6,52 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Cell,
 } from "recharts";
 
 import { Card, CardContent } from "@/components/ui/card";
 import EmptyState from "@/components/common/EmptyState";
+import { chartPalette } from "@/lib/chart-colors";
+import { cn } from "@/lib/utils";
 
 export default function WeeklyActivityChart({ data = [] }) {
   if (!data.length) {
     return (
       <EmptyState
         title="No Weekly Activity"
-        description="Start learning to view your weekly study activity."
+        description="Start learning to unlock your weekly progress."
       />
     );
   }
 
-  return (
-    <Card className="shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-      <CardContent className="p-6">
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold">Weekly Learning Activity</h3>
+  const palette = chartPalette();
 
-          <p className="text-sm text-muted-foreground">
-            Minutes spent learning during the last 7 days.
-          </p>
+  const totalMinutes = data.reduce((sum, day) => sum + day.minutes, 0);
+
+  const bestDay = data.reduce((a, b) => (a.minutes > b.minutes ? a : b));
+
+  return (
+    <Card className="transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+      <CardContent className="space-y-6 p-6">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-xl font-bold">Weekly Learning Activity</h2>
+
+            <p className="text-sm text-muted-foreground">
+              Stay consistent. Small daily progress compounds over time.
+            </p>
+          </div>
+
+          <div className="rounded-xl border bg-muted/40 px-4 py-3 text-center">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+              This Week
+            </p>
+
+            <p className="text-2xl font-bold">{totalMinutes} mins</p>
+          </div>
         </div>
 
-        <div className="h-87.5 w-full">
+        <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={data}
@@ -49,11 +68,50 @@ export default function WeeklyActivityChart({ data = [] }) {
 
               <YAxis allowDecimals={false} />
 
-              <Tooltip formatter={(value) => [`${value} mins`, "Study Time"]} />
+              <Tooltip
+                cursor={{ fill: palette[1] ?? undefined, fillOpacity: 0.08 }}
+                formatter={(value) => [`${value} mins`, "Study Time"]}
+              />
 
-              <Bar dataKey="minutes" radius={[8, 8, 0, 0]} fill="#3b82f6" />
+              <Bar dataKey="minutes" radius={[8, 8, 0, 0]}>
+                {data.map((_, index) => (
+                  <Cell
+                    key={index}
+                    fill={palette[index % palette.length]}
+                  />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-xl border p-4">
+            <p className="text-sm text-muted-foreground">Best Day</p>
+
+            <h3 className="mt-1 text-xl font-bold">{bestDay.day}</h3>
+
+            <p className="text-sm text-muted-foreground">
+              {bestDay.minutes} mins studied
+            </p>
+          </div>
+
+          <div className="rounded-xl border p-4">
+            <p className="text-sm text-muted-foreground">Weekly Goal</p>
+
+            <h3
+              className={cn(
+                "mt-1 text-xl font-bold",
+                totalMinutes >= 300 && "text-success",
+              )}
+            >
+              {totalMinutes >= 300 ? "Achieved" : "In Progress"}
+            </h3>
+
+            <p className="text-sm text-muted-foreground">
+              Target: 300 mins / week
+            </p>
+          </div>
         </div>
       </CardContent>
     </Card>

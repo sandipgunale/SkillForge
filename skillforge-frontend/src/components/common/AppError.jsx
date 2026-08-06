@@ -7,7 +7,7 @@ export default function AppError() {
 
   return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center gap-6">
-      <AlertTriangle className="h-20 w-20 text-red-500" />
+      <AlertTriangle className="h-20 w-20 text-destructive" />
 
       <div className="text-center">
         <h1 className="text-3xl font-bold">Something went wrong</h1>

@@ -6,16 +6,24 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
+import BookmarkButton from "@/features/bookmark/components/BookmarkButton";
+
 function ResourceCard({ resource }) {
   const getTypeIcon = () => {
     switch (resource.type) {
       case "VIDEO":
         return <PlayCircle className="h-4 w-4" />;
 
+      case "ARTICLE":
+        return <FileText className="h-4 w-4" />;
+
       case "DOCS":
         return <FileText className="h-4 w-4" />;
 
       case "BOOK":
+        return <BookOpen className="h-4 w-4" />;
+
+      case "COURSE":
         return <BookOpen className="h-4 w-4" />;
 
       default:
@@ -48,7 +56,13 @@ function ResourceCard({ resource }) {
             {resource.type}
           </Badge>
 
-          <Badge variant={getDifficultyVariant()}>{resource.difficulty}</Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant={getDifficultyVariant()}>
+              {resource.difficulty}
+            </Badge>
+
+            <BookmarkButton resourceId={resource.id} />
+          </div>
         </div>
 
         <div>
@@ -73,7 +87,7 @@ function ResourceCard({ resource }) {
 
         <div className="mt-auto flex items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
-            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+            <Star className="h-4 w-4 fill-warning text-warning" />
 
             <span>{(resource.avgRating ?? 0).toFixed(1)}</span>
 
@@ -83,7 +97,11 @@ function ResourceCard({ resource }) {
           <div className="flex items-center gap-1">
             <Clock className="h-4 w-4" />
 
-            <span>{resource.estimatedMinutes} min</span>
+            <span>
+              {resource.estimatedMinutes != null
+                ? `${resource.estimatedMinutes} min`
+                : "Time n/a"}
+            </span>
           </div>
         </div>
       </CardContent>

@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -23,7 +25,7 @@ public class QuestionDto {
      * Example:
      * ["Java","Python","C++","Go"]
      */
-    private String optionsJson;
+    private List<String> options;
 
     private int orderIndex;
 

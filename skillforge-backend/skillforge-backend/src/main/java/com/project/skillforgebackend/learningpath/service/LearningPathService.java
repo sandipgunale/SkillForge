@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.project.skillforgebackend.ai.exception.AIServiceException;
 import com.project.skillforgebackend.ai.service.AIService;
 import com.project.skillforgebackend.common.exception.ResourceNotFoundException;
+import com.project.skillforgebackend.gamification.service.GamificationService;
 import com.project.skillforgebackend.learningpath.dto.CreateLearningPathRequest;
 import com.project.skillforgebackend.learningpath.dto.LearningPathDto;
 import com.project.skillforgebackend.learningpath.dto.UpdateLearningPathRequest;
@@ -12,6 +13,7 @@ import com.project.skillforgebackend.learningpath.entity.LearningPath;
 import com.project.skillforgebackend.learningpath.enums.LearningPathStatus;
 import com.project.skillforgebackend.learningpath.mapper.LearningPathMapper;
 import com.project.skillforgebackend.learningpath.repository.LearningPathRepository;
+import com.project.skillforgebackend.quiz.repository.QuizRepository;
 import com.project.skillforgebackend.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -35,6 +37,8 @@ public class LearningPathService {
     private final LearningPathMapper learningPathMapper;
     private final AIService aiService;
     private final ObjectMapper objectMapper;
+    private final GamificationService gamificationService;
+    private final QuizRepository quizRepository;
 
     public LearningPathDto createLearningPath(
             CreateLearningPathRequest request,
@@ -153,6 +157,8 @@ public class LearningPathService {
         if (status == LearningPathStatus.COMPLETED) {
 
             learningPath.setCompletedAt(LocalDateTime.now());
+
+            gamificationService.checkAndAwardBadges(user);
 
         } else {
 
@@ -278,6 +284,8 @@ public class LearningPathService {
                         user
                 );
 
+        quizRepository.deleteByLearningPath(learningPath);
+
         learningPathRepository.delete(learningPath);
     }
 
@@ -317,7 +325,11 @@ public class LearningPathService {
              */
             validateField(roadmap, "title");
             validateField(roadmap, "goal");
-            validateField(roadmap, "durationWeeks");
+
+            if (!roadmap.has("durationWeeks") || roadmap.get("durationWeeks").isNull()) {
+                ((ObjectNode) roadmap).put("durationWeeks", expectedWeeks);
+            }
+
             validateField(roadmap, "weeks");
 
             /*

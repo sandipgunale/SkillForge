@@ -2,12 +2,18 @@ import QuizTimer from "./QuizTimer";
 
 export default function QuizHeader({ topic, onTimeout }) {
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex flex-wrap items-center justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-bold">{topic} Quiz</h1>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          Quiz · {topic}
+        </p>
 
-        <p className="text-sm text-muted-foreground">
-          Answer every question carefully.
+        <h1 className="display mt-1.5 text-2xl font-bold tracking-tight sm:text-3xl">
+          {topic}
+        </h1>
+
+        <p className="mt-1 text-sm text-muted-foreground">
+          Stay in the loop — answer every question carefully.
         </p>
       </div>
 

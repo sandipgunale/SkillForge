@@ -16,6 +16,15 @@ import java.util.Map;
 @Slf4j
 public class JwtService {
 
+    public static final String TOKEN_TYPE_ACCESS = "ACCESS";
+    public static final String TOKEN_TYPE_REFRESH = "REFRESH";
+    public static final String CLAIM_TYPE = "type";
+    public static final String CLAIM_ROLE = "role";
+    public static final String CLAIM_REMEMBER_ME = "rememberMe";
+
+    private static final String ISSUER = "skillforge";
+    private static final String AUDIENCE = "skillforge-api";
+
     @Value("${jwt.secret}")
     private String secretKey;
 
@@ -25,12 +34,26 @@ public class JwtService {
     @Value("${jwt.refresh-token-expiry}")
     private long refreshTokenExpiry;
 
+    @Value("${jwt.refresh-token-expiry-short}")
+    private long refreshTokenExpiryShort;
+
     public String generateAccessToken(String email, Map<String, Object> extraClaims) {
-        return buildToken(email, extraClaims, accessTokenExpiry);
+        Map<String, Object> claims = new java.util.HashMap<>(extraClaims);
+        claims.put(CLAIM_TYPE, TOKEN_TYPE_ACCESS);
+        return buildToken(email, claims, accessTokenExpiry);
     }
 
-    public String generateRefreshToken(String email) {
-        return buildToken(email, Map.of(), refreshTokenExpiry);
+    public String generateRefreshToken(String email, boolean rememberMe) {
+        Map<String, Object> claims = Map.of(
+                CLAIM_TYPE, TOKEN_TYPE_REFRESH,
+                CLAIM_REMEMBER_ME, rememberMe
+        );
+        long expiry = rememberMe ? refreshTokenExpiry : refreshTokenExpiryShort;
+        return buildToken(email, claims, expiry);
+    }
+
+    public long getRefreshTokenLifetime(boolean rememberMe) {
+        return rememberMe ? refreshTokenExpiry : refreshTokenExpiryShort;
     }
 
     private String buildToken(String subject,
@@ -39,6 +62,8 @@ public class JwtService {
         return Jwts.builder()
                 .claims(claims)
                 .subject(subject)
+                .issuer(ISSUER)
+                .audience().add(AUDIENCE).and()
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expiry))
                 .signWith(getSigningKey())
@@ -47,6 +72,27 @@ public class JwtService {
 
     public String extractEmail(String token) {
         return extractAllClaims(token).getSubject();
+    }
+
+    public String extractClaim(String token, String claimName) {
+        Object value = extractAllClaims(token).get(claimName);
+        return value == null ? null : String.valueOf(value);
+    }
+
+    public boolean isAccessToken(String token) {
+        try {
+            return TOKEN_TYPE_ACCESS.equals(extractAllClaims(token).get(CLAIM_TYPE, String.class));
+        } catch (JwtException e) {
+            return false;
+        }
+    }
+
+    public boolean isRefreshToken(String token) {
+        try {
+            return TOKEN_TYPE_REFRESH.equals(extractAllClaims(token).get(CLAIM_TYPE, String.class));
+        } catch (JwtException e) {
+            return false;
+        }
     }
 
     public boolean isTokenValid(String token, String email) {
@@ -65,6 +111,8 @@ public class JwtService {
     private Claims extractAllClaims(String token) {
         return Jwts.parser()
                 .verifyWith(getSigningKey())
+                .requireIssuer(ISSUER)
+                .requireAudience(AUDIENCE)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();

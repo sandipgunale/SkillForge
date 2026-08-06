@@ -1,7 +1,11 @@
 package com.project.skillforgebackend.quiz.service;
 
+import com.project.skillforgebackend.ai.guardrail.AiUsageTracker;
+import com.project.skillforgebackend.ai.exception.AIServiceException;
 import com.project.skillforgebackend.ai.service.AIService;
+import com.project.skillforgebackend.common.exception.QuizExpiredException;
 import com.project.skillforgebackend.common.exception.ResourceNotFoundException;
+import com.project.skillforgebackend.gamification.service.GamificationService;
 import com.project.skillforgebackend.learningpathprogress.service.LearningPathProgressService;
 import com.project.skillforgebackend.progress.service.ProgressService;
 import com.project.skillforgebackend.quiz.dto.*;
@@ -55,6 +59,9 @@ public class QuizService {
     private final LearningPathProgressService learningPathProgressService;
     private final QuizRequestValidator quizRequestValidator;
     private final QuizAnswerMapper quizAnswerMapper;
+    private final AiUsageTracker aiUsageTracker;
+    private final GamificationService gamificationService;
+    private final QuizResultBuilder quizResultBuilder;
 
   @Transactional
     public QuizDto generateQuiz(
@@ -62,6 +69,11 @@ public class QuizService {
             QuizRequest request
     ) {
       quizRequestValidator.validate(request);
+
+      aiUsageTracker.consume(
+              user.getId(),
+              request.getQuestionCount()
+      );
 
 
 
@@ -112,6 +124,7 @@ public class QuizService {
         questions.forEach(question -> question.setQuiz(quiz));
 
         quiz.setQuestions(questions);
+        quiz.setExpiresAt(calculateExpiry(questions.size()));
 
         Quiz savedQuiz = quizRepository.save(quiz);
 
@@ -223,6 +236,7 @@ public class QuizService {
         questions.forEach(question -> question.setQuiz(quiz));
 
         quiz.setQuestions(questions);
+        quiz.setExpiresAt(calculateExpiry(questions.size()));
 
         Quiz savedQuiz = quizRepository.save(quiz);
 
@@ -244,6 +258,7 @@ public class QuizService {
         return quizMapper.toDto(savedQuiz);
     }
 
+    @Transactional
     public QuizDto getQuiz(User user, UUID quizId) {
 
         Quiz quiz = quizRepository
@@ -254,7 +269,60 @@ public class QuizService {
                                 quizId
                         ));
 
+        abandonIfExpired(quiz);
+
         return quizMapper.toDto(quiz);
+    }
+
+    /**
+     * Resume the user's most recent in-progress quiz that hasn't expired,
+     * or throw 404 if there is none.
+     */
+    @Transactional
+    public QuizDto getActiveQuiz(User user) {
+
+        Quiz quiz = quizRepository
+                .findTopByUserAndStatusOrderByStartedAtDesc(
+                        user,
+                        Quiz.QuizStatus.IN_PROGRESS
+                )
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Quiz in progress",
+                                null
+                        ));
+
+        abandonIfExpired(quiz);
+
+        return quizMapper.toDto(quiz);
+    }
+
+    private void abandonIfExpired(Quiz quiz) {
+        if (quiz.getStatus() == Quiz.QuizStatus.IN_PROGRESS
+                && quiz.isExpired()) {
+
+            quiz.setStatus(Quiz.QuizStatus.ABANDONED);
+            quizRepository.save(quiz);
+
+            log.info(
+                    "Quiz {} abandoned because it expired at {}",
+                    quiz.getId(),
+                    quiz.getExpiresAt()
+            );
+        }
+    }
+
+    /**
+     * Server-side session deadline. Matches the frontend timer:
+     * 1.5 minutes per question, minimum of 2 minutes.
+     */
+    static java.time.LocalDateTime calculateExpiry(int questionCount) {
+        long minutes = Math.max(
+                2,
+                (long) Math.ceil(questionCount * 1.5)
+        );
+
+        return java.time.LocalDateTime.now().plusMinutes(minutes);
     }
 
     public QuizResultDto getQuizResult(
@@ -271,12 +339,38 @@ public class QuizService {
                         ));
 
         if (quiz.getStatus() != Quiz.QuizStatus.COMPLETED) {
+
+            abandonIfExpired(quiz);
+
             throw new IllegalStateException(
                     "Quiz has not been completed yet."
             );
         }
 
-        return aiService.evaluateQuiz(quiz);
+        return evaluateWithFallback(quiz);
+    }
+
+    /**
+     * Evaluates via Gemini, falling back to deterministic offline grading
+     * (correct answers are stored with the quiz) whenever the AI service
+     * is unreachable, so a Gemini outage can never block finishing a quiz.
+     */
+    private QuizResultDto evaluateWithFallback(Quiz quiz) {
+
+        try {
+
+            return aiService.evaluateQuiz(quiz);
+
+        } catch (AIServiceException ex) {
+
+            log.warn(
+                    "Gemini unavailable; grading quiz {} offline. Reason: {}",
+                    quiz.getId(),
+                    ex.getMessage()
+            );
+
+            return quizResultBuilder.build(quiz, false);
+        }
     }
 
     @Transactional
@@ -292,7 +386,7 @@ public class QuizService {
 
         applyUserAnswers(quiz, request);
 
-        QuizResultDto result = aiService.evaluateQuiz(quiz);
+        QuizResultDto result = evaluateWithFallback(quiz);
 
         applyEvaluationResults(quiz, result);
 
@@ -301,6 +395,8 @@ public class QuizService {
         quizRepository.save(quiz);
 
         updateProgress(user, quiz, result);
+
+        gamificationService.checkAndAwardBadges(user);
 
         log.info(
                 "Quiz {} submitted by {}",
@@ -327,10 +423,28 @@ public class QuizService {
             Quiz quiz
     ) {
 
+        if (quiz.getStatus() == Quiz.QuizStatus.ABANDONED) {
+
+            throw new QuizExpiredException(
+                    "Quiz was abandoned and can no longer be submitted."
+            );
+
+        }
+
         if (quiz.getStatus() == Quiz.QuizStatus.COMPLETED) {
 
             throw new IllegalStateException(
                     "Quiz already submitted."
+            );
+
+        }
+
+        if (quiz.isExpired()) {
+
+            quiz.setStatus(Quiz.QuizStatus.ABANDONED);
+
+            throw new QuizExpiredException(
+                    "Quiz session expired. Please start a new quiz."
             );
 
         }

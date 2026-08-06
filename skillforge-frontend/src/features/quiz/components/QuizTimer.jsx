@@ -6,13 +6,16 @@ import { useQuizStore } from "../store/quizStore";
 
 export default function QuizTimer({ onTimeout }) {
   const remainingTime = useQuizStore((state) => state.remainingTime);
+  const quizEndsAt = useQuizStore((state) => state.quizEndsAt);
   const tick = useQuizStore((state) => state.tick);
 
   const timeoutTriggered = useRef(false);
 
-  // Stable timer
+  // Stable timer: drive the interval off the absolute deadline, not
+  // remainingTime, so a late-mounted timer (timer started in an effect
+  // after the first render) still ticks from the very first second.
   useEffect(() => {
-    if (remainingTime <= 0) {
+    if (quizEndsAt === null) {
       return;
     }
 
@@ -21,23 +24,22 @@ export default function QuizTimer({ onTimeout }) {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [tick]);
+  }, [quizEndsAt, tick]);
 
-  // Fire timeout only once
+  // Fire timeout only once per deadline when it has actually expired
+  // (a paused/refreshed quiz resumes from the persisted deadline instead
+  // of restarting the full duration).
   useEffect(() => {
-    if (remainingTime > 0) {
-      timeoutTriggered.current = false;
-      return;
+    if (quizEndsAt !== null && remainingTime <= 0) {
+      if (timeoutTriggered.current) {
+        return;
+      }
+
+      timeoutTriggered.current = true;
+
+      onTimeout?.();
     }
-
-    if (timeoutTriggered.current) {
-      return;
-    }
-
-    timeoutTriggered.current = true;
-
-    onTimeout?.();
-  }, [remainingTime, onTimeout]);
+  }, [remainingTime, quizEndsAt, onTimeout]);
 
   const minutes = Math.floor(remainingTime / 60);
   const seconds = remainingTime % 60;
@@ -51,16 +53,17 @@ export default function QuizTimer({ onTimeout }) {
       aria-live="polite"
       aria-atomic="true"
       className={cn(
-        "flex items-center gap-2 rounded-lg border px-4 py-2 font-semibold transition-colors",
+        "flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold tabular-nums transition-colors duration-300",
 
-        isCritical && "border-red-500 text-red-500",
+        isCritical && "animate-pulse border-destructive text-destructive",
 
-        isWarning && "border-orange-500 text-orange-500",
+        isWarning && "border-warning text-warning",
+
+        !isCritical && !isWarning && "border-border bg-card text-foreground",
       )}
     >
       <Clock className="h-4 w-4" />
-
-      <span className="tabular-nums">
+      <span>
         {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
       </span>
     </div>

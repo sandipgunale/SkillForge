@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -55,6 +56,7 @@ public class TopicController {
      * Create topic.
      */
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<TopicDto>> createTopic(
             @Valid @RequestBody CreateTopicRequest request
     ) {
@@ -75,6 +77,7 @@ public class TopicController {
      * Update topic.
      */
     @PutMapping("/{topicId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<TopicDto>> updateTopic(
             @PathVariable UUID topicId,
             @Valid @RequestBody UpdateTopicRequest request
@@ -95,6 +98,7 @@ public class TopicController {
      * Delete topic.
      */
     @DeleteMapping("/{topicId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deleteTopic(
             @PathVariable UUID topicId
     ) {

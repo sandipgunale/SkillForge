@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -46,6 +47,7 @@ public class TagController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<TagDto>> createTag(
             @Valid @RequestBody CreateTagRequest request
     ) {
@@ -62,6 +64,7 @@ public class TagController {
     }
 
     @PutMapping("/{tagId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<TagDto>> updateTag(
             @PathVariable UUID tagId,
             @Valid @RequestBody UpdateTagRequest request
@@ -76,6 +79,7 @@ public class TagController {
     }
 
     @DeleteMapping("/{tagId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deleteTag(
             @PathVariable UUID tagId
     ) {

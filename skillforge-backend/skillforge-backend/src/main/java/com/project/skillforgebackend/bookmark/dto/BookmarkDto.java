@@ -18,6 +18,9 @@ public class BookmarkDto {
     private String bookmarkId;
     private LocalDateTime bookmarkedAt;
 
+    private String folderId;
+    private String folderName;
+
     private String resourceId;
     private String title;
     private String description;

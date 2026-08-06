@@ -8,7 +8,7 @@ export function useTopics() {
   return useQuery({
     queryKey: QUERY_KEYS.TOPICS,
 
-    queryFn: resourcesService.getTopics,
+    queryFn: () => resourcesService.getTopics(),
 
     staleTime: Infinity,
 

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -10,20 +10,30 @@ import QuizProgress from "../components/QuizProgress";
 import QuestionCard from "../components/QuestionCard";
 import QuizNavigation from "../components/QuizNavigation";
 import QuestionPalette from "../components/QuestionPalette";
+import { QuizSkeleton } from "../components/loading/QuizSkeleton";
+
+import { getQuizDurationSeconds } from "../constants/quiz.constants";
 
 import { useQuizStore } from "../store/quizStore";
 import { useSubmitQuiz } from "../hooks/useSubmitQuiz";
 import { useQuiz } from "../hooks/useQuiz";
-
-const QUIZ_DURATION = 600;
+import { DEFAULT_QUESTION_COUNT } from "../constants/quiz.constants";
 
 export default function QuizPage() {
   const { quizId } = useParams();
 
-  const setQuiz = useQuizStore((state) => state.setQuiz);
+  const {
+    quiz,
+    currentQuestion,
+    answers,
+    answerQuestion,
+    setCurrentQuestion,
+    setQuiz,
+    startTimer,
+    quizEndsAt,
+  } = useQuizStore();
 
-  const { quiz, currentQuestion, answers, answerQuestion, setCurrentQuestion } =
-    useQuizStore();
+  const submitQuiz = useSubmitQuiz();
 
   const {
     data: fetchedQuiz,
@@ -31,35 +41,137 @@ export default function QuizPage() {
     isError,
   } = useQuiz(quizId, !quiz || quiz.id !== quizId);
 
-  const startTimer = useQuizStore((state) => state.startTimer);
-  const remainingTime = useQuizStore((state) => state.remainingTime);
-
-  const submitQuiz = useSubmitQuiz();
-
-  useEffect(() => {
-    if (quiz && remainingTime === 0) {
-      startTimer(QUIZ_DURATION);
-    }
-  }, [quiz, remainingTime, startTimer]);
+  /*
+   * ----------------------------------
+   * Sync Quiz
+   * ----------------------------------
+   */
 
   useEffect(() => {
-    if (fetchedQuiz && (!quiz || quiz.id !== fetchedQuiz.id)) {
+    if (!fetchedQuiz) return;
+
+    if (!quiz || quiz.id !== fetchedQuiz.id) {
       setQuiz(fetchedQuiz);
     }
   }, [fetchedQuiz, quiz, setQuiz]);
 
-  // IMPORTANT:
-  // Never access quiz.questions before this check.
+  /*
+   * ----------------------------------
+   * Start Timer
+   * ----------------------------------
+   */
+
+  useEffect(() => {
+    if (!quiz) return;
+
+    if (quizEndsAt === null) {
+      startTimer(
+        getQuizDurationSeconds(
+          quiz.questions?.length ?? DEFAULT_QUESTION_COUNT,
+        ),
+      );
+    }
+  }, [quiz, quizEndsAt, startTimer]);
+
+  /*
+   * ----------------------------------
+   * Loading
+   * ----------------------------------
+   */
+
+  const safeIndex = Math.min(
+    currentQuestion,
+    (quiz?.questions?.length ?? 1) - 1,
+  );
+
+  const question = quiz?.questions?.[safeIndex];
+
+  const answeredCount = Object.keys(answers).length;
+
+  /*
+   * ----------------------------------
+   * Navigation
+   * ----------------------------------
+   */
+
+  const previous = useCallback(() => {
+    setCurrentQuestion(safeIndex - 1);
+  }, [safeIndex, setCurrentQuestion]);
+
+  const next = useCallback(() => {
+    setCurrentQuestion(safeIndex + 1);
+  }, [safeIndex, setCurrentQuestion]);
+
+  const jumpToQuestion = useCallback(
+    (index) => {
+      setCurrentQuestion(index);
+    },
+    [setCurrentQuestion],
+  );
+
+  const answer = useCallback(
+    (value) => {
+      if (question) {
+        answerQuestion(question.id, value);
+      }
+    },
+    [answerQuestion, question],
+  );
+
+  /*
+   * ----------------------------------
+   * Submit
+   * ----------------------------------
+   */
+
+  const handleSubmit = useCallback(() => {
+    if (submitQuiz.isPending || !quiz) {
+      return;
+    }
+
+    const payload = Object.entries(answers).map(([questionId, answer]) => ({
+      questionId,
+      answer,
+    }));
+
+    submitQuiz.mutate({
+      quizId: quiz.id,
+      answers: payload,
+    });
+  }, [answers, quiz, submitQuiz]);
+
+  /*
+   * ----------------------------------
+   * Timeout
+   * ----------------------------------
+   */
+
+  const handleTimeout = useCallback(() => {
+    toast.warning("Time is up! Submitting quiz...");
+
+    handleSubmit();
+  }, [handleSubmit]);
+
   if (isLoading) {
-    return <PageContainer>Loading quiz...</PageContainer>;
+    return (
+      <PageContainer>
+        <QuizSkeleton />
+      </PageContainer>
+    );
   }
+
+  /*
+   * ----------------------------------
+   * Error
+   * ----------------------------------
+   */
 
   if (isError) {
     return (
       <PageContainer>
         <ErrorState
           title="Quiz not found"
-          description="This quiz doesn't exist or you don't have access."
+          description="Unable to load this quiz."
         />
       </PageContainer>
     );
@@ -69,55 +181,37 @@ export default function QuizPage() {
     return null;
   }
 
-  const answered = Object.keys(answers).length;
-  const question = quiz.questions[currentQuestion];
-
-  const handleSubmit = () => {
-    if (submitQuiz.isPending) return;
-
-    const payload = Object.entries(answers).map(([questionId, answer]) => ({
-      questionId,
-      answer,
-    }));
-
-    if (payload.length === 0) {
-      toast.error("Please answer at least one question.");
-      return;
-    }
-
-    submitQuiz.mutate({
-      quizId: quiz.id,
-      answers: payload,
-    });
-  };
-
-  const handleTimeout = () => {
-    if (submitQuiz.isPending) return;
-
-    toast.warning("Time is up! Submitting quiz...");
-    handleSubmit();
-  };
+  if (!quiz.questions?.length) {
+    return (
+      <PageContainer>
+        <ErrorState title="Quiz Empty" description="No questions available." />
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
-      <QuizHeader topic={quiz.topic} onTimeout={handleTimeout} />
+      <QuizHeader
+        topic={quiz.topicName ?? quiz.learningPathTitle ?? "Quiz"}
+        onTimeout={handleTimeout}
+      />
 
-      <QuizProgress current={currentQuestion} total={quiz.questions.length} />
+      <QuizProgress current={safeIndex} total={quiz.questions.length} />
 
       <div className="mt-8 grid gap-8 lg:grid-cols-3">
         <div className="space-y-8 lg:col-span-2">
           <QuestionCard
             question={question}
             selectedAnswer={answers[question.id]}
-            onAnswer={(answer) => answerQuestion(question.id, answer)}
+            onAnswer={answer}
           />
 
           <QuizNavigation
-            current={currentQuestion}
+            current={safeIndex}
             total={quiz.questions.length}
-            answered={answered}
-            previous={() => setCurrentQuestion(currentQuestion - 1)}
-            next={() => setCurrentQuestion(currentQuestion + 1)}
+            answered={answeredCount}
+            previous={previous}
+            next={next}
             submit={handleSubmit}
             loading={submitQuiz.isPending}
           />
@@ -125,9 +219,9 @@ export default function QuizPage() {
 
         <QuestionPalette
           questions={quiz.questions}
-          currentQuestion={currentQuestion}
+          currentQuestion={safeIndex}
           answers={answers}
-          onSelect={setCurrentQuestion}
+          onSelect={jumpToQuestion}
         />
       </div>
     </PageContainer>

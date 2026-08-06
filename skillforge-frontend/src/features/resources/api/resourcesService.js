@@ -1,85 +1,82 @@
 import { apiClient } from "@/services/api/axios";
 
-export const resourcesService = {
+class ResourcesService {
   /**
    * Get paginated resources
    */
-  async getResources(filters = {}) {
-    const {
-      page = 0,
-      size = 12,
-      topicId,
-      difficulty,
-      type,
-      search,
-    } = filters;
-
-    // Remove empty query parameters
-    const params = Object.fromEntries(
-      Object.entries({
-        page,
-        size,
-        topicId,
-        difficulty,
-        type,
-        search,
-      }).filter(
-        ([, value]) =>
-          value !== undefined &&
-          value !== null &&
-          value !== ""
-      )
-    );
-
-    const { data } = await apiClient.get("/resources", {
+  async getResources(params = {}) {
+    const response = await apiClient.get("/v1/resources", {
       params,
     });
 
     return {
-      resources: data.content ?? [],
-      page: data.number ?? 0,
-      pageSize: data.size ?? size,
-      totalPages: data.totalPages ?? 0,
-      totalElements: data.totalElements ?? 0,
-      first: data.first ?? true,
-      last: data.last ?? true,
+      resources: response.data.content,
+      page: response.data.number,
+      size: response.data.size,
+      totalPages: response.data.totalPages,
+      totalElements: response.data.totalElements,
+      first: response.data.first,
+      last: response.data.last,
+      empty: response.data.empty,
     };
-  },
+  }
+
+  /**
+   * Get single resource
+   */
+  async getResource(resourceId) {
+    const response = await apiClient.get(`/v1/resources/${resourceId}`);
+    return response.data;
+  }
 
   /**
    * Get all topics
    */
   async getTopics() {
-    const { data } = await apiClient.get("/topics");
-    return data ?? [];
-  },
-
-  /**
-   * Get resource details
-   */
-  async getResourceById(id) {
-    if (!id) {
-      throw new Error("Resource id is required.");
-    }
-
-    const { data } = await apiClient.get(`/resources/${id}`);
-
-    return data;
-  },
+    const response = await apiClient.get("/v1/topics");
+    return response.data;
+  }
 
   /**
    * Get related resources
    */
   async getRelatedResources(topicId, currentResourceId) {
-    if (!topicId) return [];
-
     const response = await this.getResources({
       topicId,
-      size: 4,
+      size: 5,
     });
 
-    return (response.resources ?? []).filter(
-      (resource) => resource.id !== currentResourceId
+    return response.resources
+      .filter(resource => resource.id !== currentResourceId)
+      .slice(0, 4);
+  }
+
+  /**
+   * Create resource
+   */
+  async createResource(payload) {
+    const response = await apiClient.post("/v1/resources", payload);
+    return response.data;
+  }
+
+  /**
+   * Update resource
+   */
+  async updateResource(resourceId, payload) {
+    const response = await apiClient.put(
+      `/v1/resources/${resourceId}`,
+      payload
     );
-  },
-};
+
+    return response.data;
+  }
+
+  /**
+   * Delete resource
+   */
+  async deleteResource(resourceId) {
+    await apiClient.delete(`/v1/resources/${resourceId}`);
+  }
+}
+
+export const resourcesService = new ResourcesService();
