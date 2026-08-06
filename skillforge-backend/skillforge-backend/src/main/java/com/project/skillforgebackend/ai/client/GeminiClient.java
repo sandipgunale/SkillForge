@@ -217,7 +217,9 @@ public class GeminiClient {
 
                 log.error(
                         "Gemini Response : {}",
-                        ex.getResponseBodyAsString()
+                        extractErrorMessage(
+                                ex.getResponseBodyAsString()
+                        )
                 );
 
                 if (ex.getStatusCode().value() == 429) {

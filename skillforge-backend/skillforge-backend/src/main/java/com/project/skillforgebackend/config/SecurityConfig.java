@@ -34,6 +34,8 @@ public class SecurityConfig {
 
     private final RequestIdFilter requestIdFilter;
 
+    private final MetricsAccess metricsAccess;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
@@ -60,6 +62,9 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/error").permitAll()
+                        // Prometheus scrape: allowlisted IPs only; everyone
+                        // else falls through to the authenticated rule below
+                        .requestMatchers(metricsAccess).permitAll()
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/v1/topics",

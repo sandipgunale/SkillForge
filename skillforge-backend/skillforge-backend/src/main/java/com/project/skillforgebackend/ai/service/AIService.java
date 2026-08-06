@@ -21,6 +21,8 @@ import com.project.skillforgebackend.ai.prompt.QuizPromptBuilder;
 import com.project.skillforgebackend.ai.prompt.LearningPathPromptBuilder;
 import com.project.skillforgebackend.ai.prompt.EvaluationPromptBuilder;
 import com.project.skillforgebackend.ai.parser.LearningPathParser;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.util.List;
@@ -51,6 +53,8 @@ public class AIService {
     private final ExecutorService aiExecutor;
 
     private final java.util.concurrent.ScheduledExecutorService aiTimeoutScheduler;
+
+    private final MeterRegistry meterRegistry;
 
     @Value("${gemini.max-parse-retries:2}")
     private int maxParseRetries;
@@ -151,29 +155,55 @@ public class AIService {
      */
     private String completeWithResilience(String prompt) {
 
+        Timer.Sample sample = Timer.start(meterRegistry);
+
         try {
 
-            java.util.function.Supplier<String> call = Retry.decorateSupplier(
-                    aiRetry,
-                    CircuitBreaker.decorateSupplier(
-                            aiCircuitBreaker,
-                            () -> geminiClient.complete(prompt)
-                    )
-            );
+            String result = executeResilientCall(prompt);
 
-            return Decorators.ofCompletionStage(
-                            () -> CompletableFuture.supplyAsync(call, aiExecutor)
-                    )
-                    .withTimeLimiter(aiTimeLimiter, aiTimeoutScheduler)
-                    .get()
-                    .toCompletableFuture()
-                    .join();
+            sample.stop(aiCallTimer("success"));
+
+            return result;
+
+        } catch (AIServiceException ex) {
+
+            sample.stop(aiCallTimer("failure"));
+
+            throw ex;
 
         } catch (RuntimeException ex) {
+
+            sample.stop(aiCallTimer("failure"));
 
             throw translateAiFailure(unwrap(ex));
 
         }
+    }
+
+    private Timer aiCallTimer(String outcome) {
+        return Timer.builder("skillforge_ai_call_duration")
+                .description("Wall-clock duration of an outbound AI call")
+                .tag("outcome", outcome)
+                .register(meterRegistry);
+    }
+
+    private String executeResilientCall(String prompt) {
+
+        java.util.function.Supplier<String> call = Retry.decorateSupplier(
+                aiRetry,
+                CircuitBreaker.decorateSupplier(
+                        aiCircuitBreaker,
+                        () -> geminiClient.complete(prompt)
+                )
+        );
+
+        return Decorators.ofCompletionStage(
+                        () -> CompletableFuture.supplyAsync(call, aiExecutor)
+                )
+                .withTimeLimiter(aiTimeLimiter, aiTimeoutScheduler)
+                .get()
+                .toCompletableFuture()
+                .join();
     }
 
     private Throwable unwrap(Throwable throwable) {

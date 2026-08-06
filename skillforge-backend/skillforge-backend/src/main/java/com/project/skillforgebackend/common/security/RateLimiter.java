@@ -8,7 +8,9 @@ import io.github.bucket4j.ConsumptionProbe;
 import io.github.bucket4j.caffeine.Bucket4jCaffeine;
 import io.github.bucket4j.distributed.ExpirationAfterWriteStrategy;
 import io.github.bucket4j.distributed.proxy.ProxyManager;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -38,6 +40,13 @@ public class RateLimiter {
     @Value("${security.rate-limit.window-minutes:10}")
     private long windowMinutes;
 
+    /**
+     * Optional (unit tests construct the limiter without Spring); when
+     * absent, rejection metrics are simply not recorded.
+     */
+    @Autowired(required = false)
+    private MeterRegistry meterRegistry;
+
     public RateLimiter() {
         this.proxyManager = Bucket4jCaffeine.<String>builderFor(
                         Caffeine.newBuilder().maximumSize(10_000))
@@ -61,12 +70,32 @@ public class RateLimiter {
         ConsumptionProbe probe = probe(key);
 
         if (!probe.isConsumed()) {
+            recordRejection(key);
             log.warn("Rate limit exceeded for key {} ({} requests per {}min)",
                     key, maxRequests, windowMinutes);
             throw new RateLimitException(
                     "Too many requests. Please try again later."
             );
         }
+    }
+
+    private void recordRejection(String key) {
+
+        if (meterRegistry == null) {
+            return;
+        }
+
+        int separator = key.indexOf(':');
+
+        String endpoint = separator >= 0
+                ? key.substring(separator + 1)
+                : key;
+
+        meterRegistry.counter(
+                "skillforge_ratelimit_rejections",
+                "endpoint",
+                endpoint
+        ).increment();
     }
 
     /** Key derived from client IP + endpoint for scoped limits. */

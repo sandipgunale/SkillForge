@@ -43,6 +43,7 @@ import java.util.List;
 
 import com.project.skillforgebackend.quiz.validator.QuizRequestValidator;
 import com.project.skillforgebackend.quiz.mapper.QuizAnswerMapper;
+import io.micrometer.core.instrument.MeterRegistry;
 
 @Service
 @RequiredArgsConstructor
@@ -62,6 +63,8 @@ public class QuizService {
     private final AiUsageTracker aiUsageTracker;
     private final GamificationService gamificationService;
     private final QuizResultBuilder quizResultBuilder;
+
+    private final MeterRegistry meterRegistry;
 
   @Transactional
     public QuizDto generateQuiz(
@@ -133,6 +136,12 @@ public class QuizService {
                 savedQuiz.getId(),
                 user.getEmail()
         );
+
+        meterRegistry.counter(
+                "skillforge_quizzes_generated",
+                "source",
+                "topic"
+        ).increment();
 
         return quizMapper.toDto(savedQuiz);
     }
@@ -254,6 +263,12 @@ public class QuizService {
                 user.getEmail(),
                 request.getWeekNumber()
         );
+
+        meterRegistry.counter(
+                "skillforge_quizzes_generated",
+                "source",
+                "learning_path"
+        ).increment();
 
         return quizMapper.toDto(savedQuiz);
     }
