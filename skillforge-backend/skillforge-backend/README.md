@@ -56,10 +56,16 @@ default active profile.
 ## Useful Commands
 
 ```bash
-mvn -q compile          # compile only
-mvn test                # unit + integration tests
-mvn spring-boot:run     # run locally
+mvn -q compile            # compile only
+mvn test                  # unit tests (fast, no Docker needed)
+mvn verify                # unit + integration tests, coverage gate
+mvn spring-boot:run       # run locally
 ```
+
+Integration tests (`*IT` in `src/test/java/.../integration`) run against a
+real PostgreSQL via Testcontainers, so `mvn verify` requires a running
+Docker daemon; they are skipped when Docker is unavailable. The build also
+enforces a JaCoCo coverage floor (line >= 35%, branch >= 25%) at `verify`.
 
 ## API
 

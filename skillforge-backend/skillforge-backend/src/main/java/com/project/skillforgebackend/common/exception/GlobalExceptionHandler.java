@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.*;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
@@ -164,6 +165,14 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.BAD_GATEWAY,
                 "The AI service is temporarily unavailable. Please try again later.",
                 request);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiError> handleAccessDenied(
+            AccessDeniedException ex,
+            HttpServletRequest request) {
+        log.warn("Access denied at {}: {}", request.getRequestURI(), ex.getMessage());
+        return buildError(HttpStatus.FORBIDDEN, "Access denied", request);
     }
 
     @ExceptionHandler(Exception.class)

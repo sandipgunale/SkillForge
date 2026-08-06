@@ -26,6 +26,10 @@
         <bucket4j.version>8.19.0</bucket4j.version>
         <resilience4j.version>2.4.0</resilience4j.version>
         <springdoc.version>2.9.0</springdoc.version>
+        <!-- Boot 3.5.3 BOM pins testcontainers 1.21.2 (docker-java 3.4.2),
+             which is rejected with HTTP 400 by the Docker Desktop API
+             proxy on modern engines; 1.21.4 bundles a fixed docker-java -->
+        <testcontainers.version>1.21.4</testcontainers.version>
     </properties>
 
     <dependencies>
@@ -196,6 +200,25 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Testcontainers integration tests (versions from Boot BOM) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -205,6 +228,71 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+
+            <!-- Integration tests (*IT) run in the verify phase via
+                 Failsafe; surefire's default includes don't match them.
+                 Docker is required (Testcontainers skips them otherwise). -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Code coverage (agent + report at verify). The check rule is
+                 deliberately below the measured baseline: it guards against
+                 coverage regressions, not the current suite. -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.13</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.35</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.25</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <plugin>
