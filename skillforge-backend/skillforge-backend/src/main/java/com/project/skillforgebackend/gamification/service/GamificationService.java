@@ -13,9 +13,11 @@ import com.project.skillforgebackend.quiz.entity.Quiz;
 import com.project.skillforgebackend.quiz.repository.QuizRepository;
 import com.project.skillforgebackend.rating.repository.RatingRepository;
 import com.project.skillforgebackend.bookmark.repository.BookmarkRepository;
+import com.project.skillforgebackend.common.audit.BusinessAuditEvent;
 import com.project.skillforgebackend.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +45,7 @@ public class GamificationService {
     private final RatingRepository ratingRepository;
     private final LearningPathRepository learningPathRepository;
     private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * Re-evaluates all badge rules and awards any newly earned badges
@@ -174,6 +177,14 @@ public class GamificationService {
                 "Badge earned: " + badge.getName(),
                 badge.getDescription() + " Keep it up!"
         );
+
+        eventPublisher.publishEvent(new BusinessAuditEvent(
+                BusinessAuditEvent.Type.BADGE_AWARDED,
+                user.getId(),
+                "badge",
+                badge.getCode(),
+                badge.getName()
+        ));
 
         log.info(
                 "Awarded badge {} to {}",

@@ -1,10 +1,14 @@
 package com.project.skillforgebackend.auth.service;
 
+import com.project.skillforgebackend.config.properties.JwtProperties;
 import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 
@@ -20,11 +24,15 @@ class JwtServiceTest {
 
     @BeforeEach
     void setUp() {
-        jwtService = new JwtService();
-        ReflectionTestUtils.setField(jwtService, "secretKey", TEST_SECRET);
-        ReflectionTestUtils.setField(jwtService, "accessTokenExpiry", 900000L);
-        ReflectionTestUtils.setField(jwtService, "refreshTokenExpiry", 604800000L);
-        ReflectionTestUtils.setField(jwtService, "refreshTokenExpiryShort", 86400000L);
+        jwtService = new JwtService(new JwtProperties(
+                TEST_SECRET,
+                900_000L,
+                604_800_000L,
+                86_400_000L,
+                "skillforge",
+                "skillforge-api",
+                30L
+        ));
     }
 
     @Test
@@ -98,5 +106,63 @@ class JwtServiceTest {
                 "real@test.com", Map.of("role", "STUDENT", "subject", UUID.randomUUID()));
 
         assertThat(jwtService.extractEmail(token)).isEqualTo("real@test.com");
+    }
+
+    @Test
+    void isTokenValid_rejectsWrongIssuer() {
+        String token = Jwts.builder()
+                .subject("user@test.com")
+                .issuer("evil-issuer")
+                .audience().add("skillforge-api").and()
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + 86_400_000L))
+                .signWith(Keys.hmacShaKeyFor(Decoders.BASE64.decode(TEST_SECRET)))
+                .compact();
+
+        assertThat(jwtService.isTokenValid(token, "user@test.com")).isFalse();
+    }
+
+    @Test
+    void isTokenValid_rejectsWrongAudience() {
+        String token = Jwts.builder()
+                .subject("user@test.com")
+                .issuer("skillforge")
+                .audience().add("other-api").and()
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + 3_600_000L))
+                .signWith(Keys.hmacShaKeyFor(Decoders.BASE64.decode(TEST_SECRET)))
+                .compact();
+
+        assertThat(jwtService.isTokenValid(token, "user@test.com")).isFalse();
+    }
+
+    @Test
+    void isTokenValid_acceptsExpiryWithinClockSkew() {
+        // exp 10s in the future: within the 30s skew, so still valid
+        String token = Jwts.builder()
+                .subject("user@test.com")
+                .issuer("skillforge")
+                .audience().add("skillforge-api").and()
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + 10_000L))
+                .signWith(Keys.hmacShaKeyFor(Decoders.BASE64.decode(TEST_SECRET)))
+                .compact();
+
+        assertThat(jwtService.isTokenValid(token, "user@test.com")).isTrue();
+    }
+
+    @Test
+    void isTokenValid_rejectsExpiryBeyondClockSkew() {
+        // exp 60s in the past exceeds the 30s skew -> expired
+        String token = Jwts.builder()
+                .subject("user@test.com")
+                .issuer("skillforge")
+                .audience().add("skillforge-api").and()
+                .issuedAt(new Date(System.currentTimeMillis() - 120_000L))
+                .expiration(new Date(System.currentTimeMillis() - 60_000L))
+                .signWith(Keys.hmacShaKeyFor(Decoders.BASE64.decode(TEST_SECRET)))
+                .compact();
+
+        assertThat(jwtService.isTokenValid(token, "user@test.com")).isFalse();
     }
 }

@@ -1,6 +1,7 @@
 package com.project.skillforgebackend.admin.service;
 
 import com.project.skillforgebackend.admin.dto.UpdateUserRoleRequest;
+import com.project.skillforgebackend.admin.mapper.AdminUserMapper;
 import com.project.skillforgebackend.common.exception.ResourceNotFoundException;
 import com.project.skillforgebackend.user.entity.User;
 import com.project.skillforgebackend.user.repository.UserRepository;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -30,13 +32,20 @@ class AdminUserServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     private AdminUserService adminUserService;
 
     private User user;
 
     @BeforeEach
     void setUp() {
-        adminUserService = new AdminUserService(userRepository);
+        adminUserService = new AdminUserService(
+                userRepository,
+                new AdminUserMapper(),
+                eventPublisher
+        );
 
         user = User.builder()
                 .id(UUID.randomUUID())

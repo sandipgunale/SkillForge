@@ -1,5 +1,7 @@
 package com.project.skillforgebackend.rating.controller;
 
+import com.project.skillforgebackend.auth.principal.AuthenticatedPrincipal;
+import com.project.skillforgebackend.auth.principal.CurrentUser;
 import com.project.skillforgebackend.common.response.ApiResponse;
 import com.project.skillforgebackend.rating.dto.RatingRequest;
 import com.project.skillforgebackend.rating.dto.RatingResponseDto;
@@ -21,15 +23,18 @@ public class RatingController {
 
     private final RatingService ratingService;
 
+    private final CurrentUser currentUser;
+
     /**
      * Add or update rating.
      */
     @PostMapping("/{resourceId}")
     public ResponseEntity<ApiResponse<RatingResponseDto>> rateResource(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal AuthenticatedPrincipal principal,
             @PathVariable UUID resourceId,
             @Valid @RequestBody RatingRequest request
     ) {
+        User user = currentUser.require(principal);
 
         RatingResponseDto response =
                 ratingService.rateResource(
@@ -51,9 +56,10 @@ public class RatingController {
      */
     @GetMapping("/{resourceId}")
     public ResponseEntity<ApiResponse<UserRatingDto>> getRatingStatus(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal AuthenticatedPrincipal principal,
             @PathVariable UUID resourceId
     ) {
+        User user = currentUser.require(principal);
 
         UserRatingDto response =
                 ratingService.getUserRating(user, resourceId);
@@ -71,9 +77,10 @@ public class RatingController {
      */
     @DeleteMapping("/{resourceId}")
     public ResponseEntity<ApiResponse<Void>> deleteRating(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal AuthenticatedPrincipal principal,
             @PathVariable UUID resourceId
     ) {
+        User user = currentUser.require(principal);
 
         ratingService.deleteRating(
                 user,

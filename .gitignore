@@ -1,0 +1,44 @@
+# ==========================================================
+# SkillForge monorepo — root ignore rules
+# ==========================================================
+
+# ---- Environment / secrets (never commit) ----
+.env
+.env.*
+!.env.example
+
+# ---- IDE ----
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+.factorypath
+*.code-workspace
+
+# ---- OS ----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- Build output ----
+target/
+build/
+out/
+*.class
+*.jar
+!.mvn/wrapper/*.jar
+
+# ---- Logs / runtime artifacts ----
+*.log
+logs/
+backend-run.log
+backend-run.err.log
+
+# ---- Misc ----
+*.swp
+*~
+node_modules/

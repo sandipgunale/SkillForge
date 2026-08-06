@@ -1,9 +1,12 @@
 package com.project.skillforgebackend.bookmark.controller;
 
+import com.project.skillforgebackend.auth.principal.AuthenticatedPrincipal;
+import com.project.skillforgebackend.auth.principal.CurrentUser;
 import com.project.skillforgebackend.bookmark.dto.BookmarkDto;
 import com.project.skillforgebackend.bookmark.dto.BookmarkFolderDto;
 import com.project.skillforgebackend.bookmark.dto.BookmarkStatusDto;
 import com.project.skillforgebackend.bookmark.dto.CreateFolderRequest;
+import com.project.skillforgebackend.bookmark.service.BookmarkFolderService;
 import com.project.skillforgebackend.bookmark.service.BookmarkService;
 import com.project.skillforgebackend.common.response.ApiResponse;
 import com.project.skillforgebackend.quiz.dto.PagedResponse;
@@ -30,15 +33,20 @@ public class BookmarkController {
 
     private final BookmarkService bookmarkService;
 
+    private final BookmarkFolderService bookmarkFolderService;
+
+    private final CurrentUser currentUser;
+
     /**
      * Add bookmark (optionally into a folder).
      */
     @PostMapping("/{resourceId}")
     public ResponseEntity<ApiResponse<BookmarkDto>> addBookmark(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal AuthenticatedPrincipal principal,
             @PathVariable UUID resourceId,
             @RequestParam(required = false) UUID folderId
     ) {
+        User user = currentUser.require(principal);
 
         BookmarkDto bookmark =
                 bookmarkService.addBookmark(
@@ -61,9 +69,10 @@ public class BookmarkController {
      */
     @DeleteMapping("/{resourceId}")
     public ResponseEntity<ApiResponse<Void>> removeBookmark(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal AuthenticatedPrincipal principal,
             @PathVariable UUID resourceId
     ) {
+        User user = currentUser.require(principal);
 
         bookmarkService.removeBookmark(
                 user,
@@ -83,10 +92,11 @@ public class BookmarkController {
      */
     @PatchMapping("/{resourceId}/folder")
     public ResponseEntity<ApiResponse<BookmarkDto>> moveBookmark(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal AuthenticatedPrincipal principal,
             @PathVariable UUID resourceId,
             @RequestParam(required = false) UUID folderId
     ) {
+        User user = currentUser.require(principal);
 
         BookmarkDto bookmark =
                 bookmarkService.moveBookmark(
@@ -108,11 +118,12 @@ public class BookmarkController {
      */
     @GetMapping
     public ResponseEntity<ApiResponse<PagedResponse<BookmarkDto>>> getBookmarks(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal AuthenticatedPrincipal principal,
             @RequestParam(required = false) UUID folderId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
+        User user = currentUser.require(principal);
 
         Pageable pageable = PageRequest.of(
                 Math.max(0, page),
@@ -140,9 +151,10 @@ public class BookmarkController {
      */
     @GetMapping("/status/{resourceId}")
     public ResponseEntity<ApiResponse<BookmarkStatusDto>> isBookmarked(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal AuthenticatedPrincipal principal,
             @PathVariable UUID resourceId
     ) {
+        User user = currentUser.require(principal);
 
         BookmarkStatusDto status =
                 bookmarkService.isBookmarked(
@@ -162,50 +174,58 @@ public class BookmarkController {
 
     @GetMapping("/folders")
     public ResponseEntity<ApiResponse<List<BookmarkFolderDto>>> getFolders(
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal AuthenticatedPrincipal principal
     ) {
+        User user = currentUser.require(principal);
+
         return ResponseEntity.ok(
                 ApiResponse.success(
                         "Bookmark folders fetched successfully.",
-                        bookmarkService.getFolders(user)
+                        bookmarkFolderService.getFolders(user)
                 )
         );
     }
 
     @PostMapping("/folders")
     public ResponseEntity<ApiResponse<BookmarkFolderDto>> createFolder(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal AuthenticatedPrincipal principal,
             @Valid @RequestBody CreateFolderRequest request
     ) {
+        User user = currentUser.require(principal);
+
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(
                         ApiResponse.success(
                                 "Folder created successfully.",
-                                bookmarkService.createFolder(user, request)
+                                bookmarkFolderService.createFolder(user, request)
                         )
                 );
     }
 
     @PutMapping("/folders/{folderId}")
     public ResponseEntity<ApiResponse<BookmarkFolderDto>> renameFolder(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal AuthenticatedPrincipal principal,
             @PathVariable UUID folderId,
             @Valid @RequestBody CreateFolderRequest request
     ) {
+        User user = currentUser.require(principal);
+
         return ResponseEntity.ok(
                 ApiResponse.success(
                         "Folder renamed successfully.",
-                        bookmarkService.renameFolder(user, folderId, request)
+                        bookmarkFolderService.renameFolder(user, folderId, request)
                 )
         );
     }
 
     @DeleteMapping("/folders/{folderId}")
     public ResponseEntity<ApiResponse<Void>> deleteFolder(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal AuthenticatedPrincipal principal,
             @PathVariable UUID folderId
     ) {
-        bookmarkService.deleteFolder(user, folderId);
+        User user = currentUser.require(principal);
+
+        bookmarkFolderService.deleteFolder(user, folderId);
 
         return ResponseEntity.ok(
                 ApiResponse.success(

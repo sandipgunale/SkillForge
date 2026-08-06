@@ -1,5 +1,6 @@
 package com.project.skillforgebackend.rating.service;
 
+import com.project.skillforgebackend.common.audit.BusinessAuditEvent;
 import com.project.skillforgebackend.common.exception.ResourceNotFoundException;
 import com.project.skillforgebackend.gamification.service.GamificationService;
 import com.project.skillforgebackend.rating.dto.RatingRequest;
@@ -13,6 +14,7 @@ import com.project.skillforgebackend.resource.repository.ResourceRepository;
 import com.project.skillforgebackend.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,7 @@ public class RatingService {
     private final ResourceRepository resourceRepository;
     private final RatingMapper ratingMapper;
     private final GamificationService gamificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * Add or update a rating.
@@ -52,6 +55,8 @@ public class RatingService {
                                 .build()
                 );
 
+        boolean isNew = rating.getId() == null;
+
         rating.setValue(request.getValue());
 
         ratingRepository.save(rating);
@@ -59,6 +64,16 @@ public class RatingService {
         updateResourceStatistics(resource);
 
         gamificationService.checkAndAwardBadges(user);
+
+        eventPublisher.publishEvent(new BusinessAuditEvent(
+                isNew
+                        ? BusinessAuditEvent.Type.RATING_ADDED
+                        : BusinessAuditEvent.Type.RATING_UPDATED,
+                user.getId(),
+                "resource",
+                resourceId.toString(),
+                request.getValue() + " stars"
+        ));
 
         log.info(
                 "User {} rated resource {} with {} stars",
@@ -85,6 +100,14 @@ public class RatingService {
                     ratingRepository.delete(rating);
 
                     updateResourceStatistics(resource);
+
+                    eventPublisher.publishEvent(new BusinessAuditEvent(
+                            BusinessAuditEvent.Type.RATING_REMOVED,
+                            user.getId(),
+                            "resource",
+                            resourceId.toString(),
+                            null
+                    ));
 
                     log.info(
                             "User {} removed rating for resource {}",

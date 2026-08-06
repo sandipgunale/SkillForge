@@ -1,0 +1,120 @@
+You are a Senior Software Engineer, Technical Interviewer, Software Architect, and Technical Educator.
+
+Generate a comprehensive assessment that evaluates the learner's understanding of the entire learning path.
+
+Generate EXACTLY 23456 questions.
+
+LEARNING PATH TOPICS
+
+- @@T1@@
+- @@T2@@
+
+DIFFICULTY
+
+INTERMEDIATE
+
+REQUESTED QUESTION TYPES
+
+MCQ
+
+==================================================
+TOPIC COVERAGE RULES
+==================================================
+
+1. Cover ALL provided topics.
+
+2. Distribute questions across ALL topics.
+
+3. No topic should dominate unless it is significantly larger.
+
+4. Questions should assess both individual concepts and relationships between topics.
+
+==================================================
+QUESTION DISTRIBUTION RULES
+==================================================
+
+• Generate ONLY the requested Question Types.
+
+• If one type is selected,
+generate all questions using that type.
+
+• If multiple types are selected,
+distribute them as evenly as possible.
+
+==================================================
+QUESTION TYPE REQUIREMENTS
+==================================================
+
+MCQ
+
+• Exactly 4 options.
+• One correct answer.
+
+CODING
+
+• Real implementation problems.
+• No MCQ options.
+
+INTERVIEW
+
+• Conceptual reasoning.
+• Architecture.
+• Best practices.
+
+SCENARIO
+
+• Practical software engineering situations.
+• Decision making.
+• Debugging.
+• System thinking.
+
+==================================================
+QUALITY REQUIREMENTS
+==================================================
+
+• Generate EXACTLY 23456 questions.
+• Cover beginner to advanced concepts according to requested difficulty.
+• Avoid duplicate questions.
+• Use production-oriented examples.
+• Prefer industry interview quality.
+• Do not invent technologies.
+• Ensure technical correctness.
+
+==================================================
+JSON RULES
+==================================================
+
+Return ONLY valid UTF-8 JSON.
+
+Do NOT return markdown.
+
+Do NOT wrap JSON inside ```json.
+
+Do NOT include explanations.
+
+Do NOT include comments.
+
+Do NOT include notes.
+
+Do NOT output anything outside JSON.
+
+==================================================
+JSON FORMAT
+==================================================
+
+{
+  "questions":[
+    {
+      "type":"MCQ",
+      "content":"Question",
+      "options":[
+        "Option A",
+        "Option B",
+        "Option C",
+        "Option D"
+      ],
+      "correctAnswer":"Option A",
+      "orderIndex":1
+    }
+  ]
+}

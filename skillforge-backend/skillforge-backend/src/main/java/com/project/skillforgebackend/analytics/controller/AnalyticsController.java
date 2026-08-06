@@ -2,6 +2,8 @@ package com.project.skillforgebackend.analytics.controller;
 
 import com.project.skillforgebackend.analytics.dto.DashboardDto;
 import com.project.skillforgebackend.analytics.service.AnalyticsService;
+import com.project.skillforgebackend.auth.principal.AuthenticatedPrincipal;
+import com.project.skillforgebackend.auth.principal.CurrentUser;
 import com.project.skillforgebackend.common.response.ApiResponse;
 import com.project.skillforgebackend.user.entity.User;
 import lombok.RequiredArgsConstructor;
@@ -18,13 +20,16 @@ public class AnalyticsController {
 
     private final AnalyticsService analyticsService;
 
+    private final CurrentUser currentUser;
+
     /**
      * Returns dashboard analytics of the logged-in user.
      */
     @GetMapping("/dashboard")
     public ResponseEntity<ApiResponse<DashboardDto>> getDashboard(
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal AuthenticatedPrincipal principal
     ) {
+        User user = currentUser.require(principal);
 
         DashboardDto dashboard =
                 analyticsService.getDashboard(user);

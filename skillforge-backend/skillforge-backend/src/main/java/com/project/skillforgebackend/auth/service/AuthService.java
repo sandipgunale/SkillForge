@@ -2,13 +2,17 @@ package com.project.skillforgebackend.auth.service;
 
 
 
+import com.project.skillforgebackend.auth.audit.AuthAuditEvent;
 import com.project.skillforgebackend.auth.dto.*;
 import com.project.skillforgebackend.common.exception.EmailAlreadyExistsException;
 import com.project.skillforgebackend.common.exception.InvalidCredentialsException;
 import com.project.skillforgebackend.user.entity.User;
+import com.project.skillforgebackend.user.mapper.UserMapper;
 import com.project.skillforgebackend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,54 +27,98 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final RefreshTokenService refreshTokenService;
+    private final ApplicationEventPublisher eventPublisher;
+    private final UserMapper userMapper;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
+        String email = request.getEmail().toLowerCase().trim();
+        if (userRepository.existsByEmail(email)) {
             throw new EmailAlreadyExistsException();
         }
 
         User user = User.builder()
-                .email(request.getEmail().toLowerCase().trim())
+                .email(email)
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName().trim())
                 .role(User.Role.STUDENT)
                 .isActive(true)
                 .build();
 
-        User saved = userRepository.save(user);
-        log.info("New user registered: {}", saved.getEmail());
+        User saved;
+        try {
+            saved = userRepository.save(user);
+        } catch (DataIntegrityViolationException ex) {
+            // Race-safe duplicate guard: the unique email constraint is the
+            // source of truth; the existsBy check above is only a fast path.
+            throw new EmailAlreadyExistsException();
+        }
 
-        return buildAuthResponse(saved, false);
+        String refreshToken = issueRefreshToken(saved, false);
+
+        log.info("New user registered: {}", saved.getEmail());
+        eventPublisher.publishEvent(new AuthAuditEvent(
+                AuthAuditEvent.Type.REGISTER_SUCCESS,
+                saved.getId(),
+                saved.getEmail(),
+                null
+        ));
+
+        return buildAuthResponse(saved, false, refreshToken);
     }
 
     public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail().toLowerCase().trim())
-                .orElseThrow(InvalidCredentialsException::new);
+        String email = request.getEmail().toLowerCase().trim();
+        User user = userRepository.findByEmail(email)
+                .orElse(null);
 
-        if (!user.isActive()) {
+        if (user == null || !user.isActive()
+                || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            // One generic outcome for unknown email / inactive account / bad
+            // password, and one audit trail for every failure.
+            eventPublisher.publishEvent(new AuthAuditEvent(
+                    AuthAuditEvent.Type.LOGIN_FAILURE,
+                    user != null ? user.getId() : null,
+                    email,
+                    user == null ? "unknown email"
+                            : (!user.isActive() ? "inactive account" : "invalid password")
+            ));
             throw new InvalidCredentialsException();
         }
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new InvalidCredentialsException();
-        }
+        String refreshToken = issueRefreshToken(user, request.isRememberMe());
 
         log.info("User logged in: {}", user.getEmail());
-        return buildAuthResponse(user, request.isRememberMe());
+        eventPublisher.publishEvent(new AuthAuditEvent(
+                AuthAuditEvent.Type.LOGIN_SUCCESS,
+                user.getId(),
+                user.getEmail(),
+                null
+        ));
+
+        return buildAuthResponse(user, request.isRememberMe(), refreshToken);
     }
 
+    @Transactional
     public AuthResponse refresh(String refreshToken) {
         // Only REFRESH tokens may be used at the refresh endpoint
         if (!jwtService.isRefreshToken(refreshToken)) {
+            publishRefreshFailure(null, "wrong token type");
             throw new InvalidCredentialsException();
         }
 
         String email = jwtService.extractEmail(refreshToken);
         User user = userRepository.findByEmail(email)
-                .orElseThrow(InvalidCredentialsException::new);
+                .orElse(null);
+
+        if (user == null) {
+            publishRefreshFailure(email, "unknown user");
+            throw new InvalidCredentialsException();
+        }
 
         if (!jwtService.isTokenValid(refreshToken, email)) {
+            publishRefreshFailure(email, "invalid or expired token");
             throw new InvalidCredentialsException();
         }
 
@@ -78,13 +126,48 @@ public class AuthService {
                 jwtService.extractClaim(refreshToken, JwtService.CLAIM_REMEMBER_ME)
         );
 
-        return buildAuthResponse(user, rememberMe);
+        String newRefreshToken;
+        try {
+            newRefreshToken = refreshTokenService.rotate(
+                    user.getId(),
+                    refreshToken,
+                    jwtService.getRefreshTokenLifetime(rememberMe)
+            );
+        } catch (InvalidCredentialsException ex) {
+            publishRefreshFailure(email, "token not registered, expired or reused");
+            throw ex;
+        }
+
+        eventPublisher.publishEvent(new AuthAuditEvent(
+                AuthAuditEvent.Type.REFRESH_SUCCESS,
+                user.getId(),
+                user.getEmail(),
+                null
+        ));
+
+        return buildAuthResponse(user, rememberMe, newRefreshToken);
     }
 
-    private AuthResponse buildAuthResponse(User user, boolean rememberMe) {
+    private String issueRefreshToken(User user, boolean rememberMe) {
+        long ttl = jwtService.getRefreshTokenLifetime(rememberMe);
+        String raw = jwtService.generateRefreshToken(user.getEmail(), rememberMe);
+        refreshTokenService.issue(user.getId(), raw, ttl);
+        return raw;
+    }
+
+    private void publishRefreshFailure(String email, String detail) {
+        eventPublisher.publishEvent(new AuthAuditEvent(
+                AuthAuditEvent.Type.REFRESH_FAILURE,
+                null,
+                email,
+                detail
+        ));
+    }
+
+    private AuthResponse buildAuthResponse(User user, boolean rememberMe,
+                                           String refreshToken) {
         Map<String, Object> claims = Map.of("role", user.getRole().name());
         String accessToken  = jwtService.generateAccessToken(user.getEmail(), claims);
-        String refreshToken = jwtService.generateRefreshToken(user.getEmail(), rememberMe);
 
         return AuthResponse.builder()
                 .accessToken(accessToken)
@@ -92,12 +175,7 @@ public class AuthService {
                 .tokenType("Bearer")
                 .expiresIn(900)
                 .rememberMe(rememberMe)
-                .user(AuthResponse.UserSummary.builder()
-                        .id(user.getId().toString())
-                        .email(user.getEmail())
-                        .fullName(user.getFullName())
-                        .role(user.getRole().name())
-                        .build())
+                .user(userMapper.toSummary(user))
                 .build();
     }
 }

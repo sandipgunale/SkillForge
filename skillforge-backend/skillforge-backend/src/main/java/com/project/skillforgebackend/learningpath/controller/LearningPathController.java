@@ -1,14 +1,19 @@
 package com.project.skillforgebackend.learningpath.controller;
 
+import com.project.skillforgebackend.auth.principal.AuthenticatedPrincipal;
+import com.project.skillforgebackend.auth.principal.CurrentUser;
 import com.project.skillforgebackend.common.response.ApiResponse;
+import com.project.skillforgebackend.common.security.RateLimiter;
 import com.project.skillforgebackend.learningpath.dto.CreateLearningPathRequest;
 import com.project.skillforgebackend.learningpath.dto.LearningPathDto;
 import com.project.skillforgebackend.learningpath.dto.UpdateLearningPathRequest;
 import com.project.skillforgebackend.learningpath.enums.LearningPathStatus;
+import com.project.skillforgebackend.learningpath.service.LearningPathRoadmapService;
 import com.project.skillforgebackend.learningpath.service.LearningPathService;
 import com.project.skillforgebackend.user.entity.User;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,10 +25,22 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/learning-paths")
-@RequiredArgsConstructor
 public class LearningPathController {
 
     private final LearningPathService learningPathService;
+    private final LearningPathRoadmapService learningPathRoadmapService;
+    private final CurrentUser currentUser;
+    private final RateLimiter aiRateLimiter;
+
+    public LearningPathController(LearningPathService learningPathService,
+                                  LearningPathRoadmapService learningPathRoadmapService,
+                                  CurrentUser currentUser,
+                                  @Qualifier("aiRateLimiter") RateLimiter aiRateLimiter) {
+        this.learningPathService = learningPathService;
+        this.learningPathRoadmapService = learningPathRoadmapService;
+        this.currentUser = currentUser;
+        this.aiRateLimiter = aiRateLimiter;
+    }
 
     /**
      * Generate a new AI learning roadmap.
@@ -31,8 +48,12 @@ public class LearningPathController {
     @PostMapping
     public ResponseEntity<ApiResponse<LearningPathDto>> createLearningPath(
             @Valid @RequestBody CreateLearningPathRequest request,
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal AuthenticatedPrincipal principal,
+            HttpServletRequest servletRequest
     ) {
+        aiRateLimiter.check(aiRateLimiter.key(clientIp(servletRequest), "learning-path"));
+
+        User user = currentUser.require(principal);
 
         LearningPathDto response =
                 learningPathService.createLearningPath(request, user);
@@ -49,8 +70,9 @@ public class LearningPathController {
      */
     @GetMapping
     public ResponseEntity<ApiResponse<List<LearningPathDto>>> getLearningPaths(
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal AuthenticatedPrincipal principal
     ) {
+        User user = currentUser.require(principal);
 
         List<LearningPathDto> response =
                 learningPathService.getLearningPaths(user);
@@ -69,8 +91,9 @@ public class LearningPathController {
     @GetMapping("/{learningPathId}")
     public ResponseEntity<ApiResponse<LearningPathDto>> getLearningPath(
             @PathVariable UUID learningPathId,
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal AuthenticatedPrincipal principal
     ) {
+        User user = currentUser.require(principal);
 
         LearningPathDto response =
                 learningPathService.getLearningPath(
@@ -93,8 +116,9 @@ public class LearningPathController {
     public ResponseEntity<ApiResponse<LearningPathDto>> updateLearningPath(
             @PathVariable UUID learningPathId,
             @Valid @RequestBody UpdateLearningPathRequest request,
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal AuthenticatedPrincipal principal
     ) {
+        User user = currentUser.require(principal);
 
         LearningPathDto response =
                 learningPathService.updateLearningPath(
@@ -118,8 +142,9 @@ public class LearningPathController {
     public ResponseEntity<ApiResponse<LearningPathDto>> updateStatus(
             @PathVariable UUID learningPathId,
             @RequestParam LearningPathStatus status,
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal AuthenticatedPrincipal principal
     ) {
+        User user = currentUser.require(principal);
 
         LearningPathDto response =
                 learningPathService.updateStatus(
@@ -144,11 +169,12 @@ public class LearningPathController {
             @PathVariable UUID learningPathId,
             @PathVariable Integer weekNumber,
             @Valid @RequestBody UpdateWeekCompletionRequest request,
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal AuthenticatedPrincipal principal
     ) {
+        User user = currentUser.require(principal);
 
         LearningPathDto response =
-                learningPathService.updateWeekCompletion(
+                learningPathRoadmapService.updateWeekCompletion(
                         learningPathId,
                         weekNumber,
                         request,
@@ -169,8 +195,9 @@ public class LearningPathController {
     @DeleteMapping("/{learningPathId}")
     public ResponseEntity<ApiResponse<Void>> deleteLearningPath(
             @PathVariable UUID learningPathId,
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal AuthenticatedPrincipal principal
     ) {
+        User user = currentUser.require(principal);
 
         learningPathService.deleteLearningPath(
                 learningPathId,
@@ -183,6 +210,12 @@ public class LearningPathController {
                         null
                 )
         );
+    }
+
+    private String clientIp(HttpServletRequest request) {
+        // Mirrors AuthController: remote address is the real client IP behind
+        // the fronting proxy (server.forward-headers-strategy=framework).
+        return request.getRemoteAddr();
     }
 
 }

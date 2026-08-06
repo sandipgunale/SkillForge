@@ -1,5 +1,6 @@
 package com.project.skillforgebackend.resource.service;
 
+import com.project.skillforgebackend.common.audit.BusinessAuditEvent;
 import com.project.skillforgebackend.common.exception.ResourceNotFoundException;
 import com.project.skillforgebackend.common.util.SlugUtils;
 import com.project.skillforgebackend.common.util.YoutubeUtils;
@@ -15,6 +16,7 @@ import com.project.skillforgebackend.resource.repository.TopicRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -46,6 +48,7 @@ public class ResourceService {
     private final TopicMapper topicMapper;
 
     private final TagRepository tagRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Cacheable(cacheNames = "resources", key = "{#topicId, #difficulty, #type, #search, #pageable}")
     public Page<ResourceDto> getResources(
@@ -105,9 +108,17 @@ public class ResourceService {
                 .displayOrder(0)
                 .build();;
 
-        return topicMapper.toDto(
-                topicRepository.save(topic)
-        );
+        Topic saved = topicRepository.save(topic);
+
+        eventPublisher.publishEvent(new BusinessAuditEvent(
+                BusinessAuditEvent.Type.TOPIC_CREATED,
+                null,
+                "topic",
+                saved.getId().toString(),
+                saved.getName()
+        ));
+
+        return topicMapper.toDto(saved);
     }
 
     @Transactional
@@ -123,9 +134,17 @@ public class ResourceService {
         topic.setSlug(SlugUtils.generate(request.getName()));
         topic.setDescription(request.getDescription());
 
-        return topicMapper.toDto(
-                topicRepository.save(topic)
-        );
+        Topic saved = topicRepository.save(topic);
+
+        eventPublisher.publishEvent(new BusinessAuditEvent(
+                BusinessAuditEvent.Type.TOPIC_UPDATED,
+                null,
+                "topic",
+                topicId.toString(),
+                saved.getName()
+        ));
+
+        return topicMapper.toDto(saved);
     }
 
     @Transactional
@@ -135,6 +154,14 @@ public class ResourceService {
         Topic topic = getTopicEntity(topicId);
 
         topicRepository.delete(topic);
+
+        eventPublisher.publishEvent(new BusinessAuditEvent(
+                BusinessAuditEvent.Type.TOPIC_DELETED,
+                null,
+                "topic",
+                topicId.toString(),
+                topic.getName()
+        ));
     }
 
     @Transactional
@@ -155,9 +182,17 @@ public class ResourceService {
                 .tags(getTags(request.getTagIds()))
                 .build();
 
-        return resourceMapper.toDto(
-                resourceRepository.save(resource)
-        );
+        Resource saved = resourceRepository.save(resource);
+
+        eventPublisher.publishEvent(new BusinessAuditEvent(
+                BusinessAuditEvent.Type.RESOURCE_CREATED,
+                null,
+                "resource",
+                saved.getId().toString(),
+                saved.getTitle()
+        ));
+
+        return resourceMapper.toDto(saved);
     }
 
     @Transactional
@@ -182,9 +217,17 @@ public class ResourceService {
                 getTags(request.getTagIds())
         );
 
-        return resourceMapper.toDto(
-                resourceRepository.save(resource)
-        );
+        Resource saved = resourceRepository.save(resource);
+
+        eventPublisher.publishEvent(new BusinessAuditEvent(
+                BusinessAuditEvent.Type.RESOURCE_UPDATED,
+                null,
+                "resource",
+                resourceId.toString(),
+                saved.getTitle()
+        ));
+
+        return resourceMapper.toDto(saved);
     }
 
     @Transactional
@@ -196,6 +239,14 @@ public class ResourceService {
         resource.setActive(false);
 
         resourceRepository.save(resource);
+
+        eventPublisher.publishEvent(new BusinessAuditEvent(
+                BusinessAuditEvent.Type.RESOURCE_DELETED,
+                null,
+                "resource",
+                resourceId.toString(),
+                resource.getTitle()
+        ));
     }
 
 

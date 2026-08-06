@@ -1,10 +1,10 @@
 package com.project.skillforgebackend.ai.client;
 
 import com.project.skillforgebackend.ai.exception.AIServiceException;
+import com.project.skillforgebackend.config.properties.GeminiProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
@@ -12,13 +12,12 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 @Component
 @Slf4j
-public class GeminiClient {
+public class GeminiClient implements AiProvider {
 
     private final RestClient restClient;
 
@@ -26,32 +25,35 @@ public class GeminiClient {
 
     private final List<String> models;
 
+    private final double temperature;
+
+    private final int retryDelayMaxSeconds;
+
+    private final int transportRetrySleepSeconds;
+
     private int modelIndex = 0;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Value("${gemini.temperature:0.7}")
-    private Double temperature;
+    public GeminiClient(GeminiProperties properties) {
 
-    public GeminiClient(
-            @Value("${gemini.api-key}") String apiKey,
-            @Value("${gemini.models}") String modelsConfig
-    ) {
+        this.apiKey = properties.apiKey();
 
-        this.apiKey = apiKey;
+        this.models = properties.models();
 
-        this.models = Arrays.stream(modelsConfig.split(","))
-                .map(String::trim)
-                .filter(model -> !model.isBlank())
-                .toList();
+        this.temperature = properties.temperature();
+
+        this.retryDelayMaxSeconds = properties.retryDelayMaxSeconds();
+
+        this.transportRetrySleepSeconds = properties.transportRetrySleepSeconds();
 
         this.restClient = RestClient.builder()
-                .baseUrl("https://generativelanguage.googleapis.com/v1beta")
+                .baseUrl(properties.baseUrl())
                 .defaultHeader(
                         "Content-Type",
                         MediaType.APPLICATION_JSON_VALUE
                 )
-                .requestFactory(requestFactory())
+                .requestFactory(requestFactory(properties))
                 .build();
     }
 
@@ -60,14 +62,16 @@ public class GeminiClient {
      * holding a request open for minutes (each failed model attempt then
      * costs connect + read time, not an indefinite hang).
      */
-    private SimpleClientHttpRequestFactory requestFactory() {
+    private SimpleClientHttpRequestFactory requestFactory(
+            GeminiProperties properties
+    ) {
 
         SimpleClientHttpRequestFactory factory =
                 new SimpleClientHttpRequestFactory();
 
-        factory.setConnectTimeout(15_000);
+        factory.setConnectTimeout(properties.connectTimeoutMs());
 
-        factory.setReadTimeout(60_000);
+        factory.setReadTimeout(properties.readTimeoutMs());
 
         return factory;
     }
@@ -84,16 +88,30 @@ public class GeminiClient {
         log.warn("Switching Gemini model to {}", models.get(modelIndex));
     }
 
+    @Override
+    public String providerName() {
+        return "gemini";
+    }
+
     /**
-     * Sends prompt to Google Gemini
-     * and returns generated text.
-     *
-     * On HTTP 429 (quota / rate limit) or a transport
-     * failure (DNS / connect) the client automatically
-     * retries with the next configured model, since
-     * free-tier quotas are per model.
+     * Sends prompt to Google Gemini and returns generated text.
+     * See {@link #completeWithMetadata(String)} for the enriched form.
      */
+    @Override
     public String complete(String prompt) {
+        return completeWithMetadata(prompt).text();
+    }
+
+    /**
+     * Sends prompt to Google Gemini and returns the generated text together
+     * with the selected model and reported token usage.
+     *
+     * <p>On HTTP 429 (quota / rate limit) or a transport failure (DNS /
+     * connection refused) the client automatically retries with the next
+     * configured model, since free-tier quotas are per model.
+     */
+    @Override
+    public AiCompletionResult completeWithMetadata(String prompt) {
 
         Map<String, Object> request = Map.of(
 
@@ -127,6 +145,8 @@ public class GeminiClient {
 
         );
 
+        long startedAt = System.nanoTime();
+
         int attempts = models.size();
 
         HttpStatusCodeException lastHttpError = null;
@@ -144,9 +164,9 @@ public class GeminiClient {
 
                         .uri(uriBuilder ->
                                 uriBuilder
-                                        .path("/models/" + model + ":generateContent")
-                                        .queryParam("key", apiKey)
-                                        .build()
+                                .path("/models/" + model + ":generateContent")
+                                .queryParam("key", apiKey)
+                                .build()
                         )
 
                         .contentType(MediaType.APPLICATION_JSON)
@@ -205,7 +225,14 @@ public class GeminiClient {
 
                 log.info("Gemini response received from model {}.", model);
 
-                return text.toString().trim();
+                return new AiCompletionResult(
+                        text.toString().trim(),
+                        model,
+                        providerName(),
+                        usageMetadata(response, "promptTokenCount"),
+                        usageMetadata(response, "candidatesTokenCount"),
+                        (System.nanoTime() - startedAt) / 1_000_000L
+                );
 
             } catch (HttpStatusCodeException ex) {
 
@@ -261,7 +288,7 @@ public class GeminiClient {
 
                 lastTransportError = ex;
 
-                sleepBeforeRetry(2);
+                sleepBeforeRetry(transportRetrySleepSeconds);
 
                 advanceModel();
 
@@ -325,6 +352,33 @@ public class GeminiClient {
         }
     }
 
+    /**
+     * Reads an integer field from the vendor {@code usageMetadata} object,
+     * tolerating its absence (older models do not report token usage).
+     */
+    @SuppressWarnings("unchecked")
+    private Integer usageMetadata(Map<String, Object> response, String field) {
+
+        try {
+
+            Object usage = response.get("usageMetadata");
+
+            if (!(usage instanceof Map<?, ?> usageMap)) {
+                return null;
+            }
+
+            Object value = ((Map<String, Object>) usageMap).get(field);
+
+            return value instanceof Number number
+                    ? number.intValue()
+                    : null;
+
+        } catch (Exception ignore) {
+
+            return null;
+        }
+    }
+
     private int extractRetryDelaySeconds(String body) {
 
         if (body == null || body.isBlank()) {
@@ -349,7 +403,7 @@ public class GeminiClient {
                                 Integer.parseInt(
                                         delay.substring(0, delay.length() - 1)
                                 ),
-                                45
+                                retryDelayMaxSeconds
                         );
                     }
                 }

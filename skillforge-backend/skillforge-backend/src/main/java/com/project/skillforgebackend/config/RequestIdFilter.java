@@ -14,8 +14,9 @@ import java.io.IOException;
 import java.util.UUID;
 
 /**
- * Adds a request id (honouring an inbound X-Request-Id) to the SLF4J MDC so
- * every log line for one HTTP request can be correlated.
+ * Adds a request id (honouring an inbound X-Request-Id) and the client IP to
+ * the SLF4J MDC so every log line for one HTTP request can be correlated —
+ * including security/audit lines.
  */
 @Component
 @Slf4j
@@ -23,6 +24,7 @@ public class RequestIdFilter extends OncePerRequestFilter {
 
     public static final String MDC_KEY = "requestId";
     public static final String HEADER = "X-Request-Id";
+    public static final String MDC_IP_KEY = "clientIp";
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
@@ -36,12 +38,15 @@ public class RequestIdFilter extends OncePerRequestFilter {
         }
 
         MDC.put(MDC_KEY, id);
+        MDC.put(MDC_IP_KEY, request.getRemoteAddr());
+
         response.setHeader(HEADER, id);
 
         try {
             filterChain.doFilter(request, response);
         } finally {
             MDC.remove(MDC_KEY);
+            MDC.remove(MDC_IP_KEY);
         }
     }
 }

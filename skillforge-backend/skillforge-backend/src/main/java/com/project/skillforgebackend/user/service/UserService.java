@@ -4,6 +4,7 @@ package com.project.skillforgebackend.user.service;
 
 import com.project.skillforgebackend.user.dto.*;
 import com.project.skillforgebackend.user.entity.User;
+import com.project.skillforgebackend.user.mapper.UserMapper;
 import com.project.skillforgebackend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,9 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final UserMapper userMapper;
 
     public UserDto getCurrentUser(User user) {
-        return toDto(user);
+        return userMapper.toDto(user);
     }
 
     @Transactional
@@ -30,19 +32,6 @@ public class UserService {
         if (request.getSkillLevel() != null) {
             user.setSkillLevel(request.getSkillLevel());
         }
-        return toDto(userRepository.save(user));
-    }
-
-    private UserDto toDto(User user) {
-        return UserDto.builder()
-                .id(user.getId().toString())
-                .email(user.getEmail())
-                .fullName(user.getFullName())
-                .avatarUrl(user.getAvatarUrl())
-                .role(user.getRole().name())
-                .skillLevel(user.getSkillLevel() != null
-                        ? user.getSkillLevel().name() : null)
-                .createdAt(user.getCreatedAt())
-                .build();
+        return userMapper.toDto(userRepository.save(user));
     }
 }

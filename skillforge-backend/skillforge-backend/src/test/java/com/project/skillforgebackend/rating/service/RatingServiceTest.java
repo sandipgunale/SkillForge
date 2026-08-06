@@ -16,6 +16,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -37,6 +38,9 @@ class RatingServiceTest {
 
     @Mock
     private GamificationService gamificationService;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @Spy
     private final RatingMapper ratingMapper = new RatingMapper();

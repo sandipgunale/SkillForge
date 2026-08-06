@@ -1,5 +1,7 @@
 package com.project.skillforgebackend.gamification.controller;
 
+import com.project.skillforgebackend.auth.principal.AuthenticatedPrincipal;
+import com.project.skillforgebackend.auth.principal.CurrentUser;
 import com.project.skillforgebackend.common.response.ApiResponse;
 import com.project.skillforgebackend.gamification.dto.GamificationDto;
 import com.project.skillforgebackend.gamification.service.GamificationService;
@@ -18,10 +20,14 @@ public class GamificationController {
 
     private final GamificationService gamificationService;
 
+    private final CurrentUser currentUser;
+
     @GetMapping
     public ResponseEntity<ApiResponse<GamificationDto>> getGamification(
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal AuthenticatedPrincipal principal
     ) {
+        User user = currentUser.require(principal);
+
         return ResponseEntity.ok(
                 ApiResponse.success(
                         "Gamification stats fetched successfully.",

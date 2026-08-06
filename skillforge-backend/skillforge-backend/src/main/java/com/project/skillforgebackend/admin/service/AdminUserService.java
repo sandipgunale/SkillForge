@@ -2,12 +2,16 @@ package com.project.skillforgebackend.admin.service;
 
 import com.project.skillforgebackend.admin.dto.AdminUserDto;
 import com.project.skillforgebackend.admin.dto.UpdateUserRoleRequest;
+import com.project.skillforgebackend.admin.mapper.AdminUserMapper;
+import com.project.skillforgebackend.common.audit.BusinessAuditEvent;
 import com.project.skillforgebackend.common.exception.ResourceNotFoundException;
+import com.project.skillforgebackend.common.response.PagedResponseAssembler;
 import com.project.skillforgebackend.quiz.dto.PagedResponse;
 import com.project.skillforgebackend.user.entity.User;
 import com.project.skillforgebackend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -20,6 +24,8 @@ import org.springframework.util.StringUtils;
 public class AdminUserService {
 
     private final UserRepository userRepository;
+    private final AdminUserMapper adminUserMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     public PagedResponse<AdminUserDto> getUsers(String search, Pageable pageable) {
@@ -36,20 +42,7 @@ public class AdminUserService {
             page = userRepository.findAll(pageable);
         }
 
-        return PagedResponse.<AdminUserDto>builder()
-                .content(page.getContent()
-                        .stream()
-                        .map(this::toDto)
-                        .toList())
-                .page(page.getNumber())
-                .size(page.getSize())
-                .totalElements(page.getTotalElements())
-                .totalPages(page.getTotalPages())
-                .first(page.isFirst())
-                .last(page.isLast())
-                .hasNext(page.hasNext())
-                .hasPrevious(page.hasPrevious())
-                .build();
+        return PagedResponseAssembler.assemble(page, adminUserMapper::toDto);
     }
 
     @Transactional
@@ -78,6 +71,15 @@ public class AdminUserService {
 
         User saved = userRepository.save(user);
 
+        eventPublisher.publishEvent(new BusinessAuditEvent(
+                BusinessAuditEvent.Type.ADMIN_USER_UPDATED,
+                saved.getId(),
+                "user",
+                userId,
+                "role=" + saved.getRole()
+                        + ", active=" + saved.isActive()
+        ));
+
         log.info(
                 "Admin updated user {} (role={}, active={})",
                 saved.getEmail(),
@@ -85,21 +87,6 @@ public class AdminUserService {
                 saved.isActive()
         );
 
-        return toDto(saved);
-    }
-
-    private AdminUserDto toDto(User user) {
-        return AdminUserDto.builder()
-                .id(user.getId().toString())
-                .email(user.getEmail())
-                .fullName(user.getFullName())
-                .avatarUrl(user.getAvatarUrl())
-                .role(user.getRole().name())
-                .skillLevel(user.getSkillLevel() != null
-                        ? user.getSkillLevel().name() : null)
-                .isActive(user.isActive())
-                .createdAt(user.getCreatedAt())
-                .updatedAt(user.getUpdatedAt())
-                .build();
+        return adminUserMapper.toDto(saved);
     }
 }

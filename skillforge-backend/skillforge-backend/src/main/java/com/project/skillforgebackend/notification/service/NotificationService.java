@@ -1,7 +1,9 @@
 package com.project.skillforgebackend.notification.service;
 
+import com.project.skillforgebackend.common.exception.ResourceNotFoundException;
 import com.project.skillforgebackend.notification.dto.NotificationDto;
 import com.project.skillforgebackend.notification.entity.Notification;
+import com.project.skillforgebackend.notification.mapper.NotificationMapper;
 import com.project.skillforgebackend.notification.repository.NotificationRepository;
 import com.project.skillforgebackend.user.entity.User;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,7 @@ import java.util.UUID;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final NotificationMapper notificationMapper;
 
     @Transactional
     public NotificationDto notify(
@@ -41,7 +44,7 @@ public class NotificationService {
                 user.getEmail()
         );
 
-        return toDto(saved);
+        return notificationMapper.toDto(saved);
     }
 
     @Transactional(readOnly = true)
@@ -56,7 +59,7 @@ public class NotificationService {
                         .findTop50ByUserOrderByCreatedAtDesc(user);
 
         return notifications.stream()
-                .map(this::toDto)
+                .map(notificationMapper::toDto)
                 .toList();
     }
 
@@ -70,14 +73,14 @@ public class NotificationService {
         Notification notification = notificationRepository
                 .findById(notificationId)
                 .orElseThrow(() ->
-                        new com.project.skillforgebackend.common.exception.ResourceNotFoundException(
+                        new ResourceNotFoundException(
                                 "Notification",
                                 notificationId
                         )
                 );
 
         if (!notification.getUser().getId().equals(user.getId())) {
-            throw new com.project.skillforgebackend.common.exception.ResourceNotFoundException(
+            throw new ResourceNotFoundException(
                     "Notification",
                     notificationId
             );
@@ -90,17 +93,6 @@ public class NotificationService {
     @Transactional
     public void markAllRead(User user) {
         notificationRepository.markAllRead(user);
-    }
-
-    private NotificationDto toDto(Notification notification) {
-        return NotificationDto.builder()
-                .id(notification.getId().toString())
-                .type(notification.getType())
-                .title(notification.getTitle())
-                .message(notification.getMessage())
-                .read(notification.isRead())
-                .createdAt(notification.getCreatedAt())
-                .build();
     }
 
 }

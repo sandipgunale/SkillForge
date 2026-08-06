@@ -13,7 +13,7 @@ class QuizExpiryTest {
     void expiryIsOneAndAHalfMinutesPerQuestion() {
         LocalDateTime now = LocalDateTime.now();
 
-        var expiry = QuizService.calculateExpiry(10);
+        var expiry = QuizGenerationService.calculateExpiry(10);
 
         Duration diff = Duration.between(now, expiry);
 
@@ -24,7 +24,7 @@ class QuizExpiryTest {
     void singleQuestionGetsMinimumTwoMinutes() {
         LocalDateTime now = LocalDateTime.now();
 
-        var expiry = QuizService.calculateExpiry(1);
+        var expiry = QuizGenerationService.calculateExpiry(1);
 
         Duration diff = Duration.between(now, expiry);
 
@@ -35,7 +35,7 @@ class QuizExpiryTest {
     void oddQuestionCountRoundsUp() {
         LocalDateTime now = LocalDateTime.now();
 
-        var expiry = QuizService.calculateExpiry(3);
+        var expiry = QuizGenerationService.calculateExpiry(3);
 
         Duration diff = Duration.between(now, expiry);
 
@@ -45,7 +45,7 @@ class QuizExpiryTest {
 
     @Test
     void expiryIsInTheFuture() {
-        assertThat(QuizService.calculateExpiry(5))
+        assertThat(QuizGenerationService.calculateExpiry(5))
                 .isAfter(LocalDateTime.now());
     }
 }

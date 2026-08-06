@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.skillforgebackend.common.exception.ApiError;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -14,15 +14,22 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 
 @Component
-@RequiredArgsConstructor
+@Slf4j
 public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
     private final ObjectMapper objectMapper;
+
+    public RestAuthenticationEntryPoint(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
     @Override
     public void commence(HttpServletRequest request,
                          HttpServletResponse response,
                          AuthenticationException authException) throws IOException {
+
+        log.warn("Authentication required at {} {} from {}",
+                request.getMethod(), request.getRequestURI(), request.getRemoteAddr());
 
         ApiError error = ApiError.builder()
                 .status(HttpServletResponse.SC_UNAUTHORIZED)

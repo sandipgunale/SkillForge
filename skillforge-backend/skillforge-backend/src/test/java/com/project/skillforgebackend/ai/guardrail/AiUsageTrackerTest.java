@@ -1,8 +1,10 @@
 package com.project.skillforgebackend.ai.guardrail;
 
+import com.project.skillforgebackend.config.properties.GeminiProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -14,7 +16,20 @@ class AiUsageTrackerTest {
 
     @BeforeEach
     void setUp() {
-        tracker = new AiUsageTracker(10);
+        tracker = new AiUsageTracker(
+                new GeminiProperties(
+                        "test-key",
+                        List.of("gemini-test"),
+                        0.7,
+                        10,
+                        2,
+                        "https://generativelanguage.googleapis.com/v1beta",
+                        15000,
+                        60000,
+                        45,
+                        2
+                )
+        );
     }
 
     @Test

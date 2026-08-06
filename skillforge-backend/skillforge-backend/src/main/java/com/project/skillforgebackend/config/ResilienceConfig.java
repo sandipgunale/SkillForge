@@ -1,6 +1,7 @@
 package com.project.skillforgebackend.config;
 
 import com.project.skillforgebackend.ai.exception.AIServiceException;
+import com.project.skillforgebackend.config.properties.AiResilienceProperties;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.core.IntervalFunction;
@@ -26,40 +27,46 @@ import java.util.concurrent.ScheduledExecutorService;
  *   <li><b>Retry</b> — only transient transport failures are retried
  *       ({@link ResourceAccessException} wrapped in {@link AIServiceException}).
  *       HTTP-level errors (4xx) and parse failures are never retried here;
- *       per-model quota rotation already happens inside GeminiClient.</li>
+ *       per-model quota rotation already happens inside the provider client.</li>
  *   <li><b>Time limiter</b> — bounds the worst-case wall-clock time of the
- *       whole call (incl. GeminiClient's internal model rotation), which
- *       would otherwise be unbounded.</li>
+ *       whole call (incl. the provider client's internal model rotation),
+ *       which would otherwise be unbounded.</li>
  * </ul>
  *
- * Config is intentionally programmatic (not resilience4j.* properties) so
- * the retry predicate, which depends on domain exceptions, stays close to
- * the beans it configures.
+ * <p>Strategy values are configurable through {@code ai.resilience.*}
+ * ({@link AiResilienceProperties}); the retry predicate stays here because
+ * it depends on domain exceptions.
  */
 @Configuration
 public class ResilienceConfig {
 
     public static final String AI_BACKEND = "aiBackend";
 
+    private final AiResilienceProperties properties;
+
+    public ResilienceConfig(AiResilienceProperties properties) {
+        this.properties = properties;
+    }
+
     @Bean
     public CircuitBreaker aiCircuitBreaker() {
         return CircuitBreaker.of(AI_BACKEND, CircuitBreakerConfig.custom()
-                .slidingWindowSize(10)
-                .minimumNumberOfCalls(5)
-                .failureRateThreshold(50.0f)
-                .waitDurationInOpenState(Duration.ofSeconds(20))
-                .permittedNumberOfCallsInHalfOpenState(3)
+                .slidingWindowSize(properties.circuitBreakerSlidingWindowSize())
+                .minimumNumberOfCalls(properties.circuitBreakerMinimumCalls())
+                .failureRateThreshold(properties.circuitBreakerFailureRateThreshold())
+                .waitDurationInOpenState(Duration.ofSeconds(properties.circuitBreakerWaitOpenSeconds()))
+                .permittedNumberOfCallsInHalfOpenState(properties.circuitBreakerHalfOpenCalls())
                 .build());
     }
 
     @Bean
     public Retry aiRetry() {
         return Retry.of(AI_BACKEND, RetryConfig.custom()
-                .maxAttempts(3)
+                .maxAttempts(properties.retryMaxAttempts())
                 .intervalFunction(IntervalFunction.ofExponentialBackoff(
-                        Duration.ofMillis(500),
-                        2.0,
-                        Duration.ofSeconds(5)
+                        Duration.ofMillis(properties.retryInitialBackoffMillis()),
+                        properties.retryBackoffMultiplier(),
+                        Duration.ofMillis(properties.retryMaxBackoffMillis())
                 ))
                 .retryOnException(ResilienceConfig::isTransientAiFailure)
                 .build());
@@ -68,13 +75,13 @@ public class ResilienceConfig {
     @Bean
     public TimeLimiter aiTimeLimiter() {
         return TimeLimiter.of(TimeLimiterConfig.custom()
-                .timeoutDuration(Duration.ofSeconds(100))
+                .timeoutDuration(Duration.ofSeconds(properties.timeLimiterSeconds()))
                 .build());
     }
 
     @Bean(destroyMethod = "shutdownNow")
     public ExecutorService aiExecutor() {
-        return Executors.newFixedThreadPool(4, runnable -> {
+        return Executors.newFixedThreadPool(properties.executorThreads(), runnable -> {
             Thread thread = new Thread(runnable, "ai-call");
             thread.setDaemon(true);
             return thread;

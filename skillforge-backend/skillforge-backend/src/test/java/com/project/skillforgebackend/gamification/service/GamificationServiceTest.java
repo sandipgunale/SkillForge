@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.List;
 import java.util.Set;
@@ -40,6 +41,9 @@ class GamificationServiceTest {
     @Mock
     private NotificationService notificationService;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     private GamificationService gamificationService;
 
     private User user;
@@ -52,7 +56,8 @@ class GamificationServiceTest {
                 bookmarkRepository,
                 ratingRepository,
                 learningPathRepository,
-                notificationService
+                notificationService,
+                eventPublisher
         );
 
         user = User.builder()

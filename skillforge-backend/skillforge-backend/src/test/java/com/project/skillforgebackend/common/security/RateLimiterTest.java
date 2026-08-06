@@ -1,10 +1,10 @@
 package com.project.skillforgebackend.common.security;
 
 import com.project.skillforgebackend.common.exception.RateLimitException;
+import com.project.skillforgebackend.config.properties.RateLimitProperties;
 import io.github.bucket4j.ConsumptionProbe;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -15,10 +15,10 @@ class RateLimiterTest {
 
     @BeforeEach
     void setUp() {
-        rateLimiter = new RateLimiter();
-        ReflectionTestUtils.setField(rateLimiter, "enabled", true);
-        ReflectionTestUtils.setField(rateLimiter, "maxRequests", 3);
-        ReflectionTestUtils.setField(rateLimiter, "windowMinutes", 10L);
+        rateLimiter = new RateLimiter(
+                new RateLimitProperties(true, 3, 10L, null),
+                null
+        );
     }
 
     @Test
@@ -58,10 +58,13 @@ class RateLimiterTest {
 
     @Test
     void disabledLimiterNeverThrows() {
-        ReflectionTestUtils.setField(rateLimiter, "enabled", false);
+        RateLimiter disabled = new RateLimiter(
+                new RateLimitProperties(false, 3, 10L, null),
+                null
+        );
 
         for (int i = 0; i < 100; i++) {
-            rateLimiter.check(rateLimiter.key("127.0.0.1", "login"));
+            disabled.check(disabled.key("127.0.0.1", "login"));
         }
     }
 
@@ -92,10 +95,10 @@ class RateLimiterTest {
 
         // A fresh proxy manager (e.g. instance restart, or a shared store
         // that is reset) starts with a full token budget again
-        RateLimiter fresh = new RateLimiter();
-        ReflectionTestUtils.setField(fresh, "enabled", true);
-        ReflectionTestUtils.setField(fresh, "maxRequests", 3);
-        ReflectionTestUtils.setField(fresh, "windowMinutes", 10L);
+        RateLimiter fresh = new RateLimiter(
+                new RateLimitProperties(true, 3, 10L, null),
+                null
+        );
 
         fresh.check(key);
     }

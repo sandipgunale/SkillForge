@@ -1,9 +1,9 @@
 package com.project.skillforgebackend.config;
 
+import com.project.skillforgebackend.config.properties.AppProperties;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.web.util.matcher.IpAddressMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.stereotype.Component;
@@ -28,13 +28,18 @@ public class MetricsAccess implements RequestMatcher {
 
     private final List<IpAddressMatcher> matchers = new ArrayList<>();
 
-    @Value("${app.monitoring.allowed-ips:}")
-    private String allowedIps;
+    private final List<String> allowedIps;
+
+    public MetricsAccess(AppProperties appProperties) {
+        this.allowedIps = appProperties.monitoring() == null
+                ? List.of()
+                : appProperties.monitoring().allowedIps();
+    }
 
     @PostConstruct
     void init() {
 
-        for (String cidr : allowedIps.split(",")) {
+        for (String cidr : allowedIps) {
 
             String trimmed = cidr.trim();
 

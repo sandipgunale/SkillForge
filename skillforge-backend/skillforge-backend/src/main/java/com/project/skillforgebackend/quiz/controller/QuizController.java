@@ -1,14 +1,20 @@
 package com.project.skillforgebackend.quiz.controller;
 
+import com.project.skillforgebackend.auth.principal.AuthenticatedPrincipal;
+import com.project.skillforgebackend.auth.principal.CurrentUser;
 import com.project.skillforgebackend.common.response.ApiResponse;
+import com.project.skillforgebackend.common.security.RateLimiter;
 import com.project.skillforgebackend.quiz.dto.*;
 import com.project.skillforgebackend.quiz.entity.Quiz;
 import com.project.skillforgebackend.quiz.entity.QuizSource;
-import com.project.skillforgebackend.quiz.service.QuizService;
+import com.project.skillforgebackend.quiz.service.QuizGenerationService;
+import com.project.skillforgebackend.quiz.service.QuizQueryService;
+import com.project.skillforgebackend.quiz.service.QuizSubmissionService;
 import com.project.skillforgebackend.resource.entity.Resource;
 import com.project.skillforgebackend.user.entity.User;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -21,24 +27,42 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/quizzes")
-@RequiredArgsConstructor
 public class QuizController {
 
     private static final java.util.Set<String> SORTABLE_FIELDS =
             java.util.Set.of("completedAt", "createdAt", "score", "status", "difficulty");
 
-    private final QuizService quizService;
+    private final QuizGenerationService quizGenerationService;
+    private final QuizSubmissionService quizSubmissionService;
+    private final QuizQueryService quizQueryService;
+    private final CurrentUser currentUser;
+    private final RateLimiter aiRateLimiter;
+
+    public QuizController(QuizGenerationService quizGenerationService,
+                          QuizSubmissionService quizSubmissionService,
+                          QuizQueryService quizQueryService,
+                          CurrentUser currentUser,
+                          @Qualifier("aiRateLimiter") RateLimiter aiRateLimiter) {
+        this.quizGenerationService = quizGenerationService;
+        this.quizSubmissionService = quizSubmissionService;
+        this.quizQueryService = quizQueryService;
+        this.currentUser = currentUser;
+        this.aiRateLimiter = aiRateLimiter;
+    }
 
     /**
      * Generate a new quiz.
      */
     @PostMapping
     public ResponseEntity<ApiResponse<QuizDto>> generateQuiz(
-            @AuthenticationPrincipal User user,
-            @Valid @RequestBody QuizRequest request
+            @AuthenticationPrincipal AuthenticatedPrincipal principal,
+            @Valid @RequestBody QuizRequest request,
+            HttpServletRequest servletRequest
     ) {
+        aiRateLimiter.check(aiRateLimiter.key(clientIp(servletRequest), "quiz-generation"));
 
-        QuizDto quiz = quizService.generateQuiz(user, request);
+        User user = currentUser.require(principal);
+        QuizDto quiz = quizGenerationService.generateQuiz(user, request);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(
@@ -54,13 +78,17 @@ public class QuizController {
      */
     @PostMapping("/{quizId}/submit")
     public ResponseEntity<ApiResponse<QuizResultDto>> submitQuiz(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal AuthenticatedPrincipal principal,
             @PathVariable UUID quizId,
-            @Valid @RequestBody SubmitAnswersRequest request
+            @Valid @RequestBody SubmitAnswersRequest request,
+            HttpServletRequest servletRequest
     ) {
+        aiRateLimiter.check(aiRateLimiter.key(clientIp(servletRequest), "quiz-evaluation"));
+
+        User user = currentUser.require(principal);
 
         QuizResultDto result =
-                quizService.submitAnswers(
+                quizSubmissionService.submitAnswers(
                         user,
                         quizId,
                         request
@@ -76,9 +104,10 @@ public class QuizController {
 
     @GetMapping("/active")
     public ResponseEntity<ApiResponse<QuizDto>> getActiveQuiz(
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal AuthenticatedPrincipal principal
     ) {
-        QuizDto quiz = quizService.getActiveQuiz(user);
+        User user = currentUser.require(principal);
+        QuizDto quiz = quizQueryService.getActiveQuiz(user);
 
         return ResponseEntity.ok(
                 ApiResponse.success(
@@ -90,10 +119,11 @@ public class QuizController {
 
     @GetMapping("/{quizId}")
     public ResponseEntity<ApiResponse<QuizDto>> getQuiz(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal AuthenticatedPrincipal principal,
             @PathVariable UUID quizId
     ) {
-        QuizDto quiz = quizService.getQuiz(user, quizId);
+        User user = currentUser.require(principal);
+        QuizDto quiz = quizQueryService.getQuiz(user, quizId);
 
         return ResponseEntity.ok(
                 ApiResponse.success(
@@ -105,11 +135,12 @@ public class QuizController {
 
     @GetMapping("/{quizId}/result")
     public ResponseEntity<ApiResponse<QuizResultDto>> getQuizResult(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal AuthenticatedPrincipal principal,
             @PathVariable UUID quizId
     ) {
+        User user = currentUser.require(principal);
 
-        QuizResultDto result = quizService.getQuizResult(user, quizId);
+        QuizResultDto result = quizQueryService.getQuizResult(user, quizId);
 
         return ResponseEntity.ok(
                 ApiResponse.success(
@@ -125,7 +156,7 @@ public class QuizController {
     @GetMapping("/history")
     public ResponseEntity<ApiResponse<PagedResponse<QuizDto>>> getHistory(
 
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal AuthenticatedPrincipal principal,
 
             @RequestParam(required = false)
             QuizSource source,
@@ -146,6 +177,7 @@ public class QuizController {
             String sort
 
     ) {
+        User user = currentUser.require(principal);
 
         String[] sortParts = sort.split(",");
         String sortField = sortParts[0].trim();
@@ -168,7 +200,7 @@ public class QuizController {
         );
 
         PagedResponse<QuizDto> history =
-                quizService.getHistory(
+                quizQueryService.getHistory(
                         user,
                         source,
                         difficulty,
@@ -185,6 +217,12 @@ public class QuizController {
 
         );
 
+    }
+
+    private String clientIp(HttpServletRequest request) {
+        // Mirrors AuthController: remote address is the real client IP behind
+        // the fronting proxy (server.forward-headers-strategy=framework).
+        return request.getRemoteAddr();
     }
 
 }

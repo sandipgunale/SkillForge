@@ -1,15 +1,17 @@
 package com.project.skillforgebackend.auth.service;
 
+import com.project.skillforgebackend.auth.audit.AuthAuditEvent;
 import com.project.skillforgebackend.auth.dto.ForgotPasswordRequest;
 import com.project.skillforgebackend.auth.dto.ResetPasswordRequest;
 import com.project.skillforgebackend.auth.entity.PasswordResetToken;
 import com.project.skillforgebackend.auth.repository.PasswordResetTokenRepository;
 import com.project.skillforgebackend.common.exception.InvalidCredentialsException;
+import com.project.skillforgebackend.config.properties.AppProperties;
 import com.project.skillforgebackend.user.entity.User;
 import com.project.skillforgebackend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -35,15 +37,13 @@ public class PasswordResetService {
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final int TOKEN_BYTES = 32;
-    private static final long TOKEN_TTL_MINUTES = 30;
 
     private final UserRepository userRepository;
     private final PasswordResetTokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final MailService mailService;
-
-    @Value("${app.password-reset-ttl-minutes:30}")
-    private long tokenTtlMinutes;
+    private final AppProperties appProperties;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * Always returns normally — a 200 for an unknown email would leak
@@ -63,15 +63,22 @@ public class PasswordResetService {
                 .forEach(tokenRepository::delete);
 
         String rawToken = generateToken();
+        long ttlMinutes = appProperties.passwordResetTtlMinutes();
         PasswordResetToken entity = PasswordResetToken.builder()
                 .userId(user.getId())
                 .tokenHash(hash(rawToken))
-                .expiresAt(Instant.now().plus(tokenTtlMinutes, ChronoUnit.MINUTES))
+                .expiresAt(Instant.now().plus(ttlMinutes, ChronoUnit.MINUTES))
                 .build();
         tokenRepository.save(entity);
 
         mailService.sendPasswordResetEmail(user.getEmail(), rawToken);
         log.info("Password reset requested for {}", email);
+        eventPublisher.publishEvent(new AuthAuditEvent(
+                AuthAuditEvent.Type.PASSWORD_RESET_REQUESTED,
+                user.getId(),
+                user.getEmail(),
+                null
+        ));
     }
 
     @Transactional
@@ -99,6 +106,12 @@ public class PasswordResetService {
         userRepository.save(user);
 
         log.info("Password reset completed for {}", user.getEmail());
+        eventPublisher.publishEvent(new AuthAuditEvent(
+                AuthAuditEvent.Type.PASSWORD_RESET_COMPLETED,
+                user.getId(),
+                user.getEmail(),
+                null
+        ));
     }
 
     /** Nightly purge of expired / consumed tokens. */

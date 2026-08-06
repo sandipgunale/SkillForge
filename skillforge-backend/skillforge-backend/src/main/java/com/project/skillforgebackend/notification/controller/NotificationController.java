@@ -1,5 +1,7 @@
 package com.project.skillforgebackend.notification.controller;
 
+import com.project.skillforgebackend.auth.principal.AuthenticatedPrincipal;
+import com.project.skillforgebackend.auth.principal.CurrentUser;
 import com.project.skillforgebackend.common.response.ApiResponse;
 import com.project.skillforgebackend.notification.dto.NotificationDto;
 import com.project.skillforgebackend.notification.service.NotificationService;
@@ -20,11 +22,15 @@ public class NotificationController {
 
     private final NotificationService notificationService;
 
+    private final CurrentUser currentUser;
+
     @GetMapping
     public ResponseEntity<ApiResponse<List<NotificationDto>>> getNotifications(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal AuthenticatedPrincipal principal,
             @RequestParam(defaultValue = "false") boolean unreadOnly
     ) {
+        User user = currentUser.require(principal);
+
         return ResponseEntity.ok(
                 ApiResponse.success(
                         "Notifications fetched successfully.",
@@ -35,8 +41,10 @@ public class NotificationController {
 
     @GetMapping("/unread-count")
     public ResponseEntity<ApiResponse<Map<String, Long>>> getUnreadCount(
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal AuthenticatedPrincipal principal
     ) {
+        User user = currentUser.require(principal);
+
         return ResponseEntity.ok(
                 ApiResponse.success(
                         "Unread count fetched successfully.",
@@ -47,9 +55,11 @@ public class NotificationController {
 
     @PatchMapping("/{notificationId}/read")
     public ResponseEntity<ApiResponse<Void>> markRead(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal AuthenticatedPrincipal principal,
             @PathVariable UUID notificationId
     ) {
+        User user = currentUser.require(principal);
+
         notificationService.markRead(user, notificationId);
 
         return ResponseEntity.ok(
@@ -62,8 +72,10 @@ public class NotificationController {
 
     @PatchMapping("/read-all")
     public ResponseEntity<ApiResponse<Void>> markAllRead(
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal AuthenticatedPrincipal principal
     ) {
+        User user = currentUser.require(principal);
+
         notificationService.markAllRead(user);
 
         return ResponseEntity.ok(

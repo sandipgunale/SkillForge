@@ -9,10 +9,12 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.*;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -81,9 +83,30 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<ApiError> handleInvalidCredentials(
             HttpServletRequest request) {
+        // Structured auth-failure line: request id and client ip come from
+        // the MDC; the endpoint identifies where the attempt landed.
+        log.warn("Authentication failed at {} {} from {}",
+                request.getMethod(), request.getRequestURI(), request.getRemoteAddr());
         // Generic message — never reveal which field was wrong
         return buildError(HttpStatus.UNAUTHORIZED,
                 "Invalid email or password", request);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiError> handleNoResourceFound(
+            NoResourceFoundException ex,
+            HttpServletRequest request) {
+        return buildError(HttpStatus.NOT_FOUND,
+                "Resource not found", request);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiError> handleMethodNotSupported(
+            HttpRequestMethodNotSupportedException ex,
+            HttpServletRequest request) {
+        return buildError(HttpStatus.METHOD_NOT_ALLOWED,
+                "HTTP method " + request.getMethod() + " is not supported for this path",
+                request);
     }
 
     @ExceptionHandler(RateLimitException.class)

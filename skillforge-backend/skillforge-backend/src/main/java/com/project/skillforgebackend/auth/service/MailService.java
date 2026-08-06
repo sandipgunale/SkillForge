@@ -1,8 +1,9 @@
 package com.project.skillforgebackend.auth.service;
 
+import com.project.skillforgebackend.config.properties.AppProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.mail.MailProperties;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -19,17 +20,13 @@ import org.springframework.stereotype.Service;
 public class MailService {
 
     private final JavaMailSender mailSender;
-
-    @Value("${app.frontend-url:http://localhost:5173}")
-    private String frontendUrl;
-
-    @Value("${spring.mail.host:}")
-    private String mailHost;
+    private final MailProperties mailProperties;
+    private final AppProperties appProperties;
 
     public void sendPasswordResetEmail(String to, String resetToken) {
-        String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
+        String resetLink = appProperties.frontendUrl() + "/reset-password?token=" + resetToken;
 
-        if (mailHost.isBlank()) {
+        if (mailProperties.getHost().isBlank()) {
             log.warn("SMTP not configured — password reset link for {}:\n{}", to, resetLink);
             return;
         }

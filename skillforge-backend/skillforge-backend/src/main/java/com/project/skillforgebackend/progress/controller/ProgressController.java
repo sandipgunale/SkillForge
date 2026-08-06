@@ -1,5 +1,7 @@
 package com.project.skillforgebackend.progress.controller;
 
+import com.project.skillforgebackend.auth.principal.AuthenticatedPrincipal;
+import com.project.skillforgebackend.auth.principal.CurrentUser;
 import com.project.skillforgebackend.common.response.ApiResponse;
 import com.project.skillforgebackend.progress.dto.ProgressDto;
 import com.project.skillforgebackend.progress.service.ProgressService;
@@ -18,13 +20,16 @@ public class ProgressController {
 
     private final ProgressService progressService;
 
+    private final CurrentUser currentUser;
+
     /**
      * Get logged-in user's learning progress.
      */
     @GetMapping
     public ResponseEntity<ApiResponse<ProgressDto>> getProgress(
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal AuthenticatedPrincipal principal
     ) {
+        User user = currentUser.require(principal);
 
         ProgressDto progress =
                 progressService.getProgress(user);

@@ -2,6 +2,7 @@ package com.project.skillforgebackend.common.security;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.project.skillforgebackend.common.exception.RateLimitException;
+import com.project.skillforgebackend.config.properties.RateLimitProperties;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.BucketConfiguration;
 import io.github.bucket4j.ConsumptionProbe;
@@ -10,44 +11,42 @@ import io.github.bucket4j.distributed.ExpirationAfterWriteStrategy;
 import io.github.bucket4j.distributed.proxy.ProxyManager;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 
 /**
- * Single-instance token-bucket rate limiter backed by Bucket4j.
+ * Single-instance token-bucket rate limiter backed by Bucket4j. Instantiated
+ * twice as Spring beans — one limiter for auth endpoints and one for the AI
+ * endpoints (see {@link com.project.skillforgebackend.config.RateLimitingConfig}).
  *
- * Buckets are accessed through a {@link ProxyManager}, the same abstraction
+ * <p>Buckets are accessed through a {@link ProxyManager}, the same abstraction
  * Bucket4j uses for shared stores (Redis, JDBC, Hazelcast, ...): scaling to
  * multiple instances only requires swapping the proxy manager for a
  * distributed one — the call sites ({@link #check(String)}) do not change.
  * Idle buckets expire after 30 minutes and the cache is capped at 10k keys.
  */
-@Component
 @Slf4j
 public class RateLimiter {
 
     private final ProxyManager<String> proxyManager;
+    private final boolean enabled;
+    private final int maxRequests;
+    private final long windowMinutes;
+    private final MeterRegistry meterRegistry;
 
-    @Value("${security.rate-limit.enabled:true}")
-    private boolean enabled;
+    /** Auth load: {@code security.rate-limit.*}. */
+    public RateLimiter(RateLimitProperties properties, MeterRegistry meterRegistry) {
+        this(properties.enabled(), properties.maxRequests(),
+                properties.windowMinutes(), meterRegistry);
+    }
 
-    @Value("${security.rate-limit.max-requests:5}")
-    private int maxRequests;
+    /** AI load: {@code security.rate-limit.ai.*}. */
+    public RateLimiter(RateLimitProperties.Ai ai, MeterRegistry meterRegistry) {
+        this(ai.enabled(), ai.maxRequests(), ai.windowMinutes(), meterRegistry);
+    }
 
-    @Value("${security.rate-limit.window-minutes:10}")
-    private long windowMinutes;
-
-    /**
-     * Optional (unit tests construct the limiter without Spring); when
-     * absent, rejection metrics are simply not recorded.
-     */
-    @Autowired(required = false)
-    private MeterRegistry meterRegistry;
-
-    public RateLimiter() {
+    private RateLimiter(boolean enabled, int maxRequests, long windowMinutes,
+                        MeterRegistry meterRegistry) {
         this.proxyManager = Bucket4jCaffeine.<String>builderFor(
                         Caffeine.newBuilder().maximumSize(10_000))
                 .expirationAfterWrite(
@@ -56,6 +55,10 @@ public class RateLimiter {
                         )
                 )
                 .build();
+        this.enabled = enabled;
+        this.maxRequests = maxRequests;
+        this.windowMinutes = windowMinutes;
+        this.meterRegistry = meterRegistry;
     }
 
     /**

@@ -1,18 +1,21 @@
 package com.project.skillforgebackend.auth.controller;
 
 
+import com.project.skillforgebackend.auth.audit.AuthAuditEvent;
 import com.project.skillforgebackend.auth.dto.*;
 import com.project.skillforgebackend.auth.service.AuthService;
 import com.project.skillforgebackend.auth.service.JwtService;
 import com.project.skillforgebackend.auth.service.PasswordResetService;
+import com.project.skillforgebackend.auth.service.RefreshTokenService;
 import com.project.skillforgebackend.common.exception.InvalidCredentialsException;
 import com.project.skillforgebackend.common.security.RateLimiter;
+import com.project.skillforgebackend.config.properties.CookieProperties;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,19 +25,31 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
-@RequiredArgsConstructor
 public class AuthController {
 
     private final AuthService authService;
     private final JwtService jwtService;
     private final RateLimiter rateLimiter;
     private final PasswordResetService passwordResetService;
+    private final RefreshTokenService refreshTokenService;
+    private final ApplicationEventPublisher eventPublisher;
+    private final CookieProperties cookieProperties;
 
-    @Value("${cookie.same-site:LAX}")
-    private String cookieSameSite;
-
-    @Value("${cookie.secure:false}")
-    private boolean cookieSecure;
+    public AuthController(AuthService authService,
+                          JwtService jwtService,
+                          @Qualifier("authRateLimiter") RateLimiter rateLimiter,
+                          PasswordResetService passwordResetService,
+                          RefreshTokenService refreshTokenService,
+                          ApplicationEventPublisher eventPublisher,
+                          CookieProperties cookieProperties) {
+        this.authService = authService;
+        this.jwtService = jwtService;
+        this.rateLimiter = rateLimiter;
+        this.passwordResetService = passwordResetService;
+        this.refreshTokenService = refreshTokenService;
+        this.eventPublisher = eventPublisher;
+        this.cookieProperties = cookieProperties;
+    }
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(
@@ -87,15 +102,29 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(HttpServletResponse response) {
-        ResponseCookie cookie = ResponseCookie.from("refreshToken", "")
+    public ResponseEntity<Void> logout(HttpServletRequest request,
+                                       HttpServletResponse response) {
+        Cookie cookie = extractCookie(request);
+        String refreshToken = cookie != null ? cookie.getValue() : null;
+
+        refreshTokenService.revoke(refreshToken);
+
+        ResponseCookie cleared = ResponseCookie.from("refreshToken", "")
                 .httpOnly(true)
-                .secure(cookieSecure)
-                .sameSite(cookieSameSite)
+                .secure(cookieProperties.secure())
+                .sameSite(cookieProperties.sameSite().name())
                 .path("/api/auth")
                 .maxAge(0)
                 .build();
-        response.addHeader("Set-Cookie", cookie.toString());
+        response.addHeader("Set-Cookie", cleared.toString());
+
+        eventPublisher.publishEvent(new AuthAuditEvent(
+                AuthAuditEvent.Type.LOGOUT_SUCCESS,
+                null,
+                null,
+                "logout (refresh token revocation attempted)"
+        ));
+
         return ResponseEntity.noContent().build();
     }
 
@@ -141,8 +170,8 @@ public class AuthController {
                 authResponse.getRefreshToken()
         )
                 .httpOnly(true)
-                .secure(cookieSecure)
-                .sameSite(cookieSameSite)
+                .secure(cookieProperties.secure())
+                .sameSite(cookieProperties.sameSite().name())
                 .path("/api/auth")
                 .maxAge(lifetimeSeconds)
                 .build();
@@ -151,17 +180,26 @@ public class AuthController {
     }
 
     private String extractRefreshTokenFromCookie(HttpServletRequest request) {
+        Cookie cookie = extractCookie(request);
+        return Arrays
+                .stream(cookie == null ? new Cookie[0] : new Cookie[]{cookie})
+                .filter(c -> "refreshToken".equals(c.getName()))
+                .map(Cookie::getValue)
+                .filter(value -> !value.isBlank())
+                .findFirst()
+                .orElseThrow(
+                        InvalidCredentialsException::new
+                );
+    }
+
+    private Cookie extractCookie(HttpServletRequest request) {
         if (request.getCookies() == null) {
-            throw new InvalidCredentialsException();
+            return null;
         }
         return Arrays.stream(request.getCookies())
                 .filter(c -> "refreshToken".equals(c.getName()))
                 .findFirst()
-                .map(Cookie::getValue)
-                .filter(value -> !value.isBlank())
-                .orElseThrow(
-                        InvalidCredentialsException::new
-                );
+                .orElse(null);
     }
 
     private String clientIp(HttpServletRequest request) {

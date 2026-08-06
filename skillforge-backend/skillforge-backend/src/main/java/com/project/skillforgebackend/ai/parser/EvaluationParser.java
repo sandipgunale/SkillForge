@@ -3,6 +3,7 @@ package com.project.skillforgebackend.ai.parser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.skillforgebackend.ai.dto.AIEvaluationResponse;
 import com.project.skillforgebackend.ai.exception.AIServiceException;
+import com.project.skillforgebackend.ai.validation.AiResponseValidator;
 import com.project.skillforgebackend.quiz.dto.QuestionResultDto;
 import com.project.skillforgebackend.quiz.dto.QuizAnalyticsDto;
 import com.project.skillforgebackend.quiz.dto.QuizInsightDto;
@@ -20,6 +21,8 @@ import java.util.List;
 public class EvaluationParser {
 
     private final ObjectMapper objectMapper;
+
+    private final AiResponseValidator aiResponseValidator;
 
     public QuizResultDto parse(
             String json,
@@ -39,6 +42,8 @@ public class EvaluationParser {
                         "Invalid AI evaluation response."
                 );
             }
+
+            aiResponseValidator.validateEvaluationCoverage(response, quiz);
 
             applyEvaluation(response, quiz);
 

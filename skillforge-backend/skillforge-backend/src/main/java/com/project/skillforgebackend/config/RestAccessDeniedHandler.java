@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.skillforgebackend.common.exception.ApiError;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.web.access.AccessDeniedHandler;
@@ -14,15 +14,22 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 
 @Component
-@RequiredArgsConstructor
+@Slf4j
 public class RestAccessDeniedHandler implements AccessDeniedHandler {
 
     private final ObjectMapper objectMapper;
+
+    public RestAccessDeniedHandler(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
     @Override
     public void handle(HttpServletRequest request,
                        HttpServletResponse response,
                        AccessDeniedException accessDeniedException) throws IOException {
+
+        log.warn("Access denied at {} {} from {}",
+                request.getMethod(), request.getRequestURI(), request.getRemoteAddr());
 
         ApiError error = ApiError.builder()
                 .status(HttpServletResponse.SC_FORBIDDEN)

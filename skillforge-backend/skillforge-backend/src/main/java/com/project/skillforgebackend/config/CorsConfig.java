@@ -1,8 +1,8 @@
 package com.project.skillforgebackend.config;
 
+import com.project.skillforgebackend.config.properties.AppProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
@@ -10,7 +10,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.cors.CorsConfigurationSource;
 
 import java.net.URI;
-import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -18,8 +17,14 @@ public class CorsConfig {
 
     private static final Logger log = LoggerFactory.getLogger(CorsConfig.class);
 
+    private final AppProperties appProperties;
+
+    public CorsConfig(AppProperties appProperties) {
+        this.appProperties = appProperties;
+    }
+
     /**
-     * Comma-separated list of allowed origins, injected from
+     * Comma-separated list of allowed origins, bound from
      * {@code app.cors.allowed-origins}. The dev profile defaults to the
      * {@code FRONTEND_URL} env var (localhost); the base configuration has
      * NO fallback, so a deployed environment must set
@@ -30,12 +35,12 @@ public class CorsConfig {
      * wildcard origins together with credentials. Fail-fast here is
      * intentional — an open CORS policy is worse than a failed boot.
      */
-    @Value("${app.cors.allowed-origins:}")
-    private String allowedOrigins;
-
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        List<String> origins = parseOrigins(allowedOrigins);
+        List<String> rawOrigins = appProperties.cors() == null
+                ? List.of()
+                : appProperties.cors().allowedOrigins();
+        List<String> origins = parseOrigins(rawOrigins);
 
         if (origins.isEmpty()) {
             throw new IllegalStateException(
@@ -80,11 +85,11 @@ public class CorsConfig {
         return source;
     }
 
-    private List<String> parseOrigins(String raw) {
-        if (raw == null || raw.isBlank()) {
+    private List<String> parseOrigins(List<String> raw) {
+        if (raw == null) {
             return List.of();
         }
-        return Arrays.stream(raw.split(","))
+        return raw.stream()
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .peek(this::validateOrigin)

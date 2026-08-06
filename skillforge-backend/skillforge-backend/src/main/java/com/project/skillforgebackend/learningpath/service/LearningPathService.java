@@ -2,8 +2,12 @@ package com.project.skillforgebackend.learningpath.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.project.skillforgebackend.ai.cache.AiResponseCache;
 import com.project.skillforgebackend.ai.exception.AIServiceException;
 import com.project.skillforgebackend.ai.service.AIService;
+import com.project.skillforgebackend.common.audit.BusinessAuditEvent;
 import com.project.skillforgebackend.common.exception.ResourceNotFoundException;
 import com.project.skillforgebackend.gamification.service.GamificationService;
 import com.project.skillforgebackend.learningpath.dto.CreateLearningPathRequest;
@@ -16,13 +20,10 @@ import com.project.skillforgebackend.learningpath.repository.LearningPathReposit
 import com.project.skillforgebackend.quiz.repository.QuizRepository;
 import com.project.skillforgebackend.user.entity.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.project.skillforgebackend.learningpath.dto.UpdateWeekCompletionRequest;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -39,7 +40,10 @@ public class LearningPathService {
     private final ObjectMapper objectMapper;
     private final GamificationService gamificationService;
     private final QuizRepository quizRepository;
+    private final ApplicationEventPublisher eventPublisher;
+    private final AiResponseCache aiResponseCache;
 
+    @CacheEvict(cacheNames = "dashboard", key = "#user.id")
     public LearningPathDto createLearningPath(
             CreateLearningPathRequest request,
             User user
@@ -69,6 +73,14 @@ public class LearningPathService {
 
         LearningPath saved =
                 learningPathRepository.save(learningPath);
+
+        eventPublisher.publishEvent(new BusinessAuditEvent(
+                BusinessAuditEvent.Type.LEARNING_PATH_CREATED,
+                user.getId(),
+                "learningPath",
+                saved.getId().toString(),
+                saved.getTitle()
+        ));
 
         return learningPathMapper.toDto(saved);
     }
@@ -136,10 +148,19 @@ public class LearningPathService {
         LearningPath updated =
                 learningPathRepository.save(learningPath);
 
+        eventPublisher.publishEvent(new BusinessAuditEvent(
+                BusinessAuditEvent.Type.LEARNING_PATH_UPDATED,
+                user.getId(),
+                "learningPath",
+                learningPathId.toString(),
+                null
+        ));
+
         return learningPathMapper.toDto(updated);
     }
 
 
+    @CacheEvict(cacheNames = "dashboard", key = "#user.id")
     public LearningPathDto updateStatus(
             UUID learningPathId,
             LearningPathStatus status,
@@ -169,110 +190,20 @@ public class LearningPathService {
         LearningPath updated =
                 learningPathRepository.save(learningPath);
 
-        return learningPathMapper.toDto(updated);
-    }
-
-    public LearningPathDto updateWeekCompletion(
-            UUID learningPathId,
-            Integer weekNumber,
-            UpdateWeekCompletionRequest request,
-            User user
-    ) {
-
-        LearningPath learningPath =
-                findLearningPath(
-                        learningPathId,
-                        user
-                );
-
-        ObjectNode roadmap =
-                (ObjectNode) learningPath.getRoadmapJson();
-
-        ArrayNode weeks =
-                (ArrayNode) roadmap.get("weeks");
-
-        boolean weekFound = false;
-
-        for (JsonNode weekNode : weeks) {
-
-            ObjectNode week = (ObjectNode) weekNode;
-
-            if (week.get("week").asInt() == weekNumber) {
-
-                week.put(
-                        "completed",
-                        request.getCompleted()
-                );
-
-                weekFound = true;
-                break;
-            }
-        }
-
-        if (!weekFound) {
-
-            throw new ResourceNotFoundException(
-                    "Week",
-                    weekNumber
-            );
-
-        }
-
-
-        updateLearningPathStatus(learningPath);
-
-        LearningPath updated =
-                learningPathRepository.save(learningPath);
+        eventPublisher.publishEvent(new BusinessAuditEvent(
+                status == LearningPathStatus.COMPLETED
+                        ? BusinessAuditEvent.Type.LEARNING_PATH_COMPLETED
+                        : BusinessAuditEvent.Type.LEARNING_PATH_UPDATED,
+                user.getId(),
+                "learningPath",
+                learningPathId.toString(),
+                status.name()
+        ));
 
         return learningPathMapper.toDto(updated);
-
     }
 
-    private void updateLearningPathStatus(
-            LearningPath learningPath
-    ) {
-
-        ObjectNode roadmap =
-                (ObjectNode) learningPath.getRoadmapJson();
-
-        ArrayNode weeks =
-                (ArrayNode) roadmap.get("weeks");
-
-        boolean allCompleted = true;
-
-        for (JsonNode weekNode : weeks) {
-
-            if (!weekNode.get("completed").asBoolean()) {
-
-                allCompleted = false;
-                break;
-
-            }
-
-        }
-
-        if (allCompleted) {
-
-            learningPath.setStatus(
-                    LearningPathStatus.COMPLETED
-            );
-
-            learningPath.setCompletedAt(
-                    LocalDateTime.now()
-            );
-
-        } else {
-
-            learningPath.setStatus(
-                    LearningPathStatus.ACTIVE
-            );
-
-            learningPath.setCompletedAt(null);
-
-        }
-
-    }
-
+    @CacheEvict(cacheNames = "dashboard", key = "#user.id")
     public void deleteLearningPath(
             UUID learningPathId,
             User user
@@ -287,6 +218,16 @@ public class LearningPathService {
         quizRepository.deleteByLearningPath(learningPath);
 
         learningPathRepository.delete(learningPath);
+
+        aiResponseCache.evictLearningPaths();
+
+        eventPublisher.publishEvent(new BusinessAuditEvent(
+                BusinessAuditEvent.Type.LEARNING_PATH_DELETED,
+                user.getId(),
+                "learningPath",
+                learningPathId.toString(),
+                null
+        ));
     }
 
     private LearningPath findLearningPath(

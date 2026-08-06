@@ -1,8 +1,7 @@
 package com.project.skillforgebackend.ai.guardrail;
 
-import lombok.RequiredArgsConstructor;
+import com.project.skillforgebackend.config.properties.GeminiProperties;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -20,21 +19,13 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public class AiUsageTracker {
 
-    @Value("${gemini.max-questions-per-day:200}")
-    private int maxQuestionsPerDay;
+    private final int maxQuestionsPerDay;
 
     private final Map<UUID, Map<LocalDate, Integer>> usage =
             new ConcurrentHashMap<>();
 
-    /**
-     * Test-friendly constructor.
-     */
-    AiUsageTracker(int maxQuestionsPerDay) {
-        this.maxQuestionsPerDay = maxQuestionsPerDay;
-    }
-
-    public AiUsageTracker() {
-        // spring-managed
+    public AiUsageTracker(GeminiProperties geminiProperties) {
+        this.maxQuestionsPerDay = geminiProperties.maxQuestionsPerDay();
     }
 
     /**
