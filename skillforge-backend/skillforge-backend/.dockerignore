@@ -1,0 +1,27 @@
+# Environment & secrets — never enter a build context
+.env
+.env.*
+!.env.example
+
+# Local runtime logs
+*.log
+logs/
+
+# Build output
+target/
+build/
+
+# Version control / IDE
+.git
+.gitignore
+.idea/
+.vscode/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local run scripts / scratch
+*.cmd
+*.ps1

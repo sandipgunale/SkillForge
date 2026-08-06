@@ -49,6 +49,10 @@ default active profile.
 - `dev` (default): DEBUG app logging, relaxed cookie flags for localhost.
 - Any other profile: INFO logging.
 
+## Notes
+
+- Local run logs (ackend-run.log, ackend-run.err.log, logs/) are gitignored by design - they are runtime artifacts, never source.
+
 ## Useful Commands
 
 ```bash

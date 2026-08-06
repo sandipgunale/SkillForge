@@ -3,7 +3,9 @@ package com.project.skillforgebackend.auth.service;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.io.DecodingException;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,9 @@ public class JwtService {
     public static final String CLAIM_ROLE = "role";
     public static final String CLAIM_REMEMBER_ME = "rememberMe";
 
+    /** HS256 requires a 256-bit key — 32 bytes after Base64 decoding. */
+    private static final int MIN_SECRET_BYTES = 32;
+
     private static final String ISSUER = "skillforge";
     private static final String AUDIENCE = "skillforge-api";
 
@@ -36,6 +41,33 @@ public class JwtService {
 
     @Value("${jwt.refresh-token-expiry-short}")
     private long refreshTokenExpiryShort;
+
+    /**
+     * Fail fast with a precise message if the signing key is missing or too
+     * weak, instead of a WeakKeyException surfacing on the first login.
+     * (ConfigValidationService performs the same check at boot; this is
+     * defense-in-depth for direct programmatic use of this service.)
+     */
+    @PostConstruct
+    void validateSecretKey() {
+        if (secretKey == null || secretKey.isBlank()) {
+            throw new IllegalStateException(
+                    "jwt.secret (JWT_SECRET env var) is not configured. Generate one with: openssl rand -base64 64");
+        }
+        try {
+            byte[] key = Decoders.BASE64.decode(secretKey.trim());
+            if (key.length < MIN_SECRET_BYTES) {
+                throw new IllegalStateException(
+                        "jwt.secret (JWT_SECRET env var) decodes to " + key.length
+                                + " bytes; HS256 requires at least " + MIN_SECRET_BYTES
+                                + " bytes (256 bits). Generate one with: openssl rand -base64 64");
+            }
+        } catch (DecodingException e) {
+            throw new IllegalStateException(
+                    "jwt.secret (JWT_SECRET env var) is not valid Base64. Generate one with: openssl rand -base64 64",
+                    e);
+        }
+    }
 
     public String generateAccessToken(String email, Map<String, Object> extraClaims) {
         Map<String, Object> claims = new java.util.HashMap<>(extraClaims);
