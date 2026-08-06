@@ -13,6 +13,8 @@ import com.project.skillforgebackend.resource.repository.ResourceRepository;
 import com.project.skillforgebackend.resource.repository.TagRepository;
 import com.project.skillforgebackend.resource.repository.TopicRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -45,6 +47,7 @@ public class ResourceService {
 
     private final TagRepository tagRepository;
 
+    @Cacheable(cacheNames = "resources", key = "{#topicId, #difficulty, #type, #search, #pageable}")
     public Page<ResourceDto> getResources(
             UUID topicId,
             Resource.Difficulty difficulty,
@@ -65,6 +68,7 @@ public class ResourceService {
                 .map(resourceMapper::toDto);
     }
 
+    @Cacheable(cacheNames = "resources", key = "#id")
     public ResourceDto getResourceById(UUID id) {
 
         Resource resource = resourceRepository
@@ -75,6 +79,7 @@ public class ResourceService {
         return resourceMapper.toDto(resource);
     }
 
+    @Cacheable(cacheNames = "topics")
     public List<TopicDto> getAllTopics() {
 
         return topicRepository
@@ -83,12 +88,14 @@ public class ResourceService {
                 .map(topicMapper::toDto)
                 .toList();
     }
+    @Cacheable(cacheNames = "topics", key = "#topicId")
     public TopicDto getTopic(UUID topicId) {
 
         return topicMapper.toDto(getTopicEntity(topicId));
     }
 
     @Transactional
+    @CacheEvict(cacheNames = {"topics", "resources"}, allEntries = true)
     public TopicDto createTopic(CreateTopicRequest request) {
 
         Topic topic = Topic.builder()
@@ -104,6 +111,7 @@ public class ResourceService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = {"topics", "resources"}, allEntries = true)
     public TopicDto updateTopic(
             UUID topicId,
             UpdateTopicRequest request
@@ -121,6 +129,7 @@ public class ResourceService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = {"topics", "resources"}, allEntries = true)
     public void deleteTopic(UUID topicId) {
 
         Topic topic = getTopicEntity(topicId);
@@ -129,6 +138,7 @@ public class ResourceService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = {"topics", "resources"}, allEntries = true)
     public ResourceDto createResource(CreateResourceRequest request) {
 
         Topic topic = getTopicEntity(request.getTopicId());
@@ -151,6 +161,7 @@ public class ResourceService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = {"topics", "resources"}, allEntries = true)
     public ResourceDto updateResource(
             UUID resourceId,
             UpdateResourceRequest request
@@ -177,6 +188,7 @@ public class ResourceService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = {"topics", "resources"}, allEntries = true)
     public void deleteResource(UUID resourceId) {
 
         Resource resource = getResourceEntity(resourceId);

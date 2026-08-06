@@ -1,35 +1,33 @@
 package com.project.skillforgebackend.common.security;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.project.skillforgebackend.common.exception.RateLimitException;
+import io.github.bucket4j.Bandwidth;
+import io.github.bucket4j.BucketConfiguration;
+import io.github.bucket4j.ConsumptionProbe;
+import io.github.bucket4j.caffeine.Bucket4jCaffeine;
+import io.github.bucket4j.distributed.ExpirationAfterWriteStrategy;
+import io.github.bucket4j.distributed.proxy.ProxyManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Simple in-memory fixed-window rate limiter.
- * Keyed by client IP per endpoint; counts reset when the window expires.
- * Sufficient for a single-instance deployment; swap for Redis/Bucket4j
- * when running horizontally.
+ * Single-instance token-bucket rate limiter backed by Bucket4j.
+ *
+ * Buckets are accessed through a {@link ProxyManager}, the same abstraction
+ * Bucket4j uses for shared stores (Redis, JDBC, Hazelcast, ...): scaling to
+ * multiple instances only requires swapping the proxy manager for a
+ * distributed one — the call sites ({@link #check(String)}) do not change.
+ * Idle buckets expire after 30 minutes and the cache is capped at 10k keys.
  */
 @Component
 @Slf4j
 public class RateLimiter {
 
-    private static final class Window {
-        long windowStart;
-        int count;
-
-        Window(long windowStart) {
-            this.windowStart = windowStart;
-            this.count = 0;
-        }
-    }
-
-    private final Map<String, Window> windows = new ConcurrentHashMap<>();
+    private final ProxyManager<String> proxyManager;
 
     @Value("${security.rate-limit.enabled:true}")
     private boolean enabled;
@@ -40,40 +38,56 @@ public class RateLimiter {
     @Value("${security.rate-limit.window-minutes:10}")
     private long windowMinutes;
 
+    public RateLimiter() {
+        this.proxyManager = Bucket4jCaffeine.<String>builderFor(
+                        Caffeine.newBuilder().maximumSize(10_000))
+                .expirationAfterWrite(
+                        ExpirationAfterWriteStrategy.fixedTimeToLive(
+                                Duration.ofMinutes(30)
+                        )
+                )
+                .build();
+    }
+
     /**
      * Checks whether the caller may proceed. Throws {@link RateLimitException}
-     * when the limit for the window has been exceeded.
+     * when the token budget for the window has been exhausted.
      */
     public void check(String key) {
         if (!enabled) {
             return;
         }
 
-        long now = System.currentTimeMillis();
-        long windowMs = Duration.ofMinutes(windowMinutes).toMillis();
+        ConsumptionProbe probe = probe(key);
 
-        Window window = windows.compute(key, (k, current) -> {
-            if (current == null || now - current.windowStart >= windowMs) {
-                return new Window(now);
-            }
-            return current;
-        });
-
-        synchronized (window) {
-            window.count++;
-
-            if (window.count > maxRequests) {
-                log.warn("Rate limit exceeded for key {} ({} requests in {}min)",
-                        key, window.count, windowMinutes);
-                throw new RateLimitException(
-                        "Too many requests. Please try again later."
-                );
-            }
+        if (!probe.isConsumed()) {
+            log.warn("Rate limit exceeded for key {} ({} requests per {}min)",
+                    key, maxRequests, windowMinutes);
+            throw new RateLimitException(
+                    "Too many requests. Please try again later."
+            );
         }
     }
 
     /** Key derived from client IP + endpoint for scoped limits. */
     public String key(String clientIp, String endpoint) {
         return clientIp == null ? "unknown:" + endpoint : clientIp + ":" + endpoint;
+    }
+
+    ConsumptionProbe probe(String key) {
+        return proxyManager.builder().build(key, this::bucketConfiguration)
+                .tryConsumeAndReturnRemaining(1);
+    }
+
+    private BucketConfiguration bucketConfiguration() {
+        return BucketConfiguration.builder()
+                .addLimit(Bandwidth.builder()
+                        .capacity(maxRequests)
+                        .refillGreedy(
+                                maxRequests,
+                                Duration.ofMinutes(windowMinutes)
+                        )
+                        .build())
+                .build();
     }
 }

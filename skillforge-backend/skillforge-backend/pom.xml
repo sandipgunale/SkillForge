@@ -23,6 +23,8 @@
     <properties>
         <java.version>21</java.version>
         <jjwt.version>0.12.7</jjwt.version>
+        <bucket4j.version>8.19.0</bucket4j.version>
+        <resilience4j.version>2.4.0</resilience4j.version>
     </properties>
 
     <dependencies>
@@ -83,6 +85,42 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+
+        <!-- ========================= -->
+        <!-- Resilience / Caching -->
+        <!-- ========================= -->
+
+        <!-- Token-bucket rate limiting (single-instance, Caffeine-backed
+             proxy; swap for a distributed Bucket4j proxy for horizontal
+             scaling without changing call sites) -->
+        <dependency>
+            <groupId>com.bucket4j</groupId>
+            <artifactId>bucket4j_jdk17-caffeine</artifactId>
+            <version>${bucket4j.version}</version>
+        </dependency>
+
+        <!-- bucket4j_jdk17-caffeine declares caffeine as provided -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
+        <!-- Circuit breaker / retry / time limiter for outbound AI calls -->
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-all</artifactId>
+            <version>${resilience4j.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
 
         <!-- ========================= -->

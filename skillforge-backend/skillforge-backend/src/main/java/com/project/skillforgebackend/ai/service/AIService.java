@@ -8,6 +8,11 @@ import com.project.skillforgebackend.quiz.dto.*;
 import com.project.skillforgebackend.quiz.entity.Question;
 import com.project.skillforgebackend.quiz.entity.Quiz;
 import com.project.skillforgebackend.resource.entity.Resource;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.decorators.Decorators;
+import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.timelimiter.TimeLimiter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,6 +24,10 @@ import com.project.skillforgebackend.ai.parser.LearningPathParser;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeoutException;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +41,16 @@ public class AIService {
     private final LearningPathPromptBuilder learningPathPromptBuilder;
     private final LearningPathParser learningPathParser;
     private final EvaluationPromptBuilder evaluationPromptBuilder;
+
+    private final CircuitBreaker aiCircuitBreaker;
+
+    private final Retry aiRetry;
+
+    private final TimeLimiter aiTimeLimiter;
+
+    private final ExecutorService aiExecutor;
+
+    private final java.util.concurrent.ScheduledExecutorService aiTimeoutScheduler;
 
     @Value("${gemini.max-parse-retries:2}")
     private int maxParseRetries;
@@ -96,7 +115,7 @@ public class AIService {
 
         for (int attempt = 1; attempt <= attempts; attempt++) {
 
-            String response = geminiClient.complete(prompt);
+            String response = completeWithResilience(prompt);
 
             try {
 
@@ -125,12 +144,94 @@ public class AIService {
 
 
     /**
+     * Runs a Gemini call through the resilience chain (circuit breaker,
+     * retry for transient transport failures, wall-clock time limit).
+     * All failures are surfaced as {@link AIServiceException} so callers
+     * never depend on resilience4j types.
+     */
+    private String completeWithResilience(String prompt) {
+
+        try {
+
+            java.util.function.Supplier<String> call = Retry.decorateSupplier(
+                    aiRetry,
+                    CircuitBreaker.decorateSupplier(
+                            aiCircuitBreaker,
+                            () -> geminiClient.complete(prompt)
+                    )
+            );
+
+            return Decorators.ofCompletionStage(
+                            () -> CompletableFuture.supplyAsync(call, aiExecutor)
+                    )
+                    .withTimeLimiter(aiTimeLimiter, aiTimeoutScheduler)
+                    .get()
+                    .toCompletableFuture()
+                    .join();
+
+        } catch (RuntimeException ex) {
+
+            throw translateAiFailure(unwrap(ex));
+
+        }
+    }
+
+    private Throwable unwrap(Throwable throwable) {
+
+        Throwable current = throwable;
+
+        while ((current instanceof CompletionException)
+                && current.getCause() != null) {
+
+            current = current.getCause();
+        }
+
+        return current;
+    }
+
+    private AIServiceException translateAiFailure(Throwable cause) {
+
+        if (cause instanceof AIServiceException aiException) {
+
+            return aiException;
+        }
+
+        if (cause instanceof CallNotPermittedException) {
+
+            log.warn("AI circuit breaker open; rejecting call.");
+
+            return new AIServiceException(
+                    "The AI service is temporarily unavailable. "
+                            + "Please try again later.",
+                    cause
+            );
+        }
+
+        if (cause instanceof TimeoutException) {
+
+            log.warn("AI call timed out after the configured limit.");
+
+            return new AIServiceException(
+                    "The AI service took too long to respond. "
+                            + "Please try again later.",
+                    cause
+            );
+        }
+
+        return new AIServiceException(
+                "Failed to communicate with the AI service.",
+                cause
+        );
+    }
+
+
+    /**
      * Evaluates a completed quiz using AI.
      */
     public QuizResultDto evaluateQuiz(Quiz quiz) {
 
         String prompt = evaluationPromptBuilder.build(quiz);
-        String response = geminiClient.complete(prompt);
+        String response = completeWithResilience(prompt);
         try {
 
             return evaluationParser.parse(response, quiz);
@@ -162,7 +263,7 @@ public class AIService {
                 durationWeeks
         );
 
-        String response = geminiClient.complete(prompt);
+        String response = completeWithResilience(prompt);
 
         try {
 

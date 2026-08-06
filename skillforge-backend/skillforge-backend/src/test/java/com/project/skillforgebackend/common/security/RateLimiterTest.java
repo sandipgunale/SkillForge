@@ -1,6 +1,7 @@
 package com.project.skillforgebackend.common.security;
 
 import com.project.skillforgebackend.common.exception.RateLimitException;
+import io.github.bucket4j.ConsumptionProbe;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -65,8 +66,22 @@ class RateLimiterTest {
     }
 
     @Test
-    void windowResetsAfterElapsedTime() {
+    void exhaustedBucketSchedulesRefill() {
         String key = rateLimiter.key("127.0.0.1", "login");
+
+        rateLimiter.check(key);
+        rateLimiter.check(key);
+        rateLimiter.check(key);
+
+        ConsumptionProbe probe = rateLimiter.probe(key);
+
+        assertThat(probe.isConsumed()).isFalse();
+        assertThat(probe.getNanosToWaitForRefill()).isGreaterThan(0);
+    }
+
+    @Test
+    void freshLimiterStartsWithFullBudget() {
+        String key = rateLimiter.key("10.0.0.1", "login");
 
         rateLimiter.check(key);
         rateLimiter.check(key);
@@ -75,11 +90,14 @@ class RateLimiterTest {
         assertThatThrownBy(() -> rateLimiter.check(key))
                 .isInstanceOf(RateLimitException.class);
 
-        // Simulate the window elapsing
-        ReflectionTestUtils.setField(rateLimiter, "windowMinutes", 0L);
+        // A fresh proxy manager (e.g. instance restart, or a shared store
+        // that is reset) starts with a full token budget again
+        RateLimiter fresh = new RateLimiter();
+        ReflectionTestUtils.setField(fresh, "enabled", true);
+        ReflectionTestUtils.setField(fresh, "maxRequests", 3);
+        ReflectionTestUtils.setField(fresh, "windowMinutes", 10L);
 
-        // Old window is now stale -> new window opens
-        rateLimiter.check(key);
+        fresh.check(key);
     }
 
     @Test

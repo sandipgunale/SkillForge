@@ -10,6 +10,8 @@ import com.project.skillforgebackend.resource.entity.Tag;
 import com.project.skillforgebackend.resource.mapper.TagMapper;
 import com.project.skillforgebackend.resource.repository.TagRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +26,7 @@ public class TagService {
     private final TagRepository tagRepository;
     private final TagMapper tagMapper;
 
+    @Cacheable(cacheNames = "tags")
     public List<TagDto> getAllTags() {
 
         return tagRepository.findAllByOrderByNameAsc()
@@ -32,6 +35,7 @@ public class TagService {
                 .toList();
     }
 
+    @Cacheable(cacheNames = "tags", key = "#tagId")
     public TagDto getTag(UUID tagId) {
 
         return tagMapper.toDto(
@@ -40,6 +44,7 @@ public class TagService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = {"tags", "resources"}, allEntries = true)
     public TagDto createTag(CreateTagRequest request) {
 
         if (tagRepository.existsByNameIgnoreCase(request.getName())) {
@@ -57,6 +62,7 @@ public class TagService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = {"tags", "resources"}, allEntries = true)
     public TagDto updateTag(
             UUID tagId,
             UpdateTagRequest request
@@ -79,6 +85,7 @@ public class TagService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = {"tags", "resources"}, allEntries = true)
     public void deleteTag(UUID tagId) {
 
         Tag tag = getTagEntity(tagId);

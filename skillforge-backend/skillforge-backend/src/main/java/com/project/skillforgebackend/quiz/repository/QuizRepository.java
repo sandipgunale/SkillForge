@@ -5,6 +5,8 @@ import com.project.skillforgebackend.resource.entity.Topic;
 import com.project.skillforgebackend.user.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -20,12 +22,23 @@ public interface QuizRepository extends JpaRepository<Quiz, UUID>, JpaSpecificat
      * Find quiz by quiz id and owner.
      * Used while submitting quiz.
      */
+    @EntityGraph(attributePaths = {"topic", "learningPath", "questions"})
     Optional<Quiz> findByIdAndUser(UUID id, User user);
 
     /**
      * User Quiz History
      */
+    @EntityGraph(attributePaths = {"topic", "learningPath", "questions"})
     Page<Quiz> findByUserOrderByStartedAtDesc(User user, Pageable pageable);
+
+    /**
+     * History with filters. {@link QuizMapper#toDto} reads the LAZY
+     * topic / learning path / questions on every row — fetched eagerly
+     * here to avoid an N+1 query per quiz in the history list.
+     */
+    @EntityGraph(attributePaths = {"topic", "learningPath", "questions"})
+    @Override
+    Page<Quiz> findAll(Specification<Quiz> spec, Pageable pageable);
 
     /**
      * Count completed quizzes of a topic.
@@ -41,12 +54,14 @@ public interface QuizRepository extends JpaRepository<Quiz, UUID>, JpaSpecificat
     /**
      * Recent completed quizzes.
      */
+    @EntityGraph(attributePaths = {"topic", "learningPath", "questions"})
     Page<Quiz> findByUserAndStatusOrderByCompletedAtDesc(
             User user,
             Quiz.QuizStatus status,
             Pageable pageable
     );
 
+    @EntityGraph(attributePaths = {"topic", "learningPath", "questions"})
     List<Quiz> findTop10ByUserAndStatusOrderByCompletedAtDesc(
             User user,
             Quiz.QuizStatus status
@@ -61,6 +76,7 @@ public interface QuizRepository extends JpaRepository<Quiz, UUID>, JpaSpecificat
             Quiz.QuizStatus status
     );
 
+    @EntityGraph(attributePaths = {"topic", "learningPath", "questions"})
     Optional<Quiz> findTopByUserAndStatusOrderByStartedAtDesc(
             User user,
             Quiz.QuizStatus status
