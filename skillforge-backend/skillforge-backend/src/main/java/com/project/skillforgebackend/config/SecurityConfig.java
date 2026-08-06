@@ -62,6 +62,12 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/error").permitAll()
+                        // OpenAPI docs (public; disable springdoc in prod if undesired)
+                        .requestMatchers(
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**"
+                        ).permitAll()
                         // Prometheus scrape: allowlisted IPs only; everyone
                         // else falls through to the authenticated rule below
                         .requestMatchers(metricsAccess).permitAll()

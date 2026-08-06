@@ -25,6 +25,7 @@
         <jjwt.version>0.12.7</jjwt.version>
         <bucket4j.version>8.19.0</bucket4j.version>
         <resilience4j.version>2.4.0</resilience4j.version>
+        <springdoc.version>2.9.0</springdoc.version>
     </properties>
 
     <dependencies>
@@ -127,6 +128,13 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+
+        <!-- OpenAPI / Swagger UI (auto-scans controllers) -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
         </dependency>
 
         <!-- ========================= -->
