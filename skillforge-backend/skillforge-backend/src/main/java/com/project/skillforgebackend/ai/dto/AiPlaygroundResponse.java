@@ -1,21 +1,21 @@
 package com.project.skillforgebackend.ai.dto;
 
 /**
- * Result of an admin AI playground call.
+ * Result of an admin playground submission.
  *
- * @param text              the generated text
- * @param provider          provider that produced it
- * @param model             model that produced it
- * @param latencyMillis     wall-clock latency of the provider call
- * @param promptTokens      reported input tokens, or null when unknown
- * @param completionTokens  reported output tokens, or null when unknown
+ * @param completion         generated text
+ * @param provider           provider that served the completion
+ * @param model              model that produced the text
+ * @param promptTokens       reported input tokens (null if unknown)
+ * @param completionTokens   reported output tokens (null if unknown)
+ * @param latencyMillis      wall-clock latency of the completion
  */
 public record AiPlaygroundResponse(
-        String text,
+        String completion,
         String provider,
         String model,
-        long latencyMillis,
         Integer promptTokens,
-        Integer completionTokens
+        Integer completionTokens,
+        long latencyMillis
 ) {
 }

@@ -1,23 +1,23 @@
 package com.project.skillforgebackend.ai.prompt;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
 /**
- * Builds learning-path roadmap prompts. The prompt text lives in the
- * versioned resource {@code classpath:ai/prompts/learning-path.txt} and is
- * rendered by {@link PromptTemplateLoader}; this class fills in the learner
- * profile inputs.
+ * Builds learning-roadmap prompts from the versioned template
+ * {@code ai/prompts/learning-path.txt}, keeping the prompt text out of
+ * Java source so it can be reviewed, versioned and tuned without a
+ * code change.
  */
 @Component
+@RequiredArgsConstructor
 public class LearningPathPromptBuilder {
 
-    private final PromptTemplateLoader templateLoader;
+    private static final String TEMPLATE = "ai/prompts/learning-path.txt";
 
-    public LearningPathPromptBuilder(PromptTemplateLoader templateLoader) {
-        this.templateLoader = templateLoader;
-    }
+    private final PromptTemplateLoader templateLoader;
 
     public String build(
             String title,
@@ -28,7 +28,7 @@ public class LearningPathPromptBuilder {
     ) {
 
         return templateLoader.render(
-                "ai/prompts/learning-path.txt",
+                TEMPLATE,
                 Map.of(
                         "TITLE", title,
                         "GOAL", goal,

@@ -22,7 +22,7 @@ public class EvaluationParser {
 
     private final ObjectMapper objectMapper;
 
-    private final AiResponseValidator aiResponseValidator;
+    private final AiResponseValidator responseValidator;
 
     public QuizResultDto parse(
             String json,
@@ -43,7 +43,7 @@ public class EvaluationParser {
                 );
             }
 
-            aiResponseValidator.validateEvaluationCoverage(response, quiz);
+            responseValidator.validateEvaluationCoverage(response, quiz);
 
             applyEvaluation(response, quiz);
 

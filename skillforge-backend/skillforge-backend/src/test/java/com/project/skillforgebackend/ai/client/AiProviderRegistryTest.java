@@ -1,13 +1,13 @@
 package com.project.skillforgebackend.ai.client;
 
 import com.project.skillforgebackend.ai.exception.AIServiceException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -15,70 +15,86 @@ import static org.mockito.Mockito.when;
 
 class AiProviderRegistryTest {
 
-    private static AiCompletionResult result(String provider) {
-        return new AiCompletionResult("text", "model-1", provider, 10, 5, 12L);
+    private AiProvider primary;
+    private AiProvider fallback;
+
+    @BeforeEach
+    void setUp() {
+        primary = mock(AiProvider.class);
+        fallback = mock(AiProvider.class);
     }
 
     @Test
-    void returnsFirstHealthyProviderResult() {
-        AiProvider p1 = mock(AiProvider.class);
-        AiProvider p2 = mock(AiProvider.class);
-        when(p1.completeWithMetadata(anyString())).thenReturn(result("p1"));
+    void returnsFirstHealthyProvider() {
+        AiCompletionResult expected = new AiCompletionResult(
+                "text", "model-a", "primary", 1, 2, 5L);
 
-        AiProviderRegistry registry = new AiProviderRegistry(List.of(p1, p2));
+        when(primary.providerName()).thenReturn("primary");
+        when(primary.completeWithMetadata("prompt")).thenReturn(expected);
 
-        AiCompletionResult actual = registry.complete("prompt");
+        AiProviderRegistry registry = new AiProviderRegistry(List.of(primary, fallback));
 
-        assertEquals("p1", actual.provider());
-        verify(p2, never()).completeWithMetadata(anyString());
+        AiCompletionResult result = registry.complete("prompt");
+
+        assertThat(result).isEqualTo(expected);
+        verify(fallback, never()).completeWithMetadata("prompt");
     }
 
     @Test
-    void failsOverToNextProvider() {
-        AiProvider p1 = mock(AiProvider.class);
-        AiProvider p2 = mock(AiProvider.class);
-        when(p1.completeWithMetadata(anyString()))
-                .thenThrow(new AIServiceException("rate limited on all models"));
-        when(p2.completeWithMetadata(anyString())).thenReturn(result("p2"));
+    void failsOverWhenPrimaryThrows() {
+        AiCompletionResult expected = new AiCompletionResult(
+                "text", "model-b", "fallback", 3, 4, 7L);
 
-        AiProviderRegistry registry = new AiProviderRegistry(List.of(p1, p2));
+        when(primary.providerName()).thenReturn("primary");
+        when(primary.completeWithMetadata("prompt"))
+                .thenThrow(new AIServiceException("primary down"));
+        when(fallback.providerName()).thenReturn("fallback");
+        when(fallback.completeWithMetadata("prompt")).thenReturn(expected);
 
-        assertEquals("p2", registry.complete("prompt").provider());
+        AiProviderRegistry registry = new AiProviderRegistry(List.of(primary, fallback));
+
+        assertThat(registry.complete("prompt")).isEqualTo(expected);
     }
 
     @Test
-    void rethrowsLastFailureWhenAllProvidersFail() {
-        AiProvider p1 = mock(AiProvider.class);
-        AiProvider p2 = mock(AiProvider.class);
-        when(p1.completeWithMetadata(anyString()))
-                .thenThrow(new AIServiceException("provider one down"));
-        when(p2.completeWithMetadata(anyString()))
-                .thenThrow(new AIServiceException("provider two down"));
+    void rejectsEmptyCompletionAndFailsOver() {
+        AiCompletionResult empty = new AiCompletionResult(
+                "   ", "model-a", "primary", null, null, 5L);
+        AiCompletionResult good = new AiCompletionResult(
+                "text", "model-b", "fallback", 1, 2, 6L);
 
-        AiProviderRegistry registry = new AiProviderRegistry(List.of(p1, p2));
+        when(primary.providerName()).thenReturn("primary");
+        when(primary.completeWithMetadata("prompt")).thenReturn(empty);
+        when(fallback.providerName()).thenReturn("fallback");
+        when(fallback.completeWithMetadata("prompt")).thenReturn(good);
 
-        AIServiceException ex = assertThrows(AIServiceException.class,
-                () -> registry.complete("prompt"));
-        assertEquals("provider two down", ex.getMessage());
+        AiProviderRegistry registry = new AiProviderRegistry(List.of(primary, fallback));
+
+        assertThat(registry.complete("prompt")).isEqualTo(good);
     }
 
     @Test
-    void rejectsEmptyCompletionsAndFailsOver() {
-        AiProvider p1 = mock(AiProvider.class);
-        AiProvider p2 = mock(AiProvider.class);
-        when(p1.completeWithMetadata(anyString()))
-                .thenReturn(new AiCompletionResult("  ", "m", "p1", null, null, 1L));
-        when(p2.completeWithMetadata(anyString())).thenReturn(result("p2"));
+    void rethrowsLastFailureWhenAllFail() {
+        when(primary.providerName()).thenReturn("primary");
+        when(primary.completeWithMetadata("prompt"))
+                .thenThrow(new AIServiceException("primary down"));
+        when(fallback.providerName()).thenReturn("fallback");
+        when(fallback.completeWithMetadata("prompt"))
+                .thenThrow(new AIServiceException("fallback down"));
 
-        AiProviderRegistry registry = new AiProviderRegistry(List.of(p1, p2));
+        AiProviderRegistry registry = new AiProviderRegistry(List.of(primary, fallback));
 
-        assertEquals("p2", registry.complete("prompt").provider());
+        assertThatThrownBy(() -> registry.complete("prompt"))
+                .isInstanceOf(AIServiceException.class)
+                .hasMessageContaining("fallback down");
     }
 
     @Test
-    void failsWhenNoProvidersConfigured() {
+    void rejectsNoConfiguredProviders() {
         AiProviderRegistry registry = new AiProviderRegistry(List.of());
 
-        assertThrows(AIServiceException.class, () -> registry.complete("prompt"));
+        assertThatThrownBy(() -> registry.complete("prompt"))
+                .isInstanceOf(AIServiceException.class)
+                .hasMessageContaining("No AI providers are configured");
     }
 }

@@ -1,14 +1,14 @@
 package com.project.skillforgebackend.ai.service;
 
 import com.project.skillforgebackend.ai.cache.AiResponseCache;
-import com.project.skillforgebackend.ai.exception.AIServiceException;
 import com.project.skillforgebackend.ai.guardrail.AiPromptGuard;
 import com.project.skillforgebackend.ai.parser.EvaluationParser;
-import com.project.skillforgebackend.ai.parser.LearningPathParser;
 import com.project.skillforgebackend.ai.parser.QuizParser;
+import com.project.skillforgebackend.ai.exception.AIServiceException;
 import com.project.skillforgebackend.ai.prompt.EvaluationPromptBuilder;
 import com.project.skillforgebackend.ai.prompt.LearningPathPromptBuilder;
 import com.project.skillforgebackend.ai.prompt.QuizPromptBuilder;
+import com.project.skillforgebackend.ai.parser.LearningPathParser;
 import com.project.skillforgebackend.ai.resilience.AiResilienceExecutor;
 import com.project.skillforgebackend.config.properties.GeminiProperties;
 import com.project.skillforgebackend.quiz.dto.QuizResultDto;
@@ -40,7 +40,7 @@ public class AIService {
     private final AiResponseCache responseCache;
 
     /**
-     * Generates quiz questions via AI.
+     * Generates quiz questions via the AI provider.
      */
     public List<Question> generateQuestions(
             String topicName,
@@ -48,11 +48,11 @@ public class AIService {
             int count,
             List<Question.QuestionType> types) {
 
-        promptGuard.guardInput(topicName, "Topic");
+        promptGuard.guardField(topicName, "Topic");
         promptGuard.guardQuestionCount(count);
 
         String prompt = quizPromptBuilder.build(
-                topicName,
+                promptGuard.guardField(topicName, "Topic"),
                 difficulty,
                 count,
                 types
@@ -64,7 +64,6 @@ public class AIService {
         );
     }
 
-
     public List<Question> generateQuestions(
             List<String> topics,
             Resource.Difficulty difficulty,
@@ -72,14 +71,18 @@ public class AIService {
             List<Question.QuestionType> types
     ) {
 
-        if (topics != null) {
-            topics.forEach(topic -> promptGuard.guardInput(topic, "Topic"));
+        if (topics == null || topics.isEmpty()) {
+            throw new IllegalArgumentException("Topics must not be empty.");
         }
 
         promptGuard.guardQuestionCount(count);
 
+        List<String> guardedTopics = topics.stream()
+                .map(topic -> promptGuard.guardField(topic, "Topic"))
+                .toList();
+
         String prompt = quizPromptBuilder.build(
-                topics,
+                guardedTopics,
                 difficulty,
                 count,
                 types
@@ -94,17 +97,17 @@ public class AIService {
     /**
      * Schema validation retry loop: a malformed AI payload is not fatal —
      * the same prompt is re-sent until it validates or the retry budget
-     * is exhausted. Transport/rate-limit failures are handled inside the
-     * resilience chain (provider rotation, circuit breaker), so only
-     * parse/validation failures land here.
+     * is exhausted. Transport/rate-limit failures are handled inside
+     * {@link com.project.skillforgebackend.ai.client.GeminiClient} (model
+     * rotation), so only parse failures land here.
      */
     private List<Question> completeWithParseRetry(
             String prompt,
             String purpose
     ) {
-        int attempts = Math.max(1, geminiProperties.maxParseRetries() + 1);
-
         promptGuard.guardPromptLength(prompt);
+
+        int attempts = Math.max(1, geminiProperties.maxParseRetries() + 1);
 
         Exception lastFailure = null;
 
@@ -162,13 +165,14 @@ public class AIService {
             Integer durationWeeks
     ) {
 
-        promptGuard.guardInput(title, "Title");
-        promptGuard.guardInput(goal, "Goal");
+        String safeTitle = promptGuard.guardField(title, "Roadmap title");
+        String safeGoal = promptGuard.guardField(goal, "Goal");
+        String safeSkillLevel = promptGuard.guardField(skillLevel, "Skill level");
 
-        String cacheKey = AiResponseCache.learningPathKey(
-                title,
-                goal,
-                skillLevel,
+        String cacheKey = responseCache.key(
+                safeTitle,
+                safeGoal,
+                safeSkillLevel,
                 weeklyHours,
                 durationWeeks
         );
@@ -177,18 +181,15 @@ public class AIService {
 
         if (cached.isPresent()) {
 
-            log.info(
-                    "Serving cached learning path for parameter set {}.",
-                    cacheKey
-            );
+            log.info("Serving cached learning path for identical request.");
 
             return cached.get();
         }
 
         String prompt = learningPathPromptBuilder.build(
-                title,
-                goal,
-                skillLevel,
+                safeTitle,
+                safeGoal,
+                safeSkillLevel,
                 weeklyHours,
                 durationWeeks
         );
@@ -210,8 +211,7 @@ public class AIService {
     /**
      * Wraps a parse failure in an {@link AIServiceException} with a stable
      * message. The completion call itself already translates resilience
-     * failures into {@link AIServiceException}, which pass through
-     * unchanged.
+     * failures into {@link AIServiceException}, which pass through.
      */
     private <T> T parseOrThrow(
             Supplier<T> parse,

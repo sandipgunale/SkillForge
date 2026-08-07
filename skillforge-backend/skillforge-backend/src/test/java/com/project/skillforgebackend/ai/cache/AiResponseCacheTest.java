@@ -1,101 +1,72 @@
 package com.project.skillforgebackend.ai.cache;
 
 import com.project.skillforgebackend.config.properties.AiServiceProperties;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.cache.concurrent.ConcurrentMapCache;
-import org.springframework.cache.support.SimpleCacheManager;
+import org.springframework.cache.caffeine.CaffeineCacheManager;
 
-import java.util.List;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class AiResponseCacheTest {
 
-    private SimpleCacheManager cacheManager;
-
     private AiResponseCache cache;
-
-    private static final AiServiceProperties ENABLED =
-            new AiServiceProperties(true, true, 200, 100000, 100);
-
-    private static final AiServiceProperties DISABLED =
-            new AiServiceProperties(false, true, 200, 100000, 100);
 
     @BeforeEach
     void setUp() {
-        cacheManager = new SimpleCacheManager();
-        cacheManager.setCaches(List.of(
-                new ConcurrentMapCache(AiResponseCache.LEARNING_PATH_CACHE)
-        ));
-        cacheManager.afterPropertiesSet();
         cache = new AiResponseCache(
-                cacheManager,
-                ENABLED,
-                new SimpleMeterRegistry()
+                new CaffeineCacheManager(),
+                new AiServiceProperties(true, 300, 50000, 50, 20000)
         );
     }
 
     @Test
-    void storesAndRetrievesRoadmap() {
-        String key = AiResponseCache.learningPathKey("Java", "Become employable", "BEGINNER", 10, 12);
-        String roadmap = "{\"title\":\"Java\"}";
+    void storesAndRetrievesByExactKey() {
+        String key = cache.key("Java", "Become an engineer", "BEGINNER", 5, 12);
 
-        assertTrue(cache.getLearningPath(key).isEmpty());
+        assertThat(cache.getLearningPath(key)).isEmpty();
 
-        cache.putLearningPath(key, roadmap);
+        cache.putLearningPath(key, "{\"roadmap\": []}");
 
-        Optional<String> hit = cache.getLearningPath(key);
-
-        assertTrue(hit.isPresent());
-        assertEquals(roadmap, hit.get());
+        assertThat(cache.getLearningPath(key))
+                .hasValue("{\"roadmap\": []}");
     }
 
     @Test
-    void disabledCacheNeverHits() {
+    void keysAreNormalisedAndDeterministic() {
+        String upper = cache.key("  Java ", "Learn Java", "BEGINNER", 5, 12);
+        String lower = cache.key("java", "learn java", "beginner", 5, 12);
+
+        assertThat(upper).isEqualTo(lower);
+    }
+
+    @Test
+    void distinctParametersNeverCollide() {
+        String a = cache.key("Java", "Goal A", "BEGINNER", 5, 12);
+        String b = cache.key("Java", "Goal B", "BEGINNER", 5, 12);
+
+        assertThat(a).isNotEqualTo(b);
+    }
+
+    @Test
+    void evictAllClearsEntries() {
+        String key = cache.key("Java", "Goal", "BEGINNER", 5, 12);
+        cache.putLearningPath(key, "{\"roadmap\": []}");
+
+        cache.evictAll();
+
+        assertThat(cache.getLearningPath(key)).isEmpty();
+    }
+
+    @Test
+    void disabledCacheNeverStores() {
         AiResponseCache disabled = new AiResponseCache(
-                cacheManager,
-                DISABLED,
-                new SimpleMeterRegistry()
+                new CaffeineCacheManager(),
+                new AiServiceProperties(false, 300, 50000, 50, 20000)
         );
 
-        disabled.putLearningPath("k", "{}");
+        String key = disabled.key("Java", "Goal", "BEGINNER", 5, 12);
+        disabled.putLearningPath(key, "{\"roadmap\": []}");
 
-        assertTrue(disabled.getLearningPath("k").isEmpty());
-    }
-
-    @Test
-    void evictClearsAllEntries() {
-        String key = AiResponseCache.learningPathKey("Spring", "Learn", "INTERMEDIATE", 5, 8);
-        cache.putLearningPath(key, "{}");
-
-        cache.evictLearningPaths();
-
-        assertTrue(cache.getLearningPath(key).isEmpty());
-    }
-
-    @Test
-    void normalizesKeyComponents() {
-        String a = AiResponseCache.learningPathKey("  Java  ", "Goal", "BEGINNER", 10, 12);
-        String b = AiResponseCache.learningPathKey("java", "GOAL", "beginner", 10, 12);
-
-        assertEquals(a, b);
-    }
-
-    @Test
-    void missingCacheManagerCacheBehavesAsEmpty() {
-        SimpleCacheManager empty = new SimpleCacheManager();
-        AiResponseCache orphan = new AiResponseCache(
-                empty,
-                ENABLED,
-                new SimpleMeterRegistry()
-        );
-
-        assertTrue(orphan.getLearningPath("k").isEmpty());
-        orphan.putLearningPath("k", "{}");
-        orphan.evictLearningPaths();
+        assertThat(disabled.getLearningPath(key)).isEmpty();
     }
 }

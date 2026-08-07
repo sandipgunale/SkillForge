@@ -5,46 +5,40 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.skillforgebackend.quiz.entity.Question;
 import com.project.skillforgebackend.quiz.entity.Quiz;
 import com.project.skillforgebackend.quiz.entity.QuizSource;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Map;
 
+/**
+ * Builds quiz-evaluation prompts from the versioned template
+ * {@code ai/prompts/evaluation.txt}. The static instruction sections live
+ * in the template; the per-quiz question dump stays in Java because it is
+ * assembled from the live entity graph.
+ */
 @Component
+@RequiredArgsConstructor
 @Slf4j
 public class EvaluationPromptBuilder {
+
+    private static final String TEMPLATE = "ai/prompts/evaluation.txt";
 
     private final ObjectMapper objectMapper;
 
     private final PromptTemplateLoader templateLoader;
 
-    public EvaluationPromptBuilder(
-            ObjectMapper objectMapper,
-            PromptTemplateLoader templateLoader
-    ) {
-        this.objectMapper = objectMapper;
-        this.templateLoader = templateLoader;
-    }
-
-    /**
-     * Renders the evaluation prompt from the versioned template. The static
-     * instructions live in {@code classpath:ai/prompts/evaluation.txt}; the
-     * per-quiz question section is dynamic and assembled by
-     * {@link #buildQuestions(Quiz)} into the {@code {{QUESTIONS_SECTION}}}
-     * placeholder.
-     */
     public String build(Quiz quiz) {
 
-        String topicLabel = quiz.getSource() == QuizSource.TOPIC
+        String quizTopic = quiz.getSource() == QuizSource.TOPIC
                 ? quiz.getTopic().getName()
                 : quiz.getLearningPath().getTitle();
 
         return templateLoader.render(
-                "ai/prompts/evaluation.txt",
+                TEMPLATE,
                 Map.of(
-                        "QUIZ_TOPIC", topicLabel,
+                        "QUIZ_TOPIC", quizTopic,
                         "QUIZ_DIFFICULTY", quiz.getDifficulty().name(),
                         "QUESTIONS_SECTION", buildQuestions(quiz)
                 )

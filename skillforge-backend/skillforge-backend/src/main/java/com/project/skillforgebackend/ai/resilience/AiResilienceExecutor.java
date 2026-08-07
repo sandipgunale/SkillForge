@@ -61,6 +61,14 @@ public class AiResilienceExecutor {
     }
 
     public String complete(String prompt) {
+        return completeWithMetadata(prompt).text();
+    }
+
+    /**
+     * Full-resilience completion that also returns provider/model identity,
+     * token usage and latency — used by the admin AI playground.
+     */
+    public AiCompletionResult completeWithMetadata(String prompt) {
 
         Timer.Sample sample = Timer.start(meterRegistry);
 
@@ -76,7 +84,7 @@ public class AiResilienceExecutor {
 
             recordTokens(result);
 
-            return result.text();
+            return result;
 
         } catch (AIServiceException ex) {
 

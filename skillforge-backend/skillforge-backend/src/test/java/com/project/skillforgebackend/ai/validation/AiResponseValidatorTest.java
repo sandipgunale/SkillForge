@@ -6,133 +6,202 @@ import com.project.skillforgebackend.ai.dto.QuestionResponse;
 import com.project.skillforgebackend.ai.exception.AIServiceException;
 import com.project.skillforgebackend.quiz.entity.Question;
 import com.project.skillforgebackend.quiz.entity.Quiz;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AiResponseValidatorTest {
 
-    private final AiResponseValidator validator = new AiResponseValidator();
+    private AiResponseValidator validator;
 
-    @Test
-    void acceptsUniqueOrderIndexes() {
-        assertDoesNotThrow(() ->
-                validator.validateQuizQuestions(List.of(q(1), q(2), q(3))));
+    @BeforeEach
+    void setUp() {
+        validator = new AiResponseValidator();
     }
 
-    @Test
-    void rejectsDuplicateOrderIndex() {
-        assertThrows(AIServiceException.class, () ->
-                validator.validateQuizQuestions(List.of(q(1), q(1))));
-    }
-
-    @Test
-    void toleratesEmptyOrNullQuestionList() {
-        assertDoesNotThrow(() -> validator.validateQuizQuestions(List.of()));
-        assertDoesNotThrow(() -> validator.validateQuizQuestions(null));
-    }
-
-    private static QuestionResponse q(int orderIndex) {
-        return QuestionResponse.builder().orderIndex(orderIndex).build();
-    }
-
-    private Quiz quizWith(UUID... ids) {
-        List<Question> questions = java.util.Arrays.stream(ids)
-                .map(id -> Question.builder().id(id).build())
-                .toList();
-        return Quiz.builder().questions(questions).build();
-    }
-
-    private UUID firstQuestion(int salt) {
-        return UUID.fromString(String.format(
-                "00000000-0000-4000-8000-%012d", salt));
-    }
-
-    private static EvaluationItem good(UUID questionId) {
-        return EvaluationItem.builder()
-                .questionId(questionId)
-                .isCorrect(true)
-                .feedback("ok")
+    private QuestionResponse validMcq(Integer orderIndex) {
+        return QuestionResponse.builder()
+                .type(Question.QuestionType.MCQ)
+                .content("What is Java? " + orderIndex)
+                .options(List.of("A", "B", "C", "D"))
+                .correctAnswer("A")
+                .orderIndex(orderIndex)
                 .build();
     }
 
     @Test
+    void acceptsValidQuestionSet() {
+        validator.validateQuizQuestions(List.of(
+                validMcq(1),
+                validMcq(2),
+                QuestionResponse.builder()
+                        .type(Question.QuestionType.SCENARIO)
+                        .content("Explain recursion")
+                        .orderIndex(3)
+                        .build()
+        ));
+    }
+
+    @Test
+    void rejectsEmptyQuestions() {
+        assertThatThrownBy(() -> validator.validateQuizQuestions(List.of()))
+                .isInstanceOf(AIServiceException.class)
+                .hasMessageContaining("No questions were generated");
+    }
+
+    @Test
+    void rejectsNullQuestions() {
+        assertThatThrownBy(() -> validator.validateQuizQuestions(null))
+                .isInstanceOf(AIServiceException.class)
+                .hasMessageContaining("No questions were generated");
+    }
+
+    @Test
+    void rejectsQuestionWithoutType() {
+        assertThatThrownBy(() -> validator.validateQuizQuestions(List.of(
+                QuestionResponse.builder()
+                        .content("What?")
+                        .orderIndex(1)
+                        .build()
+        )))
+                .isInstanceOf(AIServiceException.class)
+                .hasMessageContaining("without a type");
+    }
+
+    @Test
+    void rejectsMcqWithoutFourOptions() {
+        assertThatThrownBy(() -> validator.validateQuizQuestions(List.of(
+                QuestionResponse.builder()
+                        .type(Question.QuestionType.MCQ)
+                        .content("Which?")
+                        .options(List.of("A", "B"))
+                        .orderIndex(1)
+                        .build()
+        )))
+                .isInstanceOf(AIServiceException.class)
+                .hasMessageContaining("exactly 4 options");
+    }
+
+    @Test
+    void rejectsDuplicateOrderIndex() {
+        assertThatThrownBy(() -> validator.validateQuizQuestions(List.of(
+                validMcq(1),
+                validMcq(1)
+        )))
+                .isInstanceOf(AIServiceException.class)
+                .hasMessageContaining("duplicate orderIndex");
+    }
+
+    @Test
+    void rejectsBlankContent() {
+        assertThatThrownBy(() -> validator.validateQuizQuestions(List.of(
+                QuestionResponse.builder()
+                        .type(Question.QuestionType.MCQ)
+                        .content("   ")
+                        .options(List.of("A", "B", "C", "D"))
+                        .orderIndex(1)
+                        .build()
+        )))
+                .isInstanceOf(AIServiceException.class)
+                .hasMessageContaining("empty content");
+    }
+
+    @Test
+    void rejectsEvaluationsMissingQuestions() {
+        UUID id = UUID.randomUUID();
+
+        Quiz quiz = Quiz.builder()
+                .questions(List.of(Question.builder().id(id).build()))
+                .build();
+
+        AIEvaluationResponse response = AIEvaluationResponse.builder()
+                .evaluations(List.of())
+                .build();
+
+        assertThatThrownBy(() -> validator.validateEvaluationCoverage(response, quiz))
+                .isInstanceOf(AIServiceException.class)
+                .hasMessageContaining("missing 1 question evaluation");
+    }
+
+    @Test
+    void rejectsEvaluationOfUnknownQuestion() {
+        Quiz quiz = Quiz.builder()
+                .questions(List.of(Question.builder().id(UUID.randomUUID()).build()))
+                .build();
+
+        AIEvaluationResponse response = AIEvaluationResponse.builder()
+                .evaluations(List.of(EvaluationItem.builder()
+                        .questionId(UUID.randomUUID())
+                        .isCorrect(true)
+                        .feedback("Good")
+                        .build()))
+                .build();
+
+        assertThatThrownBy(() -> validator.validateEvaluationCoverage(response, quiz))
+                .isInstanceOf(AIServiceException.class)
+                .hasMessageContaining("unknown question");
+    }
+
+    @Test
+    void rejectsDuplicateEvaluation() {
+        UUID id = UUID.randomUUID();
+
+        Quiz quiz = Quiz.builder()
+                .questions(List.of(Question.builder().id(id).build()))
+                .build();
+
+        AIEvaluationResponse response = AIEvaluationResponse.builder()
+                .evaluations(List.of(
+                        EvaluationItem.builder().questionId(id).isCorrect(true).feedback("a").build(),
+                        EvaluationItem.builder().questionId(id).isCorrect(false).feedback("b").build()
+                ))
+                .build();
+
+        assertThatThrownBy(() -> validator.validateEvaluationCoverage(response, quiz))
+                .isInstanceOf(AIServiceException.class)
+                .hasMessageContaining("evaluated question twice");
+    }
+
+    @Test
+    void rejectsEvaluationMissingFeedback() {
+        UUID id = UUID.randomUUID();
+
+        Quiz quiz = Quiz.builder()
+                .questions(List.of(Question.builder().id(id).build()))
+                .build();
+
+        AIEvaluationResponse response = AIEvaluationResponse.builder()
+                .evaluations(List.of(EvaluationItem.builder()
+                        .questionId(id)
+                        .isCorrect(true)
+                        .build()))
+                .build();
+
+        assertThatThrownBy(() -> validator.validateEvaluationCoverage(response, quiz))
+                .isInstanceOf(AIServiceException.class)
+                .hasMessageContaining("missing feedback");
+    }
+
+    @Test
     void acceptsCompleteEvaluation() {
-        UUID id = firstQuestion(1);
-        AIEvaluationResponse response = new AIEvaluationResponse(
-                "good", List.of("s"), List.of("w"), List.of("i"),
-                List.of(good(id)));
+        UUID id = UUID.randomUUID();
 
-        assertDoesNotThrow(() -> validator.validateEvaluationCoverage(response, quizWith(id)));
-    }
+        Quiz quiz = Quiz.builder()
+                .questions(List.of(Question.builder().id(id).build()))
+                .build();
 
-    @Test
-    void rejectsNullEvaluation() {
-        assertThrows(AIServiceException.class, () ->
-                validator.validateEvaluationCoverage(null, quizWith(firstQuestion(1))));
-    }
+        AIEvaluationResponse response = AIEvaluationResponse.builder()
+                .evaluations(List.of(EvaluationItem.builder()
+                        .questionId(id)
+                        .isCorrect(true)
+                        .feedback("Excellent")
+                        .build()))
+                .build();
 
-    @Test
-    void rejectsEmptyEvaluationList() {
-        UUID id = firstQuestion(1);
-        AIEvaluationResponse response = new AIEvaluationResponse(
-                "g", null, null, null, List.of());
-
-        assertThrows(AIServiceException.class, () ->
-                validator.validateEvaluationCoverage(response, quizWith(id)));
-    }
-
-    @Test
-    void rejectsUnknownQuestionId() {
-        UUID known = firstQuestion(1);
-        AIEvaluationResponse response = new AIEvaluationResponse(
-                "g", null, null, null, List.of(good(firstQuestion(2))));
-
-        assertThrows(AIServiceException.class, () ->
-                validator.validateEvaluationCoverage(response, quizWith(known)));
-    }
-
-    @Test
-    void rejectsDuplicateEvaluationOfSameQuestion() {
-        UUID id = firstQuestion(1);
-        AIEvaluationResponse response = new AIEvaluationResponse(
-                "g", null, null, null,
-                List.of(good(id), good(id)));
-
-        assertThrows(AIServiceException.class, () ->
-                validator.validateEvaluationCoverage(response, quizWith(id)));
-    }
-
-    @Test
-    void rejectsMissingVerdictAndFeedback() {
-        UUID id = firstQuestion(1);
-        AIEvaluationResponse missingVerdict = new AIEvaluationResponse(
-                "g", null, null, null,
-                List.of(EvaluationItem.builder().questionId(id).feedback("x").build()));
-
-        assertThrows(AIServiceException.class, () ->
-                validator.validateEvaluationCoverage(missingVerdict, quizWith(id)));
-
-        AIEvaluationResponse missingFeedback = new AIEvaluationResponse(
-                "g", null, null, null,
-                List.of(EvaluationItem.builder().questionId(id).isCorrect(true).build()));
-
-        assertThrows(AIServiceException.class, () ->
-                validator.validateEvaluationCoverage(missingFeedback, quizWith(id)));
-    }
-
-    @Test
-    void rejectsPartialCoverage() {
-        UUID a = firstQuestion(1);
-        UUID b = firstQuestion(2);
-        AIEvaluationResponse response = new AIEvaluationResponse(
-                "g", null, null, null, List.of(good(a)));
-
-        assertThrows(AIServiceException.class, () ->
-                validator.validateEvaluationCoverage(response, quizWith(a, b)));
+        validator.validateEvaluationCoverage(response, quiz);
     }
 }

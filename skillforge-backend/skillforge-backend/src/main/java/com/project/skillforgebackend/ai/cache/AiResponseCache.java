@@ -1,135 +1,98 @@
 package com.project.skillforgebackend.ai.cache;
 
 import com.project.skillforgebackend.config.properties.AiServiceProperties;
-import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Component;
 
+import java.util.Locale;
 import java.util.Optional;
 
 /**
- * Cache for deterministic AI responses — the learning-path roadmap is
- * fully determined by its five profile inputs, so a repeated request with
- * identical parameters can be served without burning a paid completion.
- * Entries are evicted by {@code evictLearningPaths()} whenever a learning
- * path is deleted.
- *
- * <p>Respects {@code ai.service.cache-enabled}; bounded and short-lived
- * through the shared Caffeine {@link CacheManager} configuration. Hits,
- * misses and clears are recorded as micrometer counters for the admin
- * dashboard.
+ * Deterministic-completion cache keyed on the exact request parameters.
+ * Learning-path generation with identical inputs is cached so repeated
+ * "generate roadmap" calls for the same profile do not burn provider quota;
+ * the cache is bounded and short-lived via the shared Caffeine spec.
  */
 @Component
 public class AiResponseCache {
 
-    public static final String LEARNING_PATH_CACHE = "aiLearningPath";
+    public static final String CACHE_NAME = "aiLearningPath";
 
     private final CacheManager cacheManager;
 
     private final AiServiceProperties properties;
 
-    private final Counter hits;
-
-    private final Counter misses;
-
-    private final Counter clears;
-
-    public AiResponseCache(
-            CacheManager cacheManager,
-            AiServiceProperties properties,
-            MeterRegistry meterRegistry
-    ) {
+    public AiResponseCache(CacheManager cacheManager, AiServiceProperties properties) {
         this.cacheManager = cacheManager;
         this.properties = properties;
-
-        this.hits = Counter.builder("skillforge_ai_cache_hits_total")
-                .description("Learning-path response cache hits")
-                .register(meterRegistry);
-
-        this.misses = Counter.builder("skillforge_ai_cache_misses_total")
-                .description("Learning-path response cache misses")
-                .register(meterRegistry);
-
-        this.clears = Counter.builder("skillforge_ai_cache_clears_total")
-                .description("Learning-path response cache clears")
-                .register(meterRegistry);
     }
 
-    public Optional<String> getLearningPath(String cacheKey) {
+    /**
+     * Builds a deterministic, collision-resistant key for a roadmap request.
+     */
+    public String key(String title, String goal, String skillLevel,
+                      Integer weeklyHours, Integer durationWeeks) {
+        return new StringBuilder()
+                .append(normalize(title)).append('|')
+                .append(normalize(goal)).append('|')
+                .append(normalize(skillLevel)).append('|')
+                .append(weeklyHours).append('|')
+                .append(durationWeeks)
+                .toString();
+    }
+
+    public Optional<String> getLearningPath(String key) {
 
         if (!properties.cacheEnabled()) {
             return Optional.empty();
         }
 
-        Cache cache = cacheManager.getCache(LEARNING_PATH_CACHE);
+        Cache cache = cache();
 
         if (cache == null) {
             return Optional.empty();
         }
 
-        String value = cache.get(cacheKey, String.class);
+        String value = cache.get(key, String.class);
 
-        if (value != null) {
-            hits.increment();
-            return Optional.of(value);
-        }
-
-        misses.increment();
-        return Optional.empty();
+        return Optional.ofNullable(value);
     }
 
-    public void putLearningPath(String cacheKey, String roadmapJson) {
+    public void putLearningPath(String key, String roadmapJson) {
 
-        if (!properties.cacheEnabled() || roadmapJson == null) {
+        if (!properties.cacheEnabled()) {
             return;
         }
 
-        Cache cache = cacheManager.getCache(LEARNING_PATH_CACHE);
+        Cache cache = cache();
 
         if (cache != null) {
-            cache.put(cacheKey, roadmapJson);
+            cache.put(key, roadmapJson);
         }
     }
 
     /**
-     * Drops every cached roadmap. Called on learning-path deletion because
-     * the roadmap for a parameter set is no longer authoritative.
+     * Clears every cached roadmap. Called on learning-path writes so user
+     * edits that could affect a roadmap never serve a stale completion.
      */
-    public void evictLearningPaths() {
+    public void evictAll() {
 
-        Cache cache = cacheManager.getCache(LEARNING_PATH_CACHE);
+        Cache cache = cache();
 
         if (cache != null) {
             cache.clear();
-            clears.increment();
         }
     }
 
-    /**
-     * Deterministic key for a roadmap request: parameter set only (no user
-     * dimension — identical requests may be shared, and eviction is global
-     * on write).
-     */
-    public static String learningPathKey(
-            String title,
-            String goal,
-            String skillLevel,
-            Integer weeklyHours,
-            Integer durationWeeks
-    ) {
-        return String.join(
-                "|",
-                normalize(title),
-                normalize(goal),
-                normalize(skillLevel),
-                String.valueOf(weeklyHours),
-                String.valueOf(durationWeeks)
-        );
+    private Cache cache() {
+        return cacheManager.getCache(CACHE_NAME);
     }
 
     private static String normalize(String value) {
-        return value == null ? "" : value.trim().toLowerCase();
+        if (value == null) {
+            return "";
+        }
+        return value.trim().toLowerCase(Locale.ROOT);
     }
 }

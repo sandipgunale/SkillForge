@@ -18,10 +18,8 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
-      - name: Compile
-        run: mvn -q -DskipTests compile
-      - name: Test
-        run: mvn -q test
+      - name: Verify (tests + failsafe ITs + JaCoCo gate)
+        run: mvn -q verify
 
   frontend:
     runs-on: ubuntu-latest
@@ -36,7 +34,7 @@ jobs:
           cache: npm
           cache-dependency-path: skillforge-frontend/package-lock.json
       - run: npm ci
-      - name: Lint
-        run: npm run lint
+      - name: Lint (zero warnings)
+        run: npm run lint -- --max-warnings 0
       - name: Build
         run: npm run build

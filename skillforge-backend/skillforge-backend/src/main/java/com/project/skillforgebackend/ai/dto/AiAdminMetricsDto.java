@@ -1,26 +1,28 @@
 package com.project.skillforgebackend.ai.dto;
 
-import java.util.List;
-import java.util.Map;
-
 /**
- * Read model for the admin AI dashboard.
+ * Aggregated observations for the admin AI console.
  *
- * @param calls                 total calls grouped by outcome (success/failure)
- * @param callDurationSeconds   mean wall-clock call duration per outcome
- * @param promptTokens          reported input tokens (provider-dependent)
- * @param completionTokens      reported output tokens (provider-dependent)
- * @param configuredModels      models configured for the primary provider
- * @param circuitBreaker        resilience4j circuit breaker snapshot
- * @param learningPathCache     response-cache statistics
+ * @param circuitBreakerState   OPEN / CLOSED / HALF_OPEN of the AI backend
+ * @param circuitFailureRate    current failure rate percentage (NaN when
+ *                              insufficient samples)
+ * @param totalCalls            total completed AI calls (success + failure)
+ * @param successfulCalls       completed calls that returned text
+ * @param failedCalls           calls that surfaced an error
+ * @param models                per provider/model breakdown
+ * @param cacheRequestCount     learning-path cache lookups
+ * @param cacheHitCount         cache lookups satisfied from cache
+ * @param cacheMissCount        cache lookups that forwarded to the provider
  */
 public record AiAdminMetricsDto(
-        Map<String, Long> calls,
-        Map<String, Double> callDurationSeconds,
-        long promptTokens,
-        long completionTokens,
-        List<String> configuredModels,
-        CircuitBreakerSnapshot circuitBreaker,
-        CacheSnapshot learningPathCache
+        String circuitBreakerState,
+        float circuitFailureRate,
+        long totalCalls,
+        long successfulCalls,
+        long failedCalls,
+        java.util.List<AiModelMetricDto> models,
+        long cacheRequestCount,
+        long cacheHitCount,
+        long cacheMissCount
 ) {
 }

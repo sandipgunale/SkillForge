@@ -2,6 +2,7 @@ package com.project.skillforgebackend.ai.prompt;
 
 import com.project.skillforgebackend.quiz.entity.Question;
 import com.project.skillforgebackend.resource.entity.Resource;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -9,19 +10,20 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Builds quiz-generation prompts. The prompt text lives in versioned
- * resources under {@code classpath:ai/prompts/quiz-*.txt} (loaded and
- * rendered by {@link PromptTemplateLoader}); this class fills in the
- * dynamic inputs (topic(s), difficulty, count, question types).
+ * Builds quiz-generation prompts from the versioned template
+ * {@code ai/prompts/quiz-single.txt} (single-topic) and
+ * {@code ai/prompts/quiz-multi.txt} (learning-path summary), keeping the
+ * prompt text out of Java source so it can be reviewed, versioned and
+ * tuned without a code change.
  */
 @Component
+@RequiredArgsConstructor
 public class QuizPromptBuilder {
 
-    private final PromptTemplateLoader templateLoader;
+    private static final String SINGLE_TOPIC_TEMPLATE = "ai/prompts/quiz-single.txt";
+    private static final String MULTI_TOPIC_TEMPLATE = "ai/prompts/quiz-multi.txt";
 
-    public QuizPromptBuilder(PromptTemplateLoader templateLoader) {
-        this.templateLoader = templateLoader;
-    }
+    private final PromptTemplateLoader templateLoader;
 
     public String build(
             String topic,
@@ -30,10 +32,14 @@ public class QuizPromptBuilder {
             List<Question.QuestionType> types
     ) {
 
-        String questionTypes = formatQuestionTypes(types);
+        String questionTypes = (types == null || types.isEmpty())
+                ? "MCQ"
+                : types.stream()
+                .map(Enum::name)
+                .collect(Collectors.joining(", "));
 
         return templateLoader.render(
-                "ai/prompts/quiz-single.txt",
+                SINGLE_TOPIC_TEMPLATE,
                 Map.of(
                         "TOPIC", topic,
                         "DIFFICULTY", difficulty.name(),
@@ -50,32 +56,24 @@ public class QuizPromptBuilder {
             List<Question.QuestionType> types
     ) {
 
-        String questionTypes = formatQuestionTypes(types);
+        String questionTypes = (types == null || types.isEmpty())
+                ? "MCQ"
+                : types.stream()
+                .map(Enum::name)
+                .collect(Collectors.joining(", "));
 
         String topicList = topics.stream()
                 .map(topic -> "- " + topic)
-                .reduce((a, b) -> a + "\n" + b)
-                .orElse("");
+                .collect(Collectors.joining("\n"));
 
         return templateLoader.render(
-                "ai/prompts/quiz-multi.txt",
+                MULTI_TOPIC_TEMPLATE,
                 Map.of(
-                        "COUNT", String.valueOf(count),
                         "TOPIC_LIST", topicList,
                         "DIFFICULTY", difficulty.name(),
+                        "COUNT", String.valueOf(count),
                         "QUESTION_TYPES", questionTypes
                 )
         );
-    }
-
-    private String formatQuestionTypes(List<Question.QuestionType> types) {
-
-        if (types == null || types.isEmpty()) {
-            return "MCQ";
-        }
-
-        return types.stream()
-                .map(Enum::name)
-                .collect(Collectors.joining(", "));
     }
 }

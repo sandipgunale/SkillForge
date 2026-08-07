@@ -19,7 +19,7 @@ public class QuizParser {
 
     private final AIQuestionMapper questionMapper;
 
-    private final AiResponseValidator aiResponseValidator;
+    private final AiResponseValidator responseValidator;
 
     /**
      * Parse AI generated quiz response.
@@ -42,9 +42,7 @@ public class QuizParser {
                 );
             }
 
-            aiResponseValidator.validateQuizQuestions(
-                    response.getQuestions()
-            );
+            responseValidator.validateQuizQuestions(response.getQuestions());
 
             List<Question> questions = response.getQuestions()
                     .stream()

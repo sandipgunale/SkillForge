@@ -156,6 +156,9 @@ public class LearningPathService {
                 null
         ));
 
+        // A metadata change may invalidate the cached roadmap for these params
+        aiResponseCache.evictAll();
+
         return learningPathMapper.toDto(updated);
     }
 
@@ -219,7 +222,7 @@ public class LearningPathService {
 
         learningPathRepository.delete(learningPath);
 
-        aiResponseCache.evictLearningPaths();
+        aiResponseCache.evictAll();
 
         eventPublisher.publishEvent(new BusinessAuditEvent(
                 BusinessAuditEvent.Type.LEARNING_PATH_DELETED,
