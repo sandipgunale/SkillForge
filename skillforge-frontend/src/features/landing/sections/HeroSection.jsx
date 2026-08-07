@@ -63,7 +63,12 @@ export default function HeroSection() {
       </div>
 
       <Suspense fallback={null}>
-        <ForgeCoreScene className="absolute inset-0 -z-20 h-full w-full" />
+        <div
+          data-hero="core"
+          className="absolute inset-0 -z-20 h-full w-full"
+        >
+          <ForgeCoreScene className="h-full w-full" />
+        </div>
       </Suspense>
 
       <div className="mx-auto flex min-h-[92vh] max-w-screen-2xl flex-col items-center justify-center px-6 py-32 text-center lg:px-10">

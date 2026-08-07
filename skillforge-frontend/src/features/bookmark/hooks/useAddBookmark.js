@@ -9,7 +9,7 @@ export function useAddBookmark() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: bookmarkApi.addBookmark,
+    mutationFn: (resourceId) => bookmarkApi.addBookmark(resourceId),
 
     onSuccess: (_, resourceId) => {
       queryClient.invalidateQueries({

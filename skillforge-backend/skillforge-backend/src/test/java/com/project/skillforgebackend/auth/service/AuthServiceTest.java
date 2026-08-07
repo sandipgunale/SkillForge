@@ -195,7 +195,7 @@ class AuthServiceTest {
         when(jwtService.extractClaim("old-refresh", JwtService.CLAIM_REMEMBER_ME))
                 .thenReturn("false");
         when(jwtService.getRefreshTokenLifetime(false)).thenReturn(86_400_000L);
-        when(refreshTokenService.rotate(user.getId(), "old-refresh", 86_400_000L))
+        when(jwtService.generateRefreshToken("learner@example.com", false))
                 .thenReturn("new-refresh");
         when(jwtService.generateAccessToken(eq("learner@example.com"), any())).thenReturn("access");
 
@@ -203,6 +203,12 @@ class AuthServiceTest {
 
         assertThat(response.getRefreshToken()).isEqualTo("new-refresh");
         assertThat(response.isRememberMe()).isFalse();
+        verify(refreshTokenService).rotate(
+                user.getId(),
+                "old-refresh",
+                "new-refresh",
+                86_400_000L
+        );
     }
 
     @Test
@@ -224,7 +230,7 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.refresh("old-refresh"))
                 .isInstanceOf(InvalidCredentialsException.class);
 
-        verify(refreshTokenService, never()).rotate(any(), any(), anyLong());
+        verify(refreshTokenService, never()).rotate(any(), any(), any(), anyLong());
     }
 
     @Test
@@ -237,6 +243,6 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.refresh("expired-refresh"))
                 .isInstanceOf(InvalidCredentialsException.class);
 
-        verify(refreshTokenService, never()).rotate(any(), any(), anyLong());
+        verify(refreshTokenService, never()).rotate(any(), any(), any(), anyLong());
     }
 }

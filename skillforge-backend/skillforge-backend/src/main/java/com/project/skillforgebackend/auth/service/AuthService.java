@@ -100,7 +100,15 @@ public class AuthService {
         return buildAuthResponse(user, request.isRememberMe(), refreshToken);
     }
 
-    @Transactional
+    /**
+     * Refreshes the session: validates the presented REFRESH token, rotates
+     * it (revokes the old, registers a successor) and issues a fresh access
+     * token. The transaction must not roll back on
+     * {@link InvalidCredentialsException}: reuse detection revokes the whole
+     * token family as a security response, and that revocation must commit
+     * even though the request returns 401.
+     */
+    @Transactional(noRollbackFor = InvalidCredentialsException.class)
     public AuthResponse refresh(String refreshToken) {
         // Only REFRESH tokens may be used at the refresh endpoint
         if (!jwtService.isRefreshToken(refreshToken)) {
@@ -126,11 +134,13 @@ public class AuthService {
                 jwtService.extractClaim(refreshToken, JwtService.CLAIM_REMEMBER_ME)
         );
 
-        String newRefreshToken;
+        String newRefreshToken = jwtService.generateRefreshToken(email, rememberMe);
+
         try {
-            newRefreshToken = refreshTokenService.rotate(
+            refreshTokenService.rotate(
                     user.getId(),
                     refreshToken,
+                    newRefreshToken,
                     jwtService.getRefreshTokenLifetime(rememberMe)
             );
         } catch (InvalidCredentialsException ex) {

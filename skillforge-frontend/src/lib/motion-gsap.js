@@ -141,7 +141,7 @@ export function useScrollShow(ref, { y = 24, stagger = 0.08, duration = SECONDS.
     });
 
     return () => {
-      tl.kill();
+      tl.revert();
     };
   }, [ref, reduced, y, stagger, duration]);
 }
@@ -183,7 +183,7 @@ export function useReveal(
     });
 
     return () => {
-      tween.kill();
+      tween.revert();
     };
   }, [ref, reduced, y, stagger, duration, ease, delay]);
 }
@@ -220,7 +220,7 @@ export function useStaggerIn(
     });
 
     return () => {
-      timeline.kill();
+      timeline.revert();
     };
   }, [ref, reduced, target, y, stagger, duration]);
 }
@@ -252,7 +252,7 @@ export function useMountAnimation(
     const tween = gsap.from(ref.current, { ...from, onComplete });
 
     return () => {
-      tween.kill();
+      tween.revert();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reduced, y, scale, scaleX, opacity, blur, height, duration, ease, delay, ...deps]);
@@ -398,7 +398,7 @@ export function useSplitReveal(ref, { stagger = 0.08, duration = 0.9 } = {}) {
     tl.play();
 
     return () => {
-      tl.kill();
+      tl.revert();
       if (state.current.split) state.current.split.revert();
       state.current = { split: null, tl: null };
     };

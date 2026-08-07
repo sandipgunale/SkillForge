@@ -136,7 +136,7 @@ export default function AICenter({ analytics }) {
       duration: 0.5,
       clearProps: "opacity,transform",
     });
-    return () => tween.kill();
+    return () => tween.revert();
   }, [reduced]);
 
   const submit = (prompt = input) => {

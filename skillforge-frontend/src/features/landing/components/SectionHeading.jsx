@@ -19,26 +19,36 @@ export default function SectionHeading({
   useMotionScope(
     ({ gsap, select }) => {
       if (reduced) return;
-      gsap.from(select("[data-heading='eyebrow']"), {
+      const reveal = (targets, vars) => {
+        if (targets.length) {
+          gsap.from(targets, vars);
+        }
+      };
+      const trigger = (start) => ({
+        trigger: rootRef.current,
+        start,
+        once: true,
+      });
+      reveal(select("[data-heading='eyebrow']"), {
         opacity: 0,
         y: 16,
         duration: 0.55,
         ease: "power2.out",
-        scrollTrigger: { trigger: rootRef.current, start: "top 82%", once: true },
+        scrollTrigger: trigger("top 82%"),
       });
-      gsap.from(select("[data-heading='title']"), {
+      reveal(select("[data-heading='title']"), {
         opacity: 0,
         y: 24,
         duration: 0.65,
         ease: "power2.out",
-        scrollTrigger: { trigger: rootRef.current, start: "top 80%", once: true },
+        scrollTrigger: trigger("top 80%"),
       });
-      gsap.from(select("[data-heading='description']"), {
+      reveal(select("[data-heading='description']"), {
         opacity: 0,
         y: 20,
         duration: 0.6,
         ease: "power2.out",
-        scrollTrigger: { trigger: rootRef.current, start: "top 78%", once: true },
+        scrollTrigger: trigger("top 78%"),
       });
     },
     [reduced],

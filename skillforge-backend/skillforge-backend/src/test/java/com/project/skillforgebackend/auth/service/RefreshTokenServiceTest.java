@@ -63,15 +63,14 @@ class RefreshTokenServiceTest {
     }
 
     @Test
-    void rotate_revokesOldTokenAndIssuesSuccessor() {
+    void rotate_revokesOldTokenAndRegistersSuccessor() {
         RefreshToken old = liveToken(RefreshTokenService.hash("old-raw"),
                 Instant.now().plusSeconds(3600));
         when(refreshTokenRepository.findByTokenHash(RefreshTokenService.hash("old-raw")))
                 .thenReturn(Optional.of(old));
 
-        String successor = refreshTokenService.rotate(USER_ID, "old-raw", 86_400_000L);
+        refreshTokenService.rotate(USER_ID, "old-raw", "new-raw", 86_400_000L);
 
-        assertThat(successor).isNotEqualTo("old-raw");
         assertThat(old.getRevokedAt()).isNotNull();
 
         ArgumentCaptor<RefreshToken> savedCaptor = ArgumentCaptor.forClass(RefreshToken.class);
@@ -79,7 +78,7 @@ class RefreshTokenServiceTest {
 
         RefreshToken successorEntity = savedCaptor.getAllValues().get(1);
         assertThat(successorEntity.getTokenHash())
-                .isEqualTo(RefreshTokenService.hash(successor));
+                .isEqualTo(RefreshTokenService.hash("new-raw"));
         assertThat(successorEntity.getReplacedId()).isEqualTo(old.getId());
     }
 
@@ -87,7 +86,7 @@ class RefreshTokenServiceTest {
     void rotate_unknownTokenThrows() {
         when(refreshTokenRepository.findByTokenHash(any())).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> refreshTokenService.rotate(USER_ID, "unknown", 1000L))
+        assertThatThrownBy(() -> refreshTokenService.rotate(USER_ID, "unknown", "successor", 1000L))
                 .isInstanceOf(InvalidCredentialsException.class);
 
         verify(refreshTokenRepository, never()).save(any());
@@ -100,7 +99,7 @@ class RefreshTokenServiceTest {
         when(refreshTokenRepository.findByTokenHash(RefreshTokenService.hash("expired-raw")))
                 .thenReturn(Optional.of(expired));
 
-        assertThatThrownBy(() -> refreshTokenService.rotate(USER_ID, "expired-raw", 1000L))
+        assertThatThrownBy(() -> refreshTokenService.rotate(USER_ID, "expired-raw", "successor", 1000L))
                 .isInstanceOf(InvalidCredentialsException.class);
 
         assertThat(expired.getRevokedAt()).isNotNull();
@@ -121,7 +120,7 @@ class RefreshTokenServiceTest {
         when(refreshTokenRepository.findByUserIdAndRevokedAtIsNull(USER_ID))
                 .thenReturn(List.of(stillLive));
 
-        assertThatThrownBy(() -> refreshTokenService.rotate(USER_ID, "stolen-raw", 1000L))
+        assertThatThrownBy(() -> refreshTokenService.rotate(USER_ID, "stolen-raw", "successor", 1000L))
                 .isInstanceOf(InvalidCredentialsException.class);
 
         // The live sibling must have been revoked too, and the reuse must be

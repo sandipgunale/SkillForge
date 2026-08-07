@@ -95,7 +95,7 @@ function DashboardMock() {
           </div>
           <div className="mt-4 flex h-24 items-end gap-2">
             {BAR_HEIGHTS.map((h, i) => (
-              <div key={BAR_DAYS[i]} className="flex flex-1 flex-col items-center gap-1.5">
+              <div key={`${i}-${BAR_DAYS[i]}`} className="flex flex-1 flex-col items-center gap-1.5">
                 <div
                   className={`w-full rounded-md ${
                     i === 5

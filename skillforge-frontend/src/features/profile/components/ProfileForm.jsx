@@ -53,7 +53,7 @@ export default function ProfileForm() {
     updateMutation.mutate({
       fullName: data.fullName,
       avatarUrl: data.avatarUrl,
-      skillLevel: data.skillLevel,
+      skillLevel: data.skillLevel || null,
     });
   };
 

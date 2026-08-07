@@ -124,7 +124,7 @@ const weeks = useMemo(
       ease: GSAP_EASE.outExpo,
       clearProps: "opacity,transform",
     });
-    return () => tween.kill();
+    return () => tween.revert();
   }, [messages.length, reduced]);
 
   const answer = (prompt, reply) => {

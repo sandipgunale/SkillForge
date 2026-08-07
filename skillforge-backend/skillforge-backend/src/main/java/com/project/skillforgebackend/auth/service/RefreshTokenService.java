@@ -13,10 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Base64;
 import java.util.HexFormat;
 import java.util.UUID;
 
@@ -33,9 +31,6 @@ import java.util.UUID;
 @Service
 @Slf4j
 public class RefreshTokenService {
-
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
-    private static final int TOKEN_BYTES = 32;
 
     private final RefreshTokenRepository refreshTokenRepository;
     private final ApplicationEventPublisher eventPublisher;
@@ -62,15 +57,22 @@ public class RefreshTokenService {
 
     /**
      * Rotates the presented token: validates it against the store, revokes it
-     * and returns a fresh raw token.
+     * and registers the caller-provided successor token.
+     *
+     * <p>Runs in a transaction that does <em>not</em> roll back on
+     * {@link InvalidCredentialsException}: the family revocation performed
+     * for reuse detection must survive the 401 response (the request fails,
+     * but the security response — revoking the whole token family — must
+     * commit). The caller ({@link AuthService}) declares the same rule so
+     * the joined transaction stays committable.
      *
      * @throws InvalidCredentialsException when the token is unknown, expired
      *                                     or already rotated. An already
      *                                     rotated token additionally revokes
      *                                     the whole family (reuse detection).
      */
-    @Transactional
-    public String rotate(UUID userId, String rawToken, long ttlMillis) {
+    @Transactional(noRollbackFor = InvalidCredentialsException.class)
+    public void rotate(UUID userId, String rawToken, String rawSuccessor, long ttlMillis) {
         RefreshToken entity = refreshTokenRepository.findByTokenHash(hash(rawToken))
                 .orElseThrow(InvalidCredentialsException::new);
 
@@ -88,7 +90,6 @@ public class RefreshTokenService {
         entity.setRevokedAt(Instant.now());
         refreshTokenRepository.save(entity);
 
-        String rawSuccessor = newRawToken();
         RefreshToken successor = RefreshToken.builder()
                 .userId(userId)
                 .tokenHash(hash(rawSuccessor))
@@ -96,8 +97,6 @@ public class RefreshTokenService {
                 .replacedId(entity.getId())
                 .build();
         refreshTokenRepository.save(successor);
-
-        return rawSuccessor;
     }
 
     /**
@@ -158,12 +157,6 @@ public class RefreshTokenService {
         if (deleted > 0) {
             log.info("Purged {} expired refresh-token rows", deleted);
         }
-    }
-
-    private String newRawToken() {
-        byte[] bytes = new byte[TOKEN_BYTES];
-        SECURE_RANDOM.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     static String hash(String rawToken) {

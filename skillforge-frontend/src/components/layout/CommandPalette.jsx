@@ -86,7 +86,7 @@ export default function CommandPalette() {
       duration: 0.22,
       ease: GSAP_EASE.outExpo,
     });
-    return () => tween.kill();
+    return () => tween.revert();
   }, [open, reduced]);
 
   useEffect(() => {
