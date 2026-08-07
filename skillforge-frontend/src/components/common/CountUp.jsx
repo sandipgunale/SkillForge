@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useInView, useReducedMotion } from "framer-motion";
+import { useReducedMotion } from "@/lib/motion-gsap";
 
 /**
  * CountUp — animates a numeric value from 0 to `to` when scrolled into view.
@@ -14,27 +14,40 @@ export default function CountUp({
   className,
 }) {
   const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: "-40px" });
   const reducedMotion = useReducedMotion();
   const [value, setValue] = useState(0);
 
   useEffect(() => {
-    if (!inView) return;
+    if (!ref.current) return undefined;
 
     let frameId;
-    const start = performance.now();
     const durationMs = reducedMotion ? 0 : duration * 1000;
 
-    const tick = (now) => {
-      const progress = Math.min((now - start) / durationMs, 1);
-      const eased = reducedMotion ? 1 : 1 - Math.pow(1 - progress, 3);
-      setValue(to * eased);
-      if (progress < 1) frameId = requestAnimationFrame(tick);
-    };
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0].isIntersecting) return;
+        observer.disconnect();
 
-    frameId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frameId);
-  }, [inView, to, duration, reducedMotion]);
+        const start = performance.now();
+        const tick = (now) => {
+          const progress = Math.min((now - start) / durationMs, 1);
+          const eased = reducedMotion ? 1 : 1 - Math.pow(1 - progress, 3);
+          setValue(to * eased);
+          if (progress < 1) frameId = requestAnimationFrame(tick);
+        };
+
+        frameId = requestAnimationFrame(tick);
+      },
+      { once: true, rootMargin: "-40px" },
+    );
+
+    observer.observe(ref.current);
+
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frameId);
+    };
+  }, [to, duration, reducedMotion]);
 
   const formatted = value.toLocaleString("en-US", {
     minimumFractionDigits: decimals,

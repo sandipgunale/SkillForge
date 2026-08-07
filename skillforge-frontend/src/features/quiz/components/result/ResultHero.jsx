@@ -1,8 +1,12 @@
-import { motion } from "framer-motion";
+import { useRef } from "react";
 import { Award, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
 
 import CountUp from "@/components/common/CountUp";
-import { EASE_OUT_EXPO } from "@/lib/motion";
+import {
+  GSAP_EASE,
+  useMountAnimation,
+  useReducedMotion,
+} from "@/lib/motion-gsap";
 
 const RING_RADIUS = 72;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
@@ -52,11 +56,47 @@ function getHeadline(percentage) {
 }
 
 export default function ResultHero({ percentage }) {
+  const reduced = useReducedMotion();
   const tone = scoreTone(percentage);
   const { stroke, glow, chip } = TONE_VAR[tone];
   const { title, message } = getHeadline(percentage);
 
   const Icon = percentage >= 60 ? TrendingUp : TrendingDown;
+
+  const ringRef = useRef(null);
+  const ringStrokeRef = useRef(null);
+  const scoreRef = useRef(null);
+  const copyRef = useRef(null);
+  const chipRef = useRef(null);
+
+  useMountAnimation(ringRef, [percentage], { scale: 0.82, duration: 0.6, ease: GSAP_EASE.outExpo });
+
+  useMountAnimation(
+    ringStrokeRef,
+    [percentage],
+    {
+      duration: 1.6,
+      delay: 0.2,
+      ease: GSAP_EASE.outExpo,
+      props: { strokeDashoffset: RING_CIRCUMFERENCE },
+    },
+  );
+
+  useMountAnimation(scoreRef, [percentage], {
+    y: 10,
+    delay: 0.55,
+    duration: 0.5,
+    ease: GSAP_EASE.outExpo,
+  });
+
+  useMountAnimation(copyRef, [percentage], { y: 18, delay: 0.35, duration: 0.6, ease: GSAP_EASE.outExpo });
+
+  useMountAnimation(chipRef, [percentage], {
+    scale: 0.8,
+    delay: 0.1,
+    duration: 0.55,
+    ease: GSAP_EASE.spring,
+  });
 
   return (
     <div className="relative overflow-hidden rounded-3xl border bg-card elevate">
@@ -71,10 +111,8 @@ export default function ResultHero({ percentage }) {
 
       <div className="relative flex flex-col items-center gap-8 px-6 py-12 text-center sm:px-10 lg:flex-row lg:justify-center lg:gap-16 lg:py-16">
         {/* Score ring */}
-        <motion.div
-          initial={{ scale: 0.82, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.6, ease: EASE_OUT_EXPO }}
+        <div
+          ref={ringRef}
           className="relative shrink-0"
           aria-label={`Score: ${percentage.toFixed(0)} percent`}
         >
@@ -92,7 +130,8 @@ export default function ResultHero({ percentage }) {
               strokeWidth="10"
               className="stroke-foreground/10"
             />
-            <motion.circle
+            <circle
+              ref={ringStrokeRef}
               cx="88"
               cy="88"
               r={RING_RADIUS}
@@ -101,41 +140,28 @@ export default function ResultHero({ percentage }) {
               strokeLinecap="round"
               stroke={stroke}
               strokeDasharray={RING_CIRCUMFERENCE}
-              initial={{ strokeDashoffset: RING_CIRCUMFERENCE }}
-              animate={{ strokeDashoffset: RING_CIRCUMFERENCE * (1 - percentage / 100) }}
-              transition={{ duration: 1.6, ease: EASE_OUT_EXPO, delay: 0.2 }}
+              strokeDashoffset={reduced ? 0 : RING_CIRCUMFERENCE * (1 - percentage / 100)}
               transform="rotate(-90 88 88)"
               style={{ filter: `drop-shadow(0 0 10px ${glow})` }}
             />
           </svg>
 
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.55, ease: EASE_OUT_EXPO }}
-            >
+            <div ref={scoreRef}>
               <CountUp
                 to={percentage}
                 decimals={percentage % 1 !== 0 ? 1 : 0}
                 suffix="%"
                 className="display text-6xl font-extrabold sm:text-7xl"
               />
-            </motion.div>
+            </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Copy */}
-        <motion.div
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.35, ease: EASE_OUT_EXPO }}
-          className="max-w-md"
-        >
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: "spring", stiffness: 300, damping: 16, delay: 0.1 }}
+        <div ref={copyRef} className="max-w-md">
+          <div
+            ref={chipRef}
             className="mx-auto mb-5 flex size-14 items-center justify-center rounded-2xl shadow-lg lg:mx-0"
             style={{ background: stroke, color: "var(--background)" }}
           >
@@ -144,7 +170,7 @@ export default function ResultHero({ percentage }) {
             ) : (
               <Icon className="size-7" />
             )}
-          </motion.div>
+          </div>
 
           <h1 className="display text-3xl font-bold sm:text-4xl">
             {percentage === 100 ? (
@@ -168,7 +194,7 @@ export default function ResultHero({ percentage }) {
             <span className="size-1.5 rounded-full bg-current" />
             {percentage >= 60 ? "Streak preserved" : "Setback is data"}
           </div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

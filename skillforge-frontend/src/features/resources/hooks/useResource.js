@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { resourcesService } from "../api/resourcesService";
+import { resourceApi } from "../api/resource.api";
 
 import { QUERY_KEYS } from "@/constants/queryKeys";
 
@@ -8,7 +8,7 @@ export function useResource(id) {
   return useQuery({
     queryKey: QUERY_KEYS.RESOURCE(id),
 
-    queryFn: () => resourcesService.getResource(id),
+    queryFn: () => resourceApi.getResource(id),
 
     enabled: !!id,
 

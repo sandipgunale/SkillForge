@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import ErrorState from "@/components/common/ErrorState";
 import {
   Select,
   SelectContent,
@@ -22,7 +23,7 @@ import {
 } from "@/components/ui/select";
 
 export default function ProfileForm() {
-  const { data: user, isLoading } = useProfile();
+  const { data: user, isLoading, isError, error, refetch } = useProfile();
 
   const updateMutation = useUpdateProfile();
 
@@ -76,17 +77,24 @@ export default function ProfileForm() {
     );
   }
 
+  if (isError) {
+    return (
+      <Card className="shadow-lg">
+        <CardContent className="p-6">
+          <ErrorState
+            title="Couldn't load your profile"
+            description="Your profile data is safe — the request just didn't go through."
+            onRetry={() => refetch()}
+            diagnostic={String(error?.message ?? "network")}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="shadow-lg">
       <CardContent className="space-y-6 p-6">
-        <div>
-          <h2 className="text-2xl font-bold">My Profile</h2>
-
-          <p className="text-muted-foreground">
-            Manage your account information.
-          </p>
-        </div>
-
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div className="space-y-2">
             <Label>Full Name</Label>

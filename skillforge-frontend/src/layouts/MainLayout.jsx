@@ -1,14 +1,24 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useOutlet } from "react-router-dom";
 
-import Navbar from "@/components/layout/Navbar";
-import Sidebar from "@/components/layout/Sidebar";
+import MissionContent from "@/components/layout/MissionRail";
+import MissionTopBar from "@/components/layout/MissionTopBar";
+import CommandPalette from "@/components/layout/CommandPalette";
 
-import { pageTransition } from "@/lib/motion";
+import { cn } from "@/lib/utils";
+import { usePageEnter } from "@/lib/dashboard-motion";
 
 export default function MainLayout() {
   const location = useLocation();
   const outlet = useOutlet();
+  const mainRef = useRef(null);
+  const [collapsed, setCollapsed] = useState(false);
+
+  usePageEnter(mainRef, { stagger: 0.05 });
+
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -16,27 +26,32 @@ export default function MainLayout() {
         Skip to content
       </a>
 
+      <CommandPalette />
+
       <div className="flex">
-        <Sidebar />
+        {/* Desktop rail */}
+        <aside
+          aria-label="Sidebar"
+          className={cn(
+            "sticky top-0 hidden h-screen shrink-0 flex-col border-r border-border/60 transition-[width] duration-300 ease-out lg:flex",
+            collapsed ? "w-[4.5rem]" : "w-64",
+          )}
+        >
+          <MissionContent
+            collapsed={collapsed}
+            onToggleCollapse={() => setCollapsed((c) => !c)}
+          />
+        </aside>
 
         <div className="min-w-0 flex-1">
-          <Navbar />
+          <MissionTopBar />
 
           <main
             id="main-content"
-            className="mx-auto w-full max-w-screen-2xl px-4 py-6 sm:px-8 sm:py-8"
+            ref={mainRef}
+            className="mx-auto w-full max-w-screen-2xl px-3 pb-12 sm:px-5"
           >
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={location.pathname}
-                initial={pageTransition.initial}
-                animate={pageTransition.animate}
-                exit={pageTransition.exit}
-                transition={pageTransition.transition}
-              >
-                {outlet}
-              </motion.div>
-            </AnimatePresence>
+            <div data-enter>{outlet}</div>
           </main>
         </div>
       </div>

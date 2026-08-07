@@ -8,9 +8,9 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 
-import { SidebarContent } from "./Sidebar";
+import MissionContent from "./MissionRail";
 
-export default function MobileNav() {
+export default function MissionSheet() {
   const [open, setOpen] = useState(false);
 
   return (
@@ -23,8 +23,15 @@ export default function MobileNav() {
       </SheetTrigger>
 
       <SheetContent side="left" className="w-72 p-0 sm:max-w-sm">
-        <SheetTitle className="sr-only">Navigation</SheetTitle>
-        <SidebarContent onNavigate={() => setOpen(false)} />
+        <div
+          className="h-full"
+          onClick={(event) => {
+            if (event.target.closest?.("a[href]")) setOpen(false);
+          }}
+        >
+          <SheetTitle className="sr-only">Navigation</SheetTitle>
+          <MissionContent className="border-r bg-background/70 backdrop-blur" />
+        </div>
       </SheetContent>
     </Sheet>
   );

@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Star, Loader2 } from "lucide-react";
+import { Star } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import Spinner from "@/components/common/Spinner";
 
 import { useUserRating } from "../hooks/useUserRating";
 import RatingDialog from "./RatingDialog";
@@ -23,9 +24,10 @@ export default function RatingButton({ resourceId, size = "icon" }) {
         size={size}
         disabled={loading}
         onClick={() => setOpen(true)}
+        aria-label={rated ? "Update your rating" : "Rate this resource"}
       >
         {loading ? (
-          <Loader2 className="h-5 w-5 animate-spin" />
+          <Spinner className="size-5" />
         ) : (
           <Star
             className={

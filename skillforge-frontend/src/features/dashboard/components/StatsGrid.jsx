@@ -5,11 +5,11 @@ import {
   BookOpen,
   TrendingUp,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { useRef } from "react";
 
 import CountUp from "@/components/common/CountUp";
 import { Card, CardContent } from "@/components/ui/card";
-import { staggerList, staggerListItem } from "@/lib/motion";
+import { useMotionScope, useReducedMotion } from "@/lib/motion-gsap";
 
 const stats = [
   {
@@ -68,18 +68,33 @@ const stats = [
 ];
 
 export default function StatsGrid({ analytics }) {
+  const rootRef = useRef(null);
+  const reduced = useReducedMotion();
+
+  useMotionScope(
+    ({ gsap, select }) => {
+      if (reduced) return;
+      gsap.from(select("[data-stat]"), {
+        opacity: 0,
+        y: 18,
+        duration: 0.5,
+        stagger: 0.08,
+        delay: 0.15,
+        ease: "power2.out",
+        clearProps: "opacity,transform",
+      });
+    },
+    [reduced],
+    rootRef,
+  );
+
   return (
-    <motion.section
-      variants={staggerList(0.08)}
-      initial="hidden"
-      animate="visible"
-      className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4"
-    >
+    <section ref={rootRef} className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
       {stats.map((item) => {
         const Icon = item.icon;
 
         return (
-          <motion.div key={item.title} variants={staggerListItem}>
+          <div key={item.title} data-stat>
             <Card className="group overflow-hidden border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
               <CardContent className="relative p-6">
                 <div className="absolute right-4 top-4 opacity-10 transition-all duration-300 group-hover:scale-125">
@@ -109,9 +124,9 @@ export default function StatsGrid({ analytics }) {
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
         );
       })}
-    </motion.section>
+    </section>
   );
 }

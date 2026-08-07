@@ -3,7 +3,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   getDifficultyVariant,
   getDifficultyLabel,
-} from "../utils/topicDifficulty";
+} from "@/lib/difficulty";
 
 import {
   Clock,
@@ -11,9 +11,6 @@ import {
   Target,
   CheckCircle2,
   Play,
-  FileText,
-  GraduationCap,
-  BookOpen,
   Book,
   Lock,
   Circle,
@@ -24,13 +21,7 @@ import WeekQuizAction from "./WeekQuizAction";
 
 import { useUpdateWeekCompletion } from "../hooks/useUpdateWeekCompletion";
 
-const RESOURCE_ICONS = {
-  VIDEO: Play,
-  ARTICLE: FileText,
-  COURSE: GraduationCap,
-  DOCS: BookOpen,
-  BOOK: Book,
-};
+import { RESOURCE_ICONS } from "@/lib/resourceIcons";
 
 function getStatusMeta({ week, locked, current }) {
   if (week.completed) {

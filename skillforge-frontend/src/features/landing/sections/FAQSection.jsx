@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { useRef } from "react";
 
 import SectionHeading from "../components/SectionHeading";
 import {
@@ -7,7 +7,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { fadeUp, staggerContainer } from "@/lib/motion";
+import { useMotionScope, useReducedMotion } from "@/lib/motion-gsap";
 
 const FAQS = [
   {
@@ -43,8 +43,27 @@ const FAQS = [
 ];
 
 export default function FAQSection() {
+  const rootRef = useRef(null);
+  const reduced = useReducedMotion();
+
+  useMotionScope(
+    ({ gsap, select }) => {
+      if (reduced) return;
+      gsap.from(select("[data-faq='item']"), {
+        opacity: 0,
+        y: 22,
+        duration: 0.55,
+        stagger: 0.08,
+        ease: "power2.out",
+        scrollTrigger: { trigger: rootRef.current, start: "top 76%", once: true },
+      });
+    },
+    [reduced],
+    rootRef,
+  );
+
   return (
-    <section id="faq" className="relative py-24 lg:py-32">
+    <section id="faq" ref={rootRef} className="relative py-24 lg:py-32">
       <div className="mx-auto max-w-screen-2xl px-6 lg:px-10">
         <div className="grid gap-12 lg:grid-cols-[1fr_1.4fr]">
           <SectionHeading
@@ -54,15 +73,10 @@ export default function FAQSection() {
             description="Everything you might want to know before you forge your first skill."
           />
 
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-80px" }}
-          >
+          <div>
             <Accordion className="w-full rounded-3xl border bg-card px-6">
               {FAQS.map(({ question, answer }) => (
-                <motion.div key={question} variants={fadeUp}>
+                <div key={question} data-faq="item">
                   <AccordionItem value={question}>
                     <AccordionTrigger className="text-base">
                       {question}
@@ -71,10 +85,10 @@ export default function FAQSection() {
                       {answer}
                     </AccordionContent>
                   </AccordionItem>
-                </motion.div>
+                </div>
               ))}
             </Accordion>
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>

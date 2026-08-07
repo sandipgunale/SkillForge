@@ -1,6 +1,7 @@
-import { Star, Loader2 } from "lucide-react";
+import { Star } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import Spinner from "@/components/common/Spinner";
 
 import { useUserRating } from "../hooks/useUserRating";
 import { useRateResource } from "../hooks/useRateResource";
@@ -37,7 +38,7 @@ export default function RatingStars({ resourceId, size = 24 }) {
   return (
     <div className="flex items-center gap-1">
       {loading ? (
-        <Loader2 className="h-5 w-5 animate-spin" />
+        <Spinner className="size-5" />
       ) : (
         <>
           <div className="flex items-center gap-1">

@@ -7,13 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ROUTES } from "@/constants/routes";
 
 import { useGamification } from "../hooks/useGamification";
-
-const LEVEL_LABELS = {
-  BEGINNER: "Beginner",
-  INTERMEDIATE: "Intermediate",
-  ADVANCED: "Advanced",
-  LEGEND: "Legend",
-};
+import { levelLabel } from "../constants/levels";
 
 export default function GamificationCard() {
   const { data, isLoading } = useGamification();
@@ -32,7 +26,7 @@ export default function GamificationCard() {
           Achievements
           {badges.length > 0 && (
             <Badge variant="secondary">
-              {LEVEL_LABELS[data.level] ?? data.level}
+              {levelLabel(data.level)}
             </Badge>
           )}
         </CardTitle>
@@ -66,7 +60,7 @@ export default function GamificationCard() {
                     {badge.description}
                   </p>
 
-                  <p className="mt-1 text-[11px] text-muted-foreground">
+                  <p className="mt-1 text-2xs text-muted-foreground">
                     {new Date(badge.awardedAt).toLocaleDateString()}
                   </p>
                 </div>

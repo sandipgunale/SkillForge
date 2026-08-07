@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, FileText, Search, X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 
 import { useQuery } from "@tanstack/react-query";
 
@@ -9,9 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import { resourcesService } from "@/features/resources/api/resourcesService";
+import { resourceApi } from "@/features/resources/api/resource.api";
 import { ROUTES } from "@/constants/routes";
 import { useDebounce } from "@/hooks/useDebounce";
+import { usePopover } from "@/lib/motion-gsap";
 
 const MIN_QUERY_LENGTH = 2;
 
@@ -19,13 +19,16 @@ export default function GlobalSearch() {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const panelRef = useRef(null);
+
+  usePopover(panelRef, [open, query]);
 
   const debouncedQuery = useDebounce(query.trim(), 300);
 
   const { data, isFetching, isError } = useQuery({
     queryKey: ["global-search", debouncedQuery],
     queryFn: () =>
-      resourcesService.getResources({ search: debouncedQuery, page: 0, size: 6 }),
+      resourceApi.getResources({ search: debouncedQuery, page: 0, size: 6 }),
     enabled: debouncedQuery.length >= MIN_QUERY_LENGTH,
     staleTime: 1000 * 30,
     gcTime: 1000 * 60 * 5,
@@ -90,17 +93,13 @@ export default function GlobalSearch() {
         </button>
       )}
 
-      <AnimatePresence>
-        {showPanel && (
-          <motion.div
-            id="global-search-results"
-            role="listbox"
-            initial={{ opacity: 0, y: -8, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.98 }}
-            transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute inset-x-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border bg-popover p-1.5 elevate-float"
-          >
+      {showPanel && (
+        <div
+          ref={panelRef}
+          id="global-search-results"
+          role="listbox"
+          className="absolute inset-x-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border bg-popover p-1.5 elevate-float"
+        >
           {isFetching ? (
             <div className="space-y-2 p-2">
               {Array.from({ length: 3 }).map((_, index) => (
@@ -171,9 +170,8 @@ export default function GlobalSearch() {
               </div>
             </>
           )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
     </div>
   );
 }

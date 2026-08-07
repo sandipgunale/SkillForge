@@ -22,6 +22,10 @@ export const ROUTES = {
 
   LEARNING_PATH: "/learning-paths",
 
+  WORKSPACE: "/workspace",
+  WORKSPACE_DETAIL: "/workspace/:learningPathId",
+  workspaceDetail: (id) => `/workspace/${id}`,
+
   LEARNING_PATH_DETAIL:
     "/learning-paths/:learningPathId",
 

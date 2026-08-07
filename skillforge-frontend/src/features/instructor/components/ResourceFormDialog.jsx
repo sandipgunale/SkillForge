@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 
-import { resourcesService } from "@/features/resources/api/resourcesService";
+import { resourceApi } from "@/features/resources/api/resource.api";
 import { useTopicsList, useTagsList } from "@/features/admin/hooks/useCatalog";
 import { QUERY_KEYS } from "@/constants/queryKeys";
 
@@ -101,8 +101,8 @@ export default function ResourceFormDialog({ resource = null, trigger }) {
   const mutation = useMutation({
     mutationFn: (payload) =>
       resource
-        ? resourcesService.updateResource(resource.id, payload)
-        : resourcesService.createResource(payload),
+        ? resourceApi.updateResource(resource.id, payload)
+        : resourceApi.createResource(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.RESOURCES });
       queryClient.invalidateQueries({ queryKey: ["admin", "stats"] });

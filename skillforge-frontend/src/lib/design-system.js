@@ -140,24 +140,30 @@ export const RADIUS_CLASS = {
 
 /* Typography */
 export const TYPOGRAPHY = {
-  /* Editorial hero — very bold, tight negative tracking */
-  display: "display font-sans text-3xl font-black tracking-tight sm:text-4xl",
+  /* Editorial hero — very bold, tight negative tracking, fluid clamp */
+  hero: "font-sans text-hero font-black tracking-hero text-balance",
+  /* Editorial display — the biggest page-level statement */
+  display: "font-sans text-display font-black tracking-display text-balance",
   /* Section title */
-  title: "font-sans text-3xl font-bold tracking-tight",
+  title: "font-sans text-title font-bold tracking-display",
   /* Card title */
-  cardTitle: "font-sans text-xl font-bold tracking-tight",
+  cardTitle: "font-sans text-subtitle font-bold tracking-tight",
   /* Body copy */
-  body: "text-sm font-medium",
+  body: "text-body font-medium",
   /* Body copy, secondary */
   subtitle: "text-sm font-medium text-muted-foreground",
   /* Compact uppercase field label */
-  label: "text-[11px] font-semibold uppercase tracking-[0.12em]",
+  label: "text-3xs font-semibold uppercase tracking-[0.12em]",
+  /* Overline — canonical label above titles (replaces ad-hoc 13px) */
+  overline: "text-overline font-semibold uppercase tracking-[0.18em] text-muted-foreground",
   /* Tiny helper text (strength bar, caps-lock hint) — color applied by caller */
-  hint: "text-[11px] font-medium",
+  hint: "text-2xs font-medium",
   /* Form validation error */
   fieldError: "text-sm text-destructive",
   caption: "text-xs font-medium text-muted-foreground",
   link: "link-underline font-semibold text-primary transition-colors hover:text-ember",
+  /* Monospace code */
+  code: "font-mono text-overline leading-relaxed",
 };
 
 /* Surface colors — background utilities */
@@ -244,7 +250,7 @@ export const DURATION = {
   icon: 300,
 };
 
-/* Easing curves — framer-motion arrays; CSS mirrors them in --ease-* */
+/* Easing curves — cubic-bezier arrays; GSAP mirrors them in GSAP_EASE */
 export const EASE = {
   outExpo: [0.16, 1, 0.3, 1],
   inOutSoft: [0.65, 0, 0.35, 1],

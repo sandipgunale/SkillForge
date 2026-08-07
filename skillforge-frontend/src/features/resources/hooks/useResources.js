@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
-import { resourcesService } from "../api/resourcesService";
+import { resourceApi } from "../api/resource.api";
 
 import { QUERY_KEYS } from "@/constants/queryKeys";
 
@@ -26,7 +26,7 @@ export function useResources(filters = {}) {
     ],
 
     queryFn: () =>
-      resourcesService.getResources({
+      resourceApi.getResources({
         topicId,
         difficulty,
         type,

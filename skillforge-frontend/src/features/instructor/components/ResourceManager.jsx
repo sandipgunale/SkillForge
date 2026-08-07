@@ -23,7 +23,7 @@ import {
 import ErrorState from "@/components/common/ErrorState";
 
 import { useResources } from "@/features/resources/hooks/useResources";
-import { resourcesService } from "@/features/resources/api/resourcesService";
+import { resourceApi } from "@/features/resources/api/resource.api";
 import { QUERY_KEYS } from "@/constants/queryKeys";
 
 import ResourceFormDialog from "./ResourceFormDialog";
@@ -43,7 +43,7 @@ export default function ResourceManager() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (resourceId) => resourcesService.deleteResource(resourceId),
+    mutationFn: (resourceId) => resourceApi.deleteResource(resourceId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.RESOURCES });
       toast.success("Resource deleted");
@@ -53,9 +53,9 @@ export default function ResourceManager() {
     },
   });
 
-  const resources = data?.resources ?? [];
-
   const header = useMemo(() => {
+    const resources = data?.resources ?? [];
+
     if (isLoading && !data) {
       return <ResourceTableSkeleton />;
     }
@@ -115,7 +115,6 @@ export default function ResourceManager() {
     isLoading,
     isError,
     refetch,
-    resources,
     deleteMutation,
     page,
   ]);

@@ -58,6 +58,10 @@ const LearningPathDetailPage = lazy(
   () => import("@/features/learning-path/pages/LearningPathDetailPage"),
 );
 
+const WorkspacePage = lazy(
+  () => import("@/features/workspace/pages/WorkspacePage"),
+);
+
 const ProfilePage = lazy(() => import("@/features/profile/pages/ProfilePage"));
 
 const LoginPage = lazy(() => import("@/features/auth/pages/LoginPage"));
@@ -208,6 +212,16 @@ export const router = createBrowserRouter([
           {
             path: ROUTES.LEARNING_PATH,
             element: withSuspense(LearningPathPage),
+          },
+
+          {
+            path: ROUTES.WORKSPACE,
+            element: withSuspense(WorkspacePage),
+          },
+
+          {
+            path: ROUTES.WORKSPACE_DETAIL,
+            element: withSuspense(WorkspacePage),
           },
 
           {

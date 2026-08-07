@@ -1,13 +1,33 @@
-import { motion } from "framer-motion";
+import { useRef } from "react";
 
-import { EASE_OUT_EXPO } from "@/lib/motion";
+import { useMotionScope, useReducedMotion } from "@/lib/motion-gsap";
 
 export default function PageHeader({ eyebrow, title, description, action }) {
+  const rootRef = useRef(null);
+  const reduced = useReducedMotion();
+
+  useMotionScope(
+    ({ gsap }) => {
+      if (reduced) return;
+      gsap.fromTo(
+        rootRef.current,
+        { opacity: 0, y: 12 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.5,
+          ease: "power2.out",
+          clearProps: "transform",
+        },
+      );
+    },
+    [reduced],
+    rootRef,
+  );
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: EASE_OUT_EXPO }}
+    <div
+      ref={rootRef}
       className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between"
     >
       <div className="max-w-2xl">
@@ -17,7 +37,7 @@ export default function PageHeader({ eyebrow, title, description, action }) {
           </p>
         )}
 
-        <h1 className="display text-3xl font-bold tracking-tight sm:text-4xl">
+        <h1 className="display text-display font-bold tracking-display">
           {title}
         </h1>
 
@@ -29,6 +49,6 @@ export default function PageHeader({ eyebrow, title, description, action }) {
       {action && (
         <div className="shrink-0 md:pb-1">{action}</div>
       )}
-    </motion.div>
+    </div>
   );
 }

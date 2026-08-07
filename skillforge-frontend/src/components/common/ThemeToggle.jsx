@@ -1,9 +1,9 @@
+import { useRef } from "react";
 import { useTheme } from "next-themes";
-import { AnimatePresence, motion } from "framer-motion";
 import { Check, Monitor, Moon, Sun } from "lucide-react";
 
 import { DURATION } from "@/lib/design-system";
-import { EASE_SPRING } from "@/lib/motion";
+import { useMountAnimation } from "@/lib/motion-gsap";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +24,12 @@ const THEMES = [
 
 export default function ThemeToggle({ align = "end" }) {
   const { theme, setTheme } = useTheme();
+  const iconRef = useRef(null);
+
+  useMountAnimation(iconRef, [theme], {
+    scale: 0.5,
+    duration: DURATION.icon / 1000,
+  });
 
   const active = THEMES.find((t) => t.value === theme) ?? THEMES[2];
   const Icon = active.icon;
@@ -40,17 +46,9 @@ export default function ThemeToggle({ align = "end" }) {
           />
         }
       >
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.span
-            key={theme}
-            initial={{ rotate: -90, scale: 0.5, opacity: 0 }}
-            animate={{ rotate: 0, scale: 1, opacity: 1 }}
-            exit={{ rotate: 90, scale: 0.5, opacity: 0 }}
-            transition={{ duration: DURATION.icon / 1000, ease: EASE_SPRING }}
-          >
-            <Icon className="h-4 w-4" />
-          </motion.span>
-        </AnimatePresence>
+        <span key={theme} ref={iconRef} className="flex">
+          <Icon className="h-4 w-4" />
+        </span>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align={align} className="w-40">

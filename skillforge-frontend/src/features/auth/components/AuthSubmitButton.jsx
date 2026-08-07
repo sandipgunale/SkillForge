@@ -1,10 +1,11 @@
-import { useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Check, Loader2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowRight, Check } from "lucide-react";
+import { gsap } from "gsap";
 
 import { cn } from "@/lib/utils";
+import Spinner from "@/components/common/Spinner";
 import { COMPONENT, DURATION, SHADOW } from "@/lib/design-system";
-import { EASE_OUT_EXPO, SPRING_TACTILE } from "@/lib/motion";
+import { useMicroInteractions, useMountAnimation, useReducedMotion } from "@/lib/motion-gsap";
 
 /**
  * AuthSubmitButton — the forge's signature action.
@@ -20,6 +21,14 @@ export default function AuthSubmitButton({
 }) {
   const [ripples, setRipples] = useState([]);
   const idRef = useRef(0);
+  const buttonRef = useRef(null);
+  const spineRef = useRef(null);
+
+  useMicroInteractions(buttonRef, {
+    tap: status === "idle" ? { scale: 0.985 } : { scale: 1 },
+  });
+
+  useMountAnimation(spineRef, [status], { y: 6, duration: DURATION.base / 1000 });
 
   const handlePointerDown = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -35,12 +44,11 @@ export default function AuthSubmitButton({
   };
 
   return (
-    <motion.button
+    <button
+      ref={buttonRef}
       type="submit"
       onPointerDown={handlePointerDown}
       disabled={disabled || status !== "idle"}
-      whileTap={{ scale: status === "idle" ? 0.985 : 1 }}
-      transition={SPRING_TACTILE}
       aria-busy={status === "loading"}
       className={cn(
         "group relative flex w-full items-center justify-center overflow-hidden",
@@ -65,70 +73,69 @@ export default function AuthSubmitButton({
         style={{ backgroundSize: "200% 100%" }}
       />
 
-      {/* Ripple fragments */}
-      <AnimatePresence>
-        {ripples.map((rip) => (
-          <motion.span
-            key={rip.id}
-            initial={{ scale: 0, opacity: 0.35 }}
-            animate={{ scale: 1, opacity: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: DURATION.ripple / 1000, ease: "easeOut" }}
-            className="pointer-events-none absolute rounded-full bg-white/30"
-            style={{
-              left: rip.x - rip.size / 2,
-              top: rip.y - rip.size / 2,
-              width: rip.size,
-              height: rip.size,
-            }}
-          />
-        ))}
-      </AnimatePresence>
+      {/* Ripple fragments — GSAP bursts, no exit needed (tween fades to zero) */}
+      {ripples.map((rip) => (
+        <Ripple key={rip.id} rip={rip} />
+      ))}
 
-      <AnimatePresence mode="wait" initial={false}>
+      {/* Morphing spine */}
+      <div ref={spineRef} className="flex items-center justify-center">
         {status === "idle" && (
-          <motion.span
-            key="idle"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: DURATION.base / 1000, ease: EASE_OUT_EXPO }}
-            className="flex items-center gap-2"
-          >
+          <span className="flex items-center gap-2">
             {children}
             <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-          </motion.span>
+          </span>
         )}
 
         {status === "loading" && (
-          <motion.span
-            key="loading"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ duration: DURATION.base / 1000, ease: EASE_OUT_EXPO }}
-            className="flex items-center gap-2"
-          >
-            <Loader2 className="size-4 animate-spin" />
+          <span className="flex items-center gap-2">
+            <Spinner className="size-4" />
             {children}
-          </motion.span>
+          </span>
         )}
 
         {status === "success" && (
-          <motion.span
-            key="success"
-            initial={{ scale: 0.4, opacity: 0, rotate: -30 }}
-            animate={{ scale: 1, opacity: 1, rotate: 0 }}
-            transition={SPRING_TACTILE}
-            className="flex items-center gap-2"
-          >
+          <span className="flex items-center gap-2">
             <span className="flex size-7 items-center justify-center rounded-full bg-success text-white">
               <Check className="size-4" strokeWidth={3} />
             </span>
             <span>Success</span>
-          </motion.span>
+          </span>
         )}
-      </AnimatePresence>
-    </motion.button>
+      </div>
+    </button>
+  );
+}
+
+/** One ripple burst — grows and fades out on a GSAP tween, then unmounts. */
+function Ripple({ rip }) {
+  const reduced = useReducedMotion();
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || reduced) return undefined;
+
+    const tween = gsap.fromTo(
+      el,
+      { scale: 0, opacity: 0.35 },
+      { scale: 1, opacity: 0, duration: DURATION.ripple / 1000, ease: "easeOut" },
+    );
+
+    return () => tween.kill();
+  }, [reduced]);
+
+  return (
+    <span
+      ref={ref}
+      aria-hidden="true"
+      className="pointer-events-none absolute rounded-full bg-white/30"
+      style={{
+        left: rip.x - rip.size / 2,
+        top: rip.y - rip.size / 2,
+        width: rip.size,
+        height: rip.size,
+      }}
+    />
   );
 }

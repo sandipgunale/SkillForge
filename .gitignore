@@ -42,3 +42,4 @@ backend-run.err.log
 *.swp
 *~
 node_modules/
+.gstack/

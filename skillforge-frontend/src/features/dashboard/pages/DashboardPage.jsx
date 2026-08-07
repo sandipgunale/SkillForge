@@ -8,10 +8,11 @@ import DashboardSkeleton from "../skeletons/DashboardSkeleton";
 
 import { useDashboard } from "../hooks/useDashboard";
 
-import PageHeader from "@/components/common/PageHeader";
 import FadeIn from "@/components/common/FadeIn";
+import ErrorState from "@/components/common/ErrorState";
 
-import DashboardHero from "../components/DashboardHero";
+import MissionOverview from "../components/MissionOverview";
+import AICenter from "../components/AICenter";
 import RecommendationCard from "../components/RecommendationCard";
 import WeeklyActivityChart from "../components/WeeklyActivityChart";
 
@@ -24,7 +25,7 @@ import TopicSummaryCard from "../components/TopicSummaryCard";
 import GamificationCard from "@/features/gamification/components/GamificationCard";
 
 export default function DashboardPage() {
-  const { data, isLoading, isError } = useDashboard();
+  const { data, isLoading, isError, error, refetch } = useDashboard();
 
   if (isLoading) {
     return <DashboardSkeleton />;
@@ -32,13 +33,12 @@ export default function DashboardPage() {
 
   if (isError) {
     return (
-      <div className="rounded-xl border border-destructive bg-destructive/5 p-6 text-center">
-        <h2 className="text-lg font-semibold">Failed to load dashboard</h2>
-
-        <p className="mt-2 text-sm text-muted-foreground">
-          Please refresh the page or try again later.
-        </p>
-      </div>
+      <ErrorState
+        title="Couldn't load your dashboard"
+        description="Your analytics are saved — the request didn't go through."
+        onRetry={() => refetch()}
+        diagnostic={String(error?.message ?? "network")}
+      />
     );
   }
 
@@ -46,16 +46,12 @@ export default function DashboardPage() {
 
   return (
     <main className="space-y-10">
-      <PageHeader
-        eyebrow="Your workspace"
-        title="Dashboard"
-        description="A single view of your forge — momentum, mastery, and what's next."
-      />
+      {/* MISSION OVERVIEW */}
+      <MissionOverview analytics={data} />
 
-      {/* HERO */}
-
-      <FadeIn delay={0.1}>
-        <DashboardHero analytics={data} />
+      {/* AI COMMAND CENTER */}
+      <FadeIn delay={0.08}>
+        <AICenter analytics={data} />
       </FadeIn>
 
       {/* STATS */}
@@ -82,16 +78,18 @@ export default function DashboardPage() {
       {/* ANALYTICS */}
 
       <FadeIn delay={0.3}>
-        <DashboardSection
-          title="Learning Analytics"
-          description="Visualise your consistency and quiz performance."
-        >
-          <div className="grid gap-6 xl:grid-cols-2">
-            <WeeklyActivityChart data={data.weeklyActivity} />
+        <div id="learning-analytics" className="scroll-mt-24">
+          <DashboardSection
+            title="Learning Analytics"
+            description="Visualise your consistency and quiz performance."
+          >
+            <div className="grid gap-6 xl:grid-cols-2">
+              <WeeklyActivityChart data={data.weeklyActivity} />
 
-            <QuizTrendChart quizzes={data.recentQuizScores} />
-          </div>
-        </DashboardSection>
+              <QuizTrendChart quizzes={data.recentQuizScores} />
+            </div>
+          </DashboardSection>
+        </div>
       </FadeIn>
 
       {/* INSIGHTS */}

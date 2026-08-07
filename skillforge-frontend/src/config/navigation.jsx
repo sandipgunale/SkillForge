@@ -4,6 +4,7 @@ import {
   ClipboardList,
   History,
   LayoutDashboard,
+  LayoutPanelLeft,
   Route,
   ShieldCheck,
   Trophy,
@@ -22,6 +23,7 @@ const baseSections = [
   {
     label: "Learn",
     items: [
+      { title: "Learning Workspace", path: ROUTES.WORKSPACE, icon: LayoutPanelLeft },
       { title: "Dashboard", path: ROUTES.DASHBOARD, icon: LayoutDashboard },
       { title: "Resources", path: ROUTES.RESOURCES, icon: BookOpen },
       { title: "Bookmarks", path: ROUTES.BOOKMARKS, icon: Bookmark },

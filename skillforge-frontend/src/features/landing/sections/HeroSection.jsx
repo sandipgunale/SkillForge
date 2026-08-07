@@ -1,27 +1,57 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useRef } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
 import { ArrowRight, Flame, Sparkles, Target, Zap } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import CountUp from "@/components/common/CountUp";
 import { ROUTES } from "@/constants/routes";
-import { EASE_OUT_EXPO, SPRING_TACTILE } from "@/lib/motion";
+import { useMotionScope, useReducedMotion } from "@/lib/motion-gsap";
 
 /* three.js is heavy — split into its own chunk and load after first paint */
-const KnowledgeConstellation = lazy(() =>
-  import("../components/three/KnowledgeConstellation"),
+const ForgeCoreScene = lazy(() =>
+  import("../components/three/ForgeCoreScene"),
 );
 
 const HERO_STATS = [
   { count: 100, suffix: "%", value: "100%", label: "Your attention, protected" },
-  { value: "AI", label: "Generated practice, on demand" },
+  { value: "AI", label: "Practice forged for you, on demand" },
   { count: 0, suffix: "", value: "0", label: "Distractions, by design" },
 ];
 
 export default function HeroSection() {
+  const rootRef = useRef(null);
+  const reduced = useReducedMotion();
+
+  // Staged GSAP migration — the hero entrance is now timeline-based, fully
+  // reverted on unmount and skipped under prefers-reduced-motion.
+  useMotionScope(
+    ({ gsap, select }) => {
+      if (reduced) return;
+      const tl = gsap.timeline({ defaults: { ease: "expo.out" } });
+
+      tl.from(select("[data-hero='badge']"), { opacity: 0, y: 16, duration: 0.55 }, 0)
+        .from(select("[data-hero='title']"), { opacity: 0, y: 28, duration: 0.7 }, 0.08)
+        .from(select("[data-hero='subtitle']"), { opacity: 0, y: 24, duration: 0.7 }, 0.18)
+        .from(select("[data-hero='cta']"), { opacity: 0, y: 20, duration: 0.6 }, 0.28)
+        .from(select("[data-hero='stats']"), { opacity: 0, y: 20, duration: 0.7 }, 0.45)
+        .from(select("[data-hero='scroll']"), { opacity: 0, duration: 0.6 }, 1)
+        .from(
+          select("[data-hero='floating'] > *"),
+          { opacity: 0, scale: 0.9, duration: 0.6, stagger: 0.12 },
+          0.55,
+        )
+        .from(
+          select("[data-hero='core']"),
+          { opacity: 0, scale: 0.92, duration: 0.8 },
+          0.1,
+        );
+    },
+    [reduced],
+    rootRef,
+  );
+
   return (
-    <section id="top" className="relative overflow-hidden">
+    <section id="top" ref={rootRef} className="relative overflow-hidden">
       {/* Ambient layers */}
       <div
         aria-hidden="true"
@@ -33,76 +63,62 @@ export default function HeroSection() {
       </div>
 
       <Suspense fallback={null}>
-        <KnowledgeConstellation className="absolute inset-0 -z-20 h-full w-full" />
+        <ForgeCoreScene className="absolute inset-0 -z-20 h-full w-full" />
       </Suspense>
 
       <div className="mx-auto flex min-h-[92vh] max-w-screen-2xl flex-col items-center justify-center px-6 py-32 text-center lg:px-10">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, ease: EASE_OUT_EXPO }}
+        <div
+          data-hero="badge"
           className="inline-flex items-center gap-2 rounded-full border bg-card/60 px-4 py-1.5 text-sm text-muted-foreground backdrop-blur"
         >
           <Flame className="size-4 text-ember" />
-          The distraction-free learning workspace
-        </motion.div>
+          Forged by The Forge — focused, made
+        </div>
 
-        <motion.h1
-          initial={{ opacity: 0, y: 28 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.08, ease: EASE_OUT_EXPO }}
+        <h1
+          data-hero="title"
           className="mt-7 max-w-4xl text-5xl font-bold leading-[1.05] tracking-tight sm:text-6xl lg:text-[5.25rem]"
         >
           The internet is infinite.
           <br />
-          <span className="text-gradient-ember">Your focus is not.</span>
-        </motion.h1>
+          <span className="text-gradient-ember">Your focus is forged.</span>
+        </h1>
 
-        <motion.p
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.18, ease: EASE_OUT_EXPO }}
+        <p
+          data-hero="subtitle"
           className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl"
         >
-          SkillForge turns scattered videos, articles, and tutorials into one
+          SkillForge hammers scattered videos, articles, and tutorials into one
           structured, distraction-free path — with AI quizzes, instant
           feedback, and momentum that keeps you finishing.
-        </motion.p>
+        </p>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.28, ease: EASE_OUT_EXPO }}
+        <div
+          data-hero="cta"
           className="mt-9 flex flex-col items-center gap-3 sm:flex-row"
         >
-          <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} transition={SPRING_TACTILE}>
-            <Link to={ROUTES.REGISTER}>
-              <Button
-                size="lg"
-                className="group h-12 w-full rounded-full px-7 text-base shadow-lg shadow-ember/20 sm:w-auto"
-              >
-                Start learning free
-                <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-0.5" />
-              </Button>
-            </Link>
-          </motion.div>
-          <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} transition={SPRING_TACTILE}>
-            <Link to={ROUTES.LOGIN}>
-              <Button
-                size="lg"
-                variant="outline"
-                className="h-12 w-full rounded-full px-7 text-base sm:w-auto"
-              >
-                Explore the dashboard
-              </Button>
-            </Link>
-          </motion.div>
-        </motion.div>
+          <Link to={ROUTES.REGISTER} className="group">
+            <Button
+              size="lg"
+              className="h-12 w-full rounded-full px-7 text-base shadow-lg shadow-ember/20 transition-transform duration-300 hover:scale-[1.04] active:scale-[0.97] sm:w-auto"
+            >
+              Start learning free
+              <ArrowRight className="ml-2 size-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+            </Button>
+          </Link>
+          <Link to={ROUTES.LOGIN}>
+            <Button
+              size="lg"
+              variant="outline"
+              className="h-12 w-full rounded-full px-7 text-base transition-transform duration-300 hover:scale-[1.04] active:scale-[0.97] sm:w-auto"
+            >
+              Explore the dashboard
+            </Button>
+          </Link>
+        </div>
 
-        <motion.dl
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.45 }}
+        <dl
+          data-hero="stats"
           className="mt-16 grid w-full max-w-3xl grid-cols-1 gap-6 sm:grid-cols-3"
         >
           {HERO_STATS.map((stat) => (
@@ -119,14 +135,12 @@ export default function HeroSection() {
               </dd>
             </div>
           ))}
-        </motion.dl>
+        </dl>
 
         {/* Scroll indicator */}
-        <motion.a
-          href="#problem"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1, duration: 0.6 }}
+        <a
+          data-hero="scroll"
+          href="#what-is"
           aria-label="Scroll to learn more"
           className="absolute bottom-6 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 text-muted-foreground transition-colors hover:text-foreground md:flex"
         >
@@ -136,14 +150,12 @@ export default function HeroSection() {
           <span className="flex h-9 w-6 items-start justify-center rounded-full border border-muted-foreground/30 p-1.5">
             <span className="size-1.5 animate-scroll-dot rounded-full bg-current" />
           </span>
-        </motion.a>
+        </a>
 
         {/* Floating achievement cards */}
-        <motion.div
+        <div
+          data-hero="floating"
           aria-hidden="true"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, delay: 0.55, ease: EASE_OUT_EXPO }}
           className="pointer-events-none absolute inset-0 hidden lg:block"
         >
           <div className="glass absolute right-[8%] top-[22%] animate-float rounded-2xl border p-4 shadow-xl">
@@ -181,7 +193,7 @@ export default function HeroSection() {
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );

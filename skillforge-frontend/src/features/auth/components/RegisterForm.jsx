@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { useRef } from "react";
 import { Link } from "react-router-dom";
 
 import { useForm } from "react-hook-form";
@@ -16,7 +16,7 @@ import AuthLogo from "./AuthLogo";
 import FloatingField from "./FloatingField";
 import AuthSubmitButton from "./AuthSubmitButton";
 
-import { staggerList, staggerListItem } from "@/lib/motion";
+import { useReveal } from "@/lib/motion-gsap";
 import { TYPOGRAPHY } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +44,9 @@ export default function RegisterForm() {
       ? "success"
       : "idle";
 
+  const headerRef = useRef(null);
+  useReveal(headerRef, { stagger: 0.08, y: 22 });
+
   const onSubmit = (data) => {
     registerMutation.mutate(data);
   };
@@ -52,24 +55,22 @@ export default function RegisterForm() {
     <AuthCard>
       <div className="space-y-8 p-8 sm:p-10">
         {/* Header — breathing mark + editorial type */}
-        <motion.div
-          variants={staggerList(0.08)}
-          initial="hidden"
-          animate="visible"
+        <div
+          ref={headerRef}
           className="flex flex-col items-center gap-4 text-center"
         >
-          <motion.div variants={staggerListItem}>
+          <div>
             <AuthLogo size="lg" showWordmark={false} />
-          </motion.div>
+          </div>
 
-          <motion.div variants={staggerListItem}>
+          <div>
             <h1 className={TYPOGRAPHY.display}>Create account</h1>
 
             <p className={cn("mt-2", TYPOGRAPHY.subtitle)}>
               Start your forge — focus, practice, and build momentum.
             </p>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">

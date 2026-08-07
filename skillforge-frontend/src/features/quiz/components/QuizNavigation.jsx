@@ -1,8 +1,8 @@
-import { motion } from "framer-motion";
+import { useRef } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { SPRING_TACTILE } from "@/lib/motion";
+import { useMicroInteractions } from "@/lib/motion-gsap";
 
 import SubmitDialog from "./SubmitDialog";
 
@@ -16,16 +16,17 @@ export default function QuizNavigation({
   loading,
 }) {
   const isLast = current === total - 1;
+  const previousRef = useRef(null);
+  const nextRef = useRef(null);
+
+  useMicroInteractions(previousRef, { hover: { scale: 1.02 }, tap: { scale: 0.96 } });
+  useMicroInteractions(nextRef, { hover: { scale: 1.02 }, tap: { scale: 0.96 } });
 
   return (
     <div className="flex items-center justify-between gap-3">
-      <motion.div
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.96 }}
-        transition={SPRING_TACTILE}
-      >
+      <div ref={previousRef}>
         <Button
-          variant="outline"
+variant="outline"
           disabled={current === 0}
           onClick={previous}
           className="h-11 rounded-full px-5 sm:px-6"
@@ -33,7 +34,7 @@ export default function QuizNavigation({
           <ArrowLeft className="mr-2 size-4" />
           Previous
         </Button>
-      </motion.div>
+      </div>
 
       <p className="hidden text-xs font-medium text-muted-foreground sm:block">
         {answered}/{total} answered
@@ -47,11 +48,7 @@ export default function QuizNavigation({
           loading={loading}
         />
       ) : (
-        <motion.div
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.96 }}
-          transition={SPRING_TACTILE}
-        >
+        <div ref={nextRef}>
           <Button
             onClick={next}
             className="h-11 rounded-full px-5 sm:px-6"
@@ -59,7 +56,7 @@ export default function QuizNavigation({
             Next
             <ArrowRight className="ml-2 size-4" />
           </Button>
-        </motion.div>
+        </div>
       )}
     </div>
   );

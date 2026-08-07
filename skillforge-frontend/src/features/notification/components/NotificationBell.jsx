@@ -64,7 +64,7 @@ export default function NotificationBell() {
         <BellIcon className="h-5 w-5" />
 
         {unreadCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-semibold text-white">
+          <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-destructive text-3xs font-semibold text-white">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
@@ -112,7 +112,7 @@ export default function NotificationBell() {
                 </p>
               )}
 
-              <p className="mt-1 text-[11px] text-muted-foreground">
+              <p className="mt-1 text-2xs text-muted-foreground">
                 {new Date(notification.createdAt).toLocaleString()}
               </p>
             </DropdownMenuItem>

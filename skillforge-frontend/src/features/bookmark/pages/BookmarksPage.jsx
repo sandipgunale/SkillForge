@@ -18,7 +18,7 @@ export default function BookmarkPage() {
   const [folderId, setFolderId] = useState(null);
   const [page, setPage] = useState(0);
 
-  const { data, isLoading, isError } = useBookmarks({
+  const { data, isLoading, isError, refetch } = useBookmarks({
     folderId,
     page,
     size: PAGE_SIZE,
@@ -31,8 +31,9 @@ export default function BookmarkPage() {
   if (isError) {
     return (
       <ErrorState
-        title="Failed to load bookmarks"
-        description="Please try again."
+        title="Couldn't load your bookmarks"
+        description="Your saved resources are still there — the request didn't go through."
+        onRetry={() => refetch()}
       />
     );
   }
@@ -47,7 +48,7 @@ export default function BookmarkPage() {
   const bookmarks = data?.content ?? [];
 
   return (
-    <main className="space-y-8">
+    <div className="space-y-8">
       <PageHeader
         title="Bookmarks"
         description="Your saved learning resources, organized by folder."
@@ -75,6 +76,6 @@ export default function BookmarkPage() {
           />
         </section>
       </div>
-    </main>
+    </div>
   );
 }

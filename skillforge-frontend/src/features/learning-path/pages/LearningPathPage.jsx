@@ -9,11 +9,14 @@ import { useCreateLearningPath } from "../hooks/useCreateLearningPath";
 import { Button } from "@/components/ui/button";
 import EmptyLearningPath from "../components/EmptyLearningPath";
 import LearningPathSkeleton from "../components/LearningPathSkeleton";
+import PageContainer from "@/components/common/PageContainer";
+import PageHeader from "@/components/common/PageHeader";
+import ErrorState from "@/components/common/ErrorState";
 
 export default function LearningPathPage() {
   const [showForm, setShowForm] = useState(false);
 
-  const { data: learningPaths = [], isLoading } = useLearningPaths();
+  const { data: learningPaths = [], isLoading, isError, error, refetch } = useLearningPaths();
 
   const createMutation = useCreateLearningPath();
 
@@ -27,6 +30,23 @@ export default function LearningPathPage() {
 
   if (isLoading) {
     return <LearningPathSkeleton />;
+  }
+
+  if (isError) {
+    return (
+      <PageContainer>
+        <PageHeader
+          title="Learning Paths"
+          description="Your AI-built roadmaps, ready when you are."
+        />
+        <ErrorState
+          title="Couldn't load your learning paths"
+          description="Your roadmaps are saved — the request didn't go through."
+          onRetry={() => refetch()}
+          diagnostic={String(error?.message ?? "network")}
+        />
+      </PageContainer>
+    );
   }
 
   return (

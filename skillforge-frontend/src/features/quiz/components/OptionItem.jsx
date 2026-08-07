@@ -1,9 +1,11 @@
-import { memo, useCallback } from "react";
-import { motion } from "framer-motion";
+import { memo, useCallback, useRef } from "react";
 import { Check } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { SPRING_TACTILE } from "@/lib/motion";
+import {
+  useMicroInteractions,
+  useMountAnimation,
+} from "@/lib/motion-gsap";
 
 const LETTERS = ["A", "B", "C", "D", "E", "F"];
 
@@ -12,13 +14,21 @@ function OptionItem({ label, selected, onClick, index }) {
     onClick(label);
   }, [label, onClick]);
 
+  const buttonRef = useRef(null);
+  const checkRef = useRef(null);
+
+  useMicroInteractions(buttonRef, {
+    hover: selected ? undefined : { scale: 1.012 },
+    tap: selected ? undefined : { scale: 0.985 },
+  });
+
+  useMountAnimation(checkRef, [selected], { scale: 0.4, duration: 0.3 });
+
   return (
-    <motion.button
+    <button
+      ref={buttonRef}
       type="button"
       onClick={handleClick}
-      whileHover={selected ? undefined : { scale: 1.012 }}
-      whileTap={selected ? undefined : { scale: 0.985 }}
-      transition={SPRING_TACTILE}
       aria-pressed={selected}
       className={cn(
         "group relative flex w-full items-center gap-4 rounded-2xl border p-4 text-left transition-colors duration-200",
@@ -41,21 +51,18 @@ function OptionItem({ label, selected, onClick, index }) {
 
       <span className="flex-1 text-[0.95rem] leading-relaxed">{label}</span>
 
-      {/* Selection check */}
-      <motion.span
-        initial={false}
-        animate={{
-          scale: selected ? 1 : 0,
-          opacity: selected ? 1 : 0,
-        }}
-        transition={SPRING_TACTILE}
+      {/* Selection check — springs in when chosen */}
+      <span
+        ref={checkRef}
+        aria-hidden="true"
         className={cn(
           "flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground",
+          !selected && "invisible",
         )}
       >
         <Check className="size-3.5" strokeWidth={3} />
-      </motion.span>
-    </motion.button>
+      </span>
+    </button>
   );
 }
 

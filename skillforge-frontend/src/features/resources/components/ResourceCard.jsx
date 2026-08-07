@@ -7,6 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 import BookmarkButton from "@/features/bookmark/components/BookmarkButton";
+import {
+  getDifficultyVariant,
+  getDifficultyLabel,
+} from "@/lib/difficulty";
 
 function ResourceCard({ resource }) {
   const getTypeIcon = () => {
@@ -31,22 +35,6 @@ function ResourceCard({ resource }) {
     }
   };
 
-  const getDifficultyVariant = () => {
-    switch (resource.difficulty) {
-      case "BEGINNER":
-        return "secondary";
-
-      case "INTERMEDIATE":
-        return "default";
-
-      case "ADVANCED":
-        return "destructive";
-
-      default:
-        return "outline";
-    }
-  };
-
   return (
     <Card className="flex h-full flex-col transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
       <CardContent className="flex flex-1 flex-col gap-4 p-5">
@@ -57,8 +45,8 @@ function ResourceCard({ resource }) {
           </Badge>
 
           <div className="flex items-center gap-2">
-            <Badge variant={getDifficultyVariant()}>
-              {resource.difficulty}
+            <Badge variant={getDifficultyVariant(resource.difficulty)}>
+              {getDifficultyLabel(resource.difficulty)}
             </Badge>
 
             <BookmarkButton resourceId={resource.id} />

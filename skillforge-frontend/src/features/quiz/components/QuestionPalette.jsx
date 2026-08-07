@@ -1,10 +1,41 @@
-import { motion } from "framer-motion";
+import { memo, useRef } from "react";
 import { CheckCircle2, Circle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { SPRING_SOFT } from "@/lib/motion";
+import { useMicroInteractions } from "@/lib/motion-gsap";
 
-export default function QuestionPalette({
+function PaletteButton({ index, answered, current, onSelect }) {
+  const ref = useRef(null);
+
+  useMicroInteractions(ref, { hover: { scale: 1.08 }, tap: { scale: 0.92 } });
+
+  return (
+    <button
+      ref={ref}
+      type="button"
+      onClick={() => onSelect(index)}
+      aria-label={`Go to question ${index + 1}${answered ? ", answered" : ", unanswered"}`}
+      className={cn(
+        "relative flex size-10 items-center justify-center rounded-xl border text-sm font-semibold transition-colors",
+        current && "border-primary bg-primary text-primary-foreground",
+        !current &&
+          answered &&
+          "border-success/60 bg-success/10 text-success",
+        !current && !answered && "border-border text-muted-foreground hover:bg-muted",
+      )}
+    >
+      {index + 1}
+      {!current && answered && (
+        <CheckCircle2
+          className="absolute -right-1 -top-1 size-3.5 rounded-full bg-card text-success"
+          aria-hidden="true"
+        />
+      )}
+    </button>
+  );
+}
+
+function QuestionPalette({
   questions,
   currentQuestion,
   answers,
@@ -27,33 +58,13 @@ export default function QuestionPalette({
           const current = currentQuestion === index;
 
           return (
-            <motion.button
+            <PaletteButton
               key={question.id}
-              type="button"
-              onClick={() => onSelect(index)}
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.92 }}
-              transition={SPRING_SOFT}
-              aria-label={`Go to question ${index + 1}${
-                answered ? ", answered" : ", unanswered"
-              }`}
-              className={cn(
-                "relative flex size-10 items-center justify-center rounded-xl border text-sm font-semibold transition-colors",
-                current && "border-primary bg-primary text-primary-foreground",
-                !current &&
-                  answered &&
-                  "border-success/60 bg-success/10 text-success",
-                !current && !answered && "border-border text-muted-foreground hover:bg-muted",
-              )}
-            >
-              {index + 1}
-              {!current && answered && (
-                <CheckCircle2
-                  className="absolute -right-1 -top-1 size-3.5 rounded-full bg-card text-success"
-                  aria-hidden="true"
-                />
-              )}
-            </motion.button>
+              index={index}
+              answered={answered}
+              current={current}
+              onSelect={onSelect}
+            />
           );
         })}
       </div>
@@ -77,3 +88,5 @@ export default function QuestionPalette({
     </div>
   );
 }
+
+export default memo(QuestionPalette);

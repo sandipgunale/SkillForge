@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 
 import ResourcePagination from "@/features/resources/components/ResourcePagination";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import { useQuizHistory } from "../hooks/useQuizHistory";
 
@@ -123,7 +124,20 @@ export default function QuizHistoryPage() {
       </div>
 
       {isLoading && !data ? (
-        <p className="text-muted-foreground">Loading history…</p>
+        <div className="grid gap-4 md:grid-cols-2">
+          {Array.from({ length: 4 }, (_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="shimmer h-5 w-40" />
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Skeleton className="shimmer h-4 w-full" />
+                <Skeleton className="shimmer h-4 w-3/4" />
+                <Skeleton className="shimmer h-4 w-1/2" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       ) : quizzes.length === 0 ? (
         <EmptyState
           title="No quizzes yet"

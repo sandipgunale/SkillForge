@@ -1,8 +1,8 @@
-import { lazy, Suspense } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { lazy, Suspense, useRef } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 
 import { alpha } from "@/lib/design-system";
+import { useMountAnimation } from "@/lib/motion-gsap";
 import ThemeToggle from "@/components/common/ThemeToggle";
 import AuthLogo from "@/features/auth/components/AuthLogo";
 
@@ -13,6 +13,12 @@ const LivingCoreScene = lazy(() =>
 
 export default function AuthLayout() {
   const location = useLocation();
+  const panelRef = useRef(null);
+
+  useMountAnimation(panelRef, [location.pathname], {
+    duration: 0.32,
+    ease: "power2.inOut",
+  });
 
   return (
     <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-background">
@@ -76,17 +82,9 @@ export default function AuthLayout() {
       {/* Layer 5 — the floating glass panel */}
       <main className="relative z-10 flex flex-1 items-center justify-center px-4 py-10 sm:py-12">
         <div className="w-full max-w-md">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={location.pathname}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0, scale: 0.985, filter: "blur(6px)" }}
-              transition={{ duration: 0.32, ease: "easeInOut" }}
-            >
-              <Outlet />
-            </motion.div>
-          </AnimatePresence>
+          <div key={location.pathname} ref={panelRef}>
+            <Outlet />
+          </div>
         </div>
       </main>
 

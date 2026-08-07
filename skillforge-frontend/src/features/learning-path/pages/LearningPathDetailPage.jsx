@@ -26,11 +26,12 @@ import { useQuizHistory } from "@/features/quiz/hooks/useQuizHistory";
 import { calculateProgress } from "../utils/calculateProgress";
 
 import { ROUTES } from "@/constants/routes";
+import ErrorState from "@/components/common/ErrorState";
 
 export default function LearningPathDetailPage() {
   const { learningPathId } = useParams();
 
-  const { data: learningPath, isLoading } = useLearningPath(learningPathId);
+  const { data: learningPath, isLoading, isError, error, refetch } = useLearningPath(learningPathId);
 
   const { data: history, isLoading: historyLoading } = useQuizHistory({
     size: 100,
@@ -158,8 +159,25 @@ export default function LearningPathDetailPage() {
     return <LearningPathSkeleton />;
   }
 
+  if (isError) {
+    return (
+      <div className="mx-auto w-full max-w-3xl px-4 py-16">
+        <ErrorState
+          title="Couldn't open this learning path"
+          description="It exists — the request just didn't go through. Try again."
+          onRetry={() => refetch()}
+          diagnostic={String(error?.message ?? "network")}
+        />
+      </div>
+    );
+  }
+
   if (!learningPath) {
-    return <div className="p-8">Learning Path not found.</div>;
+    return (
+      <div className="mx-auto w-full max-w-3xl px-4 py-16">
+        <ErrorState title="Learning path not found" description="It may have been deleted. Head back to your roadmaps." />
+      </div>
+    );
   }
 
   return (

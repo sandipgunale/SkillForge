@@ -1,8 +1,19 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
 import { useAuthSceneStore } from "../../store/authSceneStore";
+import {
+  buildDust,
+  buildEdges,
+  buildNodeField,
+  buildTorus,
+  softGlowTexture,
+  useReducedMotion,
+  useSceneBudget,
+  useScenePalette,
+  useTabHidden,
+} from "@/lib/three-engine";
 
 /* -------------------------------------------------------------------------- */
 /*  Living Intelligence Core — the auth experience's neural energy field.      */
@@ -20,158 +31,43 @@ import { useAuthSceneStore } from "../../store/authSceneStore";
 /*  • Volumetric progress ring that accelerates while forms submit            */
 /*  • Warm key light (lower-left) + cool rim light (upper-right)              */
 /*                                                                            */
+/*  Composes the shared three-engine (tokens, builders, adaptive budget).     */
 /*  Performance: adaptive node count, DPR cap, additive blending,             */
 /*  paused frameloop while the tab is hidden, static under reduced motion.    */
 /* -------------------------------------------------------------------------- */
 
-const EMBER = new THREE.Color("#e89b3c");
-const AURORA = new THREE.Color("#5fc3e8");
-const DIM = new THREE.Color("#8a94a6");
-
 const PULSE_POOL = 14;
 const SPARK_POOL = 10;
 
-function softGlowTexture() {
-  const size = 128;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  const gradient = ctx.createRadialGradient(
-    size / 2,
-    size / 2,
-    0,
-    size / 2,
-    size / 2,
-    size / 2,
-  );
-  gradient.addColorStop(0, "rgba(255,255,255,1)");
-  gradient.addColorStop(0.35, "rgba(255,255,255,0.35)");
-  gradient.addColorStop(1, "rgba(255,255,255,0)");
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, size, size);
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.needsUpdate = true;
-  return texture;
-}
-
-function buildField(nodeCount) {
-  const home = new Float32Array(nodeCount * 3);
-  const colors = new Float32Array(nodeCount * 3);
-  const color = new THREE.Color();
-
-  for (let i = 0; i < nodeCount; i++) {
-    const u = Math.random();
-    const radius = 5.6 * Math.cbrt(u * 0.72 + 0.28) * (Math.random() > 0.86 ? 1.32 : 1);
-    const theta = Math.acos(2 * Math.random() - 1);
-    const phi = Math.random() * Math.PI * 2;
-
-    home[i * 3] = radius * Math.sin(theta) * Math.cos(phi);
-    home[i * 3 + 1] = radius * Math.sin(theta) * Math.sin(phi) * 0.82;
-    home[i * 3 + 2] = radius * Math.cos(theta) * 0.72;
-
-    const t = Math.random();
-    if (t < 0.42) {
-      color.copy(EMBER);
-    } else if (t < 0.72) {
-      color.copy(AURORA);
-    } else {
-      color.copy(DIM);
-    }
-    const bright = 0.5 + Math.random() * 0.5;
-    colors[i * 3] = color.r * bright;
-    colors[i * 3 + 1] = color.g * bright;
-    colors[i * 3 + 2] = color.b * bright;
-  }
-
-  return { home, colors };
-}
-
-function buildTorus(home, nodeCount) {
-  const torus = new Float32Array(nodeCount * 3);
-  const R = 3.3;
-  const r = 1.5;
-
-  for (let i = 0; i < nodeCount; i++) {
-    const u = Math.random() * Math.PI * 2;
-    const v = Math.random() * Math.PI * 2;
-
-    torus[i * 3] = (R + r * Math.cos(v)) * Math.cos(u);
-    torus[i * 3 + 1] = r * Math.sin(v) * 0.9;
-    torus[i * 3 + 2] = (R + r * Math.cos(v)) * Math.sin(u);
-  }
-
-  return torus;
-}
-
-function buildEdges(home, nodeCount, maxDistance, maxEdges) {
-  const positionValues = [];
-  const colorValues = [];
-  const edgeList = [];
-
-  for (let i = 0; i < nodeCount; i++) {
-    if (positionValues.length / 6 >= maxEdges) break;
-
-    for (let j = i + 1; j < nodeCount; j++) {
-      if (positionValues.length / 6 >= maxEdges) break;
-
-      const dx = home[i * 3] - home[j * 3];
-      const dy = home[i * 3 + 1] - home[j * 3 + 1];
-      const dz = home[i * 3 + 2] - home[j * 3 + 2];
-      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-      if (dist < maxDistance) {
-        positionValues.push(
-          home[i * 3], home[i * 3 + 1], home[i * 3 + 2],
-          home[j * 3], home[j * 3 + 1], home[j * 3 + 2],
-        );
-        const a = 0.08 + Math.random() * 0.1;
-        colorValues.push(a, a, a, a, a, a);
-
-        edgeList.push({
-          a: new THREE.Vector3(home[i * 3], home[i * 3 + 1], home[i * 3 + 2]),
-          b: new THREE.Vector3(home[j * 3], home[j * 3 + 1], home[j * 3 + 2]),
-        });
-      }
-    }
-  }
-
-  return {
-    edgePositions: new Float32Array(positionValues),
-    edgeColors: new Float32Array(colorValues),
-    edgeList,
-  };
-}
-
-function buildDust(count) {
-  const positions = new Float32Array(count * 3);
-  for (let i = 0; i < count; i++) {
-    const radius = 9 + Math.random() * 4.5;
-    const theta = Math.acos(2 * Math.random() - 1);
-    const phi = Math.random() * Math.PI * 2;
-    positions[i * 3] = radius * Math.sin(theta) * Math.cos(phi);
-    positions[i * 3 + 1] = radius * Math.sin(theta) * Math.sin(phi) * 0.7;
-    positions[i * 3 + 2] = radius * Math.cos(theta) * 0.6;
-  }
-  return positions;
-}
-
-function CoreField({ reducedMotion, nodeCount }) {
-  const busy = useAuthSceneStore((state) => state.busy);
-
+function CoreField({ reducedMotion, nodeCount, palette, busy }) {
   const groupRef = useRef(null);
   const dustRef = useRef(null);
   const waveRingRef = useRef(null);
 
   const [glowTexture] = useState(() => softGlowTexture());
 
-  const data = useMemo(() => buildField(nodeCount), [nodeCount]);
-  const torus = useMemo(() => buildTorus(data.home, nodeCount), [data.home, nodeCount]);
+  const data = useMemo(
+    () =>
+      buildNodeField({
+        nodeCount,
+        radius: 5.6,
+        palette: [palette.ember, palette.aurora, palette.dim],
+        weights: [0.42, 0.72],
+        flatten: [1, 0.82, 0.72],
+        outlierChance: 0.86,
+        outlierScale: 1.32,
+      }),
+    [nodeCount, palette],
+  );
+  const torus = useMemo(
+    () => buildTorus(data.home, nodeCount, 3.3, 1.5),
+    [data.home, nodeCount],
+  );
   const { edgePositions, edgeColors, edgeList } = useMemo(
     () => buildEdges(data.home, nodeCount, 2.0, 820),
     [data.home, nodeCount],
   );
-  const dustPositions = useMemo(() => buildDust(150), []);
+  const dustPositions = useMemo(() => buildDust(150, {}), []);
 
   const [positions] = useState(() => new Float32Array(data.home));
   const [baseColors] = useState(() => new Float32Array(data.colors));
@@ -198,9 +94,9 @@ function CoreField({ reducedMotion, nodeCount }) {
   const orbitersRef = useRef(null);
   if (!orbitersRef.current) {
     orbitersRef.current = [
-      { sprite: null, angle: Math.random() * Math.PI * 2, radius: 4.9, speed: 0.14, bob: 1.1, phase: 0, scale: 0.22, color: EMBER },
-      { sprite: null, angle: Math.random() * Math.PI * 2, radius: 5.6, speed: -0.1, bob: 0.9, phase: 2.1, scale: 0.16, color: AURORA },
-      { sprite: null, angle: Math.random() * Math.PI * 2, radius: 4.3, speed: 0.19, bob: 0.7, phase: 4.2, scale: 0.13, color: EMBER },
+      { sprite: null, angle: Math.random() * Math.PI * 2, radius: 4.9, speed: 0.14, bob: 1.1, phase: 0, scale: 0.22, color: palette.ember },
+      { sprite: null, angle: Math.random() * Math.PI * 2, radius: 5.6, speed: -0.1, bob: 0.9, phase: 2.1, scale: 0.16, color: palette.aurora },
+      { sprite: null, angle: Math.random() * Math.PI * 2, radius: 4.3, speed: 0.19, bob: 0.7, phase: 4.2, scale: 0.13, color: palette.ember },
     ];
   }
   const [orbiters] = useState(() => orbitersRef.current);
@@ -306,13 +202,9 @@ function CoreField({ reducedMotion, nodeCount }) {
       const hy = data.home[ix + 1];
       const hz = data.home[ix + 2];
 
-      const tx = torus[ix];
-      const ty = torus[ix + 1];
-      const tz = torus[ix + 2];
-
-      let x = hx + (tx - hx) * morphVal;
-      let y = hy + (ty - hy) * morphVal;
-      let z = hz + (tz - hz) * morphVal;
+      let x = hx + (torus[ix] - hx) * morphVal;
+      let y = hy + (torus[ix + 1] - hy) * morphVal;
+      let z = hz + (torus[ix + 2] - hz) * morphVal;
 
       const len = Math.sqrt(x * x + y * y + z * z) || 1;
       const dot = (x / len) * pointerVec.x + (y / len) * pointerVec.y + (z / len) * pointerVec.z;
@@ -375,7 +267,7 @@ function CoreField({ reducedMotion, nodeCount }) {
         free.maxLife = 1.6 + Math.random() * 1.6;
         free.active = true;
         free.sprite.visible = true;
-        free.sprite.material.color.set(Math.random() > 0.72 ? AURORA : EMBER);
+        free.sprite.material.color.set(Math.random() > 0.72 ? palette.aurora : palette.ember);
       }
       sparkTimer.current = 0.9 + Math.random() * 1.6;
     }
@@ -411,7 +303,7 @@ function CoreField({ reducedMotion, nodeCount }) {
         0.08,
         dt,
       );
-      const targetColor = busy ? EMBER : AURORA;
+      const targetColor = busy ? palette.ember : palette.aurora;
       ringRef.current.material.color.lerp(targetColor, 0.05);
     }
 
@@ -493,13 +385,13 @@ function CoreField({ reducedMotion, nodeCount }) {
       {/* Volumetric progress ring — spins, accelerates on submit */}
       <mesh ref={ringRef} rotation={[1.15, 0.4, 0]}>
         <torusGeometry args={[4.4, 0.012, 8, 96]} />
-        <meshBasicMaterial color={AURORA} transparent opacity={0.22} depthWrite={false} blending={THREE.AdditiveBlending} />
+        <meshBasicMaterial color={palette.aurora} transparent opacity={0.22} depthWrite={false} blending={THREE.AdditiveBlending} />
       </mesh>
 
-      {/* Idle-wave expanding ring */}
+      {/* Ring-wave expanding ring */}
       <mesh ref={waveRingRef} visible={false}>
         <ringGeometry args={[0.96, 1.0, 64]} />
-        <meshBasicMaterial color={EMBER} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} />
+        <meshBasicMaterial color={palette.ember} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} />
       </mesh>
 
       {/* Energy pulses — bright head + dim tail travelling an edge */}
@@ -512,7 +404,7 @@ function CoreField({ reducedMotion, nodeCount }) {
             }}
             scale={[0.5, 0.5, 1]}
           >
-            <spriteMaterial map={glowTexture} color={EMBER} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} />
+            <spriteMaterial map={glowTexture} color={palette.ember} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} />
           </sprite>
           <sprite
             ref={(node) => {
@@ -521,7 +413,7 @@ function CoreField({ reducedMotion, nodeCount }) {
             }}
             scale={[0.26, 0.26, 1]}
           >
-            <spriteMaterial map={glowTexture} color={AURORA} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} />
+            <spriteMaterial map={glowTexture} color={palette.aurora} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} />
           </sprite>
         </group>
       ))}
@@ -549,23 +441,23 @@ function CoreField({ reducedMotion, nodeCount }) {
           }}
           scale={[spark.scale, spark.scale, 1]}
         >
-          <spriteMaterial map={glowTexture} color={EMBER} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} />
+          <spriteMaterial map={glowTexture} color={palette.ember} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} />
         </sprite>
       ))}
 
       {/* Warm key light — lower left */}
       <sprite position={[-4.4, -2.8, -3]} scale={[5, 5, 1]}>
-        <spriteMaterial map={glowTexture} color={EMBER} transparent opacity={0.2} depthWrite={false} blending={THREE.AdditiveBlending} />
+        <spriteMaterial map={glowTexture} color={palette.ember} transparent opacity={0.2} depthWrite={false} blending={THREE.AdditiveBlending} />
       </sprite>
 
       {/* Cool rim light — upper right */}
       <sprite position={[4.6, 3, -3.5]} scale={[5.2, 5.2, 1]}>
-        <spriteMaterial map={glowTexture} color={AURORA} transparent opacity={0.16} depthWrite={false} blending={THREE.AdditiveBlending} />
+        <spriteMaterial map={glowTexture} color={palette.aurora} transparent opacity={0.16} depthWrite={false} blending={THREE.AdditiveBlending} />
       </sprite>
 
       {/* Core halo behind the sphere */}
       <sprite position={[0, 0, -4]} scale={[9, 9, 1]}>
-        <spriteMaterial map={glowTexture} color={EMBER} transparent opacity={0.1} depthWrite={false} blending={THREE.AdditiveBlending} />
+        <spriteMaterial map={glowTexture} color={palette.ember} transparent opacity={0.1} depthWrite={false} blending={THREE.AdditiveBlending} />
       </sprite>
     </group>
   );
@@ -581,7 +473,7 @@ function CoreField({ reducedMotion, nodeCount }) {
         </bufferGeometry>
         <pointsMaterial
           size={0.03}
-          color="#aeb8c9"
+          color={palette.dim}
           transparent
           opacity={0.4}
           depthWrite={false}
@@ -594,42 +486,22 @@ function CoreField({ reducedMotion, nodeCount }) {
 }
 
 export default function LivingCoreScene({ className }) {
-  const [reducedMotion, setReducedMotion] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-  );
+  const reducedMotion = useReducedMotion();
+  const busy = useAuthSceneStore((state) => state.busy);
+  const tabHidden = useTabHidden();
+  const palette = useScenePalette();
 
-  const [tabHidden, setTabHidden] = useState(false);
-
-  const nodeCount = useMemo(() => {
-    if (typeof window === "undefined") return 320;
-
-    const isSmallScreen = window.matchMedia("(max-width: 768px)").matches;
-    const lowPower = (navigator.hardwareConcurrency ?? 8) <= 4;
-
-    return isSmallScreen || lowPower ? 240 : 480;
-  }, []);
-
-  useEffect(() => {
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const onChange = (e) => setReducedMotion(e.matches);
-    media.addEventListener("change", onChange);
-
-    const onVisibility = () => setTabHidden(document.hidden);
-    document.addEventListener("visibilitychange", onVisibility);
-
-    return () => {
-      media.removeEventListener("change", onChange);
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
-  }, []);
+  const { nodeCount, dpr } = useSceneBudget({
+    high: 480,
+    low: 240,
+    baseDpr: 1.5,
+  });
 
   return (
     <div className={className} aria-hidden="true">
       <Canvas
         frameloop={tabHidden ? "never" : "always"}
-        dpr={[1, 1.5]}
+        dpr={dpr}
         camera={{ position: [0, 0, 11], fov: 50 }}
         gl={{
           antialias: false,
@@ -638,7 +510,12 @@ export default function LivingCoreScene({ className }) {
         }}
         style={{ background: "transparent" }}
       >
-        <CoreField reducedMotion={reducedMotion} nodeCount={nodeCount} />
+        <CoreField
+          reducedMotion={reducedMotion}
+          nodeCount={nodeCount}
+          palette={palette}
+          busy={busy}
+        />
       </Canvas>
     </div>
   );

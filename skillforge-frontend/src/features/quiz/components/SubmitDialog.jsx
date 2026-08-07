@@ -10,8 +10,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-import { Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import Spinner from "@/components/common/Spinner";
 
 export default function SubmitDialog({ answered, total, onSubmit, loading }) {
   return (
@@ -23,7 +23,7 @@ export default function SubmitDialog({ answered, total, onSubmit, loading }) {
       >
         {loading ? (
           <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <Spinner className="mr-2 size-4" />
             Submitting...
           </>
         ) : (
@@ -66,7 +66,7 @@ export default function SubmitDialog({ answered, total, onSubmit, loading }) {
           <AlertDialogAction disabled={loading} onClick={onSubmit}>
             {loading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Spinner className="mr-2 size-4" />
                 Submitting...
               </>
             ) : (

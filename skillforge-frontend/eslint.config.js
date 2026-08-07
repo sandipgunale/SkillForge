@@ -35,6 +35,26 @@ export default defineConfig([
   },
 
   {
+    files: ["src/components/ui/**", "src/routes/index.jsx"],
+    rules: {
+      // shadcn-style primitives export their cva variants beside the component,
+      // and the router is a lazy-loaded route table — neither is Fast-Refresh
+      // content, and the compiler rules do not apply without the React compiler.
+      "react-refresh/only-export-components": "off",
+    },
+  },
+
+  {
+    files: ["**/*.{js,jsx}"],
+    rules: {
+      // react-hooks v7 ships React Compiler-aware checks (incompatible-library)
+      // that are meaningless here: this project does not run the React
+      // Compiler, so react-hook-form's watch() is not a hazard.
+      "react-hooks/incompatible-library": "off",
+    },
+  },
+
+  {
     files: ["vite.config.js"],
     languageOptions: {
       globals: globals.node,

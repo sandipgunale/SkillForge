@@ -13,8 +13,36 @@
    ========================================================================== */
 
 @theme inline {
+    /* Fonts */
     --font-heading: var(--font-sans);
     --font-sans: 'Geist Variable', sans-serif;
+
+    /* ------------------------------------------------------------------
+       Typography scale — micro sizes (below default) + fluid editorial
+       sizes. Everything derives from clamp() so it scales between
+       320px and ultra-wide without breakpoint jumps.
+       ------------------------------------------------------------------ */
+    --text-4xs: 0.5625rem;             /* 9px  · micro */
+    --text-3xs: 0.625rem;              /* 10px · micro strongly */
+    --text-2xs: 0.6875rem;             /* 11px · caption */
+    --text-caption: 0.75rem;           /* 12px */
+    --text-caption--line-height: 1.45;
+    --text-overline: 0.8125rem;        /* 13px · labels / tabular */
+    --text-overline--line-height: 1.4;
+    --text-body: 0.875rem;             /* 14px */
+    --text-body--line-height: 1.6;
+    --text-subtitle: clamp(1rem, 0.94rem + 0.35vw, 1.125rem);      /* 16→18 */
+    --text-subtitle--line-height: 1.5;
+    --text-title: clamp(1.25rem, 1.12rem + 0.8vw, 1.625rem);       /* 20→26 */
+    --text-title--line-height: 1.22;
+    --text-display: clamp(1.625rem, 1.4rem + 1.4vw, 2.25rem);       /* 26→36 */
+    --text-display--line-height: 1.12;
+    --text-hero: clamp(2.5rem, 1.8rem + 3.2vw, 4.5rem);             /* 36→72 */
+    --text-hero--line-height: 1.02;
+
+    /* Letter-spacing companion for display/herotracked text */
+    --tracking-display: -0.03em;
+    --tracking-hero: -0.035em;
 
     /* Brand */
     --color-ember: var(--ember);
@@ -636,4 +664,35 @@ input:-webkit-autofill:focus {
     50% {
         opacity: 0.45;
     }
+}
+
+/* Branded loading ring — ember arc on a dim track. The global reduced-motion
+   block already zeroes animation-duration, so this freezes gracefully. */
+@keyframes spin-ember {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spinner {
+    display: inline-block;
+    border-radius: 9999px;
+    border: 2px solid color-mix(in oklch, var(--ember) 16%, transparent);
+    border-top-color: var(--ember);
+    border-right-color: color-mix(in oklch, var(--ember) 55%, transparent);
+    animation: spin-ember var(--duration-base) linear infinite;
+}
+
+/* Skeleton shimmer — prefers the `shimmer` bg-position keyframe over a flat
+   pulse; used as an add-on class to <Skeleton> for premium loading surfaces. */
+.shimmer {
+    background:
+        linear-gradient(
+            110deg,
+            color-mix(in oklch, var(--muted) 92%, var(--card)) 20%,
+            color-mix(in oklch, var(--muted) 55%, var(--card)) 50%,
+            color-mix(in oklch, var(--muted) 92%, var(--card)) 80%
+        );
+    background-size: 200% 100%;
+    animation: shimmer 2.4s var(--ease-in-out-soft) infinite;
 }

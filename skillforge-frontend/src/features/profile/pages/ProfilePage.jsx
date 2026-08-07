@@ -1,9 +1,17 @@
+import PageContainer from "@/components/common/PageContainer";
+import PageHeader from "@/components/common/PageHeader";
+
 import ProfileForm from "../components/ProfileForm";
 
 export default function ProfilePage() {
   return (
-    <div className="container mx-auto max-w-3xl py-8">
+    <PageContainer size="narrow">
+      <PageHeader
+        title="My Profile"
+        description="Manage your account information."
+      />
+
       <ProfileForm />
-    </div>
+    </PageContainer>
   );
 }

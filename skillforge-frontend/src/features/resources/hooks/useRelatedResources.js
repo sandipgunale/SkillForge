@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { resourcesService } from "../api/resourcesService";
+import { resourceApi } from "../api/resource.api";
 
 export function useRelatedResources(
   topicId,
@@ -14,7 +14,7 @@ export function useRelatedResources(
     ],
 
     queryFn: () =>
-      resourcesService.getRelatedResources(
+      resourceApi.getRelatedResources(
         topicId,
         currentResourceId
       ),

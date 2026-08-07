@@ -1,6 +1,7 @@
-import { Bookmark, BookmarkCheck, Loader2 } from "lucide-react";
+import { Bookmark, BookmarkCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import Spinner from "@/components/common/Spinner";
 
 import { useBookmarkStatus } from "../hooks/useBookmarkStatus";
 import { useAddBookmark } from "../hooks/useAddBookmark";
@@ -31,9 +32,10 @@ export default function BookmarkButton({ resourceId, size = "icon" }) {
       size={size}
       disabled={loading}
       onClick={handleClick}
+      aria-label={bookmarked ? "Remove bookmark" : "Add bookmark"}
     >
       {loading ? (
-        <Loader2 className="h-5 w-5 animate-spin" />
+        <Spinner className="size-5" />
       ) : bookmarked ? (
         <BookmarkCheck className="h-5 w-5 fill-current text-primary" />
       ) : (

@@ -1,9 +1,13 @@
-import { motion } from "framer-motion";
+import { useRef } from "react";
 
 import { Progress } from "@/components/ui/progress";
+import { useMountAnimation } from "@/lib/motion-gsap";
 
 export default function QuizProgress({ current, total }) {
   const percentage = ((current + 1) / total) * 100;
+  const counterRef = useRef(null);
+
+  useMountAnimation(counterRef, [current], { y: 6, duration: 0.25 });
 
   return (
     <div className="mt-7 space-y-2.5">
@@ -12,14 +16,13 @@ export default function QuizProgress({ current, total }) {
       <div className="flex justify-between text-sm text-muted-foreground">
         <span>
           Question{" "}
-          <motion.span
+          <span
             key={current}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
+            ref={counterRef}
             className="inline-block font-semibold text-foreground"
           >
             {current + 1}
-          </motion.span>{" "}
+          </span>{" "}
           of {total}
         </span>
       </div>

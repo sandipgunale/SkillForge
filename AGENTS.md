@@ -172,5 +172,111 @@ before implementation.
 - Repo root: `D:\OpenCode\SkillForge\SkillForge`
 - Backend (nested Maven project): `skillforge-backend/skillforge-backend`
   - Build with PowerShell: `.\mvnw.cmd -q compile` / `.\mvnw.cmd test` / `.\mvnw.cmd verify` (JaCoCo gate enforced)
-- Backend module layout: `src/main/java/com/project/skillforgebackend/<feature>/` (auth, quiz, learningpath, analytics, ai, bookmark, rating, gamification, resource, admin, common, config)
-- AI subsystem: `ai/` (client, resilience, service, guardrail, exception) + `config/properties/` (GeminiProperties, AiResilienceProperties)
+- Backend module layout: `src/main/java/com/project/skillforgebackend/<feature>` (auth, quiz, learningpath, analytics, ai, bookmark, rating, gamification, resource, admin, common, config)
+- AI subsystem: `ai/` (client, resilience, service, prompt, guardrail, validation, cache, metrics, exception) + `config/properties/` (GeminiProperties, AiResilienceProperties, AiServiceProperties)
+- Frontend: `skillforge-frontend` (Vite + React 19). Build: `npm run build`. Lint: `npm run lint` (must be warning-free).
+
+## Enterprise Engineering Standards
+
+These standards bind every Pull Request and every AI-assisted change. Verify against
+them before merging.
+
+### Pull Request Gates
+
+Every PR MUST satisfy all of the following before it can merge:
+
+- Security review passed (/cso)
+- Engineering review passed (/review)
+- Design review passed (for anything user-facing)
+- Benchmark comparison completed (/benchmark for anything performance-sensitive)
+- Documentation updated (/document-release)
+- Tests passing (backend: `mvn verify` incl. failsafe ITs + JaCoCo gate; frontend: build + lint)
+- QA completed (/qa)
+- Lighthouse maintained (frontend; no regression on the perf budget below)
+
+### AI Coding Rules
+
+- Never duplicate logic; extract and compose.
+- Keep files small and modular; keep methods short and single-purpose.
+- Prefer composition over inheritance and interfaces over concrete types.
+- Use constructor injection for every dependency (Spring/DI).
+- Follow SOLID and Clean Architecture; avoid unnecessary abstractions.
+- No dead code, unused imports, magic numbers, TODO comments, or commented-out code.
+- No AI-generated code smells (bloat, speculative generality, copy-paste rewrites).
+
+### Code Quality Review Scope
+
+Every PR touching these must review each artifact for correctness, security,
+and drift: Java classes, React components, hooks, utilities, DTOs, entities,
+mappers, repositories, controllers, services, configurations, API contracts,
+SQL queries, and Flyway migrations. Fix all code smells found.
+
+### Production Engineering
+
+All shipped code must follow the established observability/robustness pattern:
+
+- Structured logging with correlation IDs (see `RequestIdFilter` + MDC).
+- Health checks, Micrometer metrics, Prometheus scrape endpoint (`/actuator/prometheus`).
+- Graceful shutdown; Docker health checks (see `docker-compose.yml`).
+- Rate limiting (bucket4j), caching (Caffeine), retry + circuit breaker (resilience4j).
+- Consistent API error envelopes (Problem-Details style `ApiError`), never leak internals.
+- Compression on the gateway/proxy; image optimization, code splitting and
+  bundle optimization on the frontend.
+
+### AI Module Checklist
+
+Every AI feature must pass all of: prompt review, safety review, injection
+resistance (`AiPromptGuard`), schema validation (parsers + `AiResponseValidator`),
+timeout, retry, fallback (provider registry), analytics, token tracking, cost
+tracking, caching, version control of prompt templates, provider abstraction
+(`AiProvider` port), and structured parsing. Prompt internals must never leak
+to clients (see `GlobalExceptionHandler` AIServiceException mapping).
+
+### Frontend Engineering
+
+Every UI component must support: accessibility, keyboard navigation, ARIA,
+responsive layout, performance, consistent animation, error/loading/empty
+states, skeletons, dark + light mode, and reduced-motion mode
+(use `useMotionSafe()` / `prefers-reduced-motion`).
+
+### GSAP Motion System
+
+GSAP is the primary animation engine. Centralize ALL animation in one place:
+
+- One motion library (see `src/lib/motion.js`) — all presets, timelines,
+  ScrollTrigger, and SplitText usage live there.
+- Motion tokens (duration/easing) come from one source (`src/lib/design-system.js`).
+- Use GSAP timelines; share presets, easing, and durations.
+- Cleanup every animation via context-safe `gsap.context` / `useGSAP`.
+- Never duplicate animation logic across components.
+- Respect `prefers-reduced-motion` (`useMotionSafe()`).
+
+### Three.js System
+
+One reusable 3D engine (see existing scenes e.g. `LivingCoreScene`,
+`KnowledgeConstellation`) — no ad-hoc floating cubes. Reusable premium
+components are preferred: AI core, knowledge galaxy, skill orbit, particle
+network, glass holograms, volumetric lighting, bloom/post-processing, mouse
+physics, scroll-driven camera, adaptive LOD. Pause rendering when off-screen;
+target 60 FPS; degrade gracefully on low-end hardware (adaptive pixel ratio,
+reduced particles when `prefers-reduced-motion` or low device memory).
+
+### Performance Budgets
+
+Targets: Lighthouse >= 98, Accessibility >= 100, Best Practices >= 100,
+SEO >= 100. FCP < 1.5s, LCP < 2.0s, INP < 200ms, CLS < 0.05. Keep the JS
+bundle minimized; lazy-load routes (see `routes/index.jsx`) and heavy 3D
+scenes. Avoid regressing beyond these budgets in any PR.
+
+### Escalation of New Ideas
+
+Feature ideas always start at /office-hours, produce a plan with /autoplan,
+pass the plan review gates (/plan-ceo-review, /plan-eng-review,
+/plan-design-review, /plan-devex-review), and only then move to implementation.
+
+### Final Verification Checklist
+
+Before any ship: run reviews, /qa, /benchmark, security review, accessibility
+review, and documentation update. Manually verify new features. The repo must
+be clean: no build warnings, no lint warnings, no TypeScript errors, no
+Spring Boot startup warnings, no failing tests, no duplicated logic.

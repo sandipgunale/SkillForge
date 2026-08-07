@@ -1,28 +1,26 @@
-import { memo } from "react";
-import { motion } from "framer-motion";
+import { memo, useRef } from "react";
 
 import OptionItem from "./OptionItem";
-import { staggerList, staggerListItem } from "@/lib/motion";
+import { useMountAnimation } from "@/lib/motion-gsap";
 
 function OptionList({ options, selected, onSelect }) {
+  const listRef = useRef(null);
+
+  useMountAnimation(listRef, [], { y: 18, duration: 0.4, stagger: 0.05 });
+
   return (
-    <motion.div
-      variants={staggerList(0.05)}
-      initial="hidden"
-      animate="visible"
-      className="space-y-3"
-    >
+    <div ref={listRef} className="space-y-3">
       {options.map((option, index) => (
-        <motion.div key={option} variants={staggerListItem}>
+        <div key={option}>
           <OptionItem
             label={option}
             index={index}
             selected={selected === option}
             onClick={onSelect}
           />
-        </motion.div>
+        </div>
       ))}
-    </motion.div>
+    </div>
   );
 }
 
