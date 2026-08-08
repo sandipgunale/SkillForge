@@ -20,6 +20,18 @@ export const quizApi = {
   },
 
   /**
+   * Save partial answers (resume support)
+   */
+  async saveAnswers(quizId, payload) {
+    const { data } = await apiClient.put(
+      `/v1/quizzes/${quizId}/answers`,
+      payload
+    );
+
+    return data;
+  },
+
+  /**
    * Submit Quiz
    */
   async submitQuiz(quizId, payload) {

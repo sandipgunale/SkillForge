@@ -31,6 +31,8 @@ export const useQuizStore = create(
           },
         })),
 
+      hydrateAnswers: (answers) => set({ answers }),
+
       setCurrentQuestion: (index) =>
         set((state) => {
           const total =

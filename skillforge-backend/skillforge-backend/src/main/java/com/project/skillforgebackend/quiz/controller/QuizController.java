@@ -102,6 +102,27 @@ public class QuizController {
         );
     }
 
+    /**
+     * Save partial answers for an in-progress quiz (resume support).
+     */
+    @PutMapping("/{quizId}/answers")
+    public ResponseEntity<ApiResponse<Void>> saveAnswers(
+            @AuthenticationPrincipal AuthenticatedPrincipal principal,
+            @PathVariable UUID quizId,
+            @Valid @RequestBody SubmitAnswersRequest request
+    ) {
+        User user = currentUser.require(principal);
+
+        quizSubmissionService.saveAnswers(user, quizId, request);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Quiz answers saved successfully.",
+                        null
+                )
+        );
+    }
+
     @GetMapping("/active")
     public ResponseEntity<ApiResponse<QuizDto>> getActiveQuiz(
             @AuthenticationPrincipal AuthenticatedPrincipal principal

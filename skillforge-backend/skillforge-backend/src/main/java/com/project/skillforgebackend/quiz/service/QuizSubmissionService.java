@@ -113,6 +113,58 @@ public class QuizSubmissionService {
         }
     }
 
+    /**
+     * Persist a partial set of answers for an in-progress quiz so a
+     * resumed session can pick up where the user left off.
+     */
+    @Transactional
+    public void saveAnswers(
+            User user,
+            UUID quizId,
+            SubmitAnswersRequest request
+    ) {
+
+        Quiz quiz = getQuizByIdAndUser(user, quizId);
+
+        validateQuizSubmission(quiz);
+
+        applyPartialAnswers(quiz, request);
+
+        quizRepository.save(quiz);
+
+        log.info(
+                "Quiz {} progress saved by {} ({} answers)",
+                quizId,
+                user.getEmail(),
+                request.getAnswers().size()
+        );
+
+    }
+
+    /**
+     * Update only the questions present in the request, leaving any
+     * previously saved answers untouched.
+     */
+    private void applyPartialAnswers(
+            Quiz quiz,
+            SubmitAnswersRequest request
+    ) {
+
+        Map<UUID, String> answerMap =
+                quizAnswerMapper.toAnswerMap(request);
+
+        quiz.getQuestions().forEach(question -> {
+
+            String answer = answerMap.get(question.getId());
+
+            if (answer != null) {
+                question.setUserAnswer(answer);
+            }
+
+        });
+
+    }
+
     private Quiz getQuizByIdAndUser(
             User user,
             UUID quizId

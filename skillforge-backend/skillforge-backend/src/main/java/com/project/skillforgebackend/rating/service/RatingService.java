@@ -14,6 +14,7 @@ import com.project.skillforgebackend.resource.repository.ResourceRepository;
 import com.project.skillforgebackend.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +38,7 @@ public class RatingService {
     /**
      * Add or update a rating.
      */
+    @CacheEvict(cacheNames = "resources", allEntries = true)
     public RatingResponseDto rateResource(
             User user,
             UUID resourceId,
@@ -87,6 +89,7 @@ public class RatingService {
     /**
      * Remove user's rating.
      */
+    @CacheEvict(cacheNames = "resources", allEntries = true)
     public void deleteRating(
             User user,
             UUID resourceId

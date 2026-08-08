@@ -29,4 +29,9 @@ public class QuestionDto {
 
     private int orderIndex;
 
+    /**
+     * The user's saved answer, present when the quiz is being resumed.
+     */
+    private String userAnswer;
+
 }

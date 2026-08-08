@@ -81,6 +81,7 @@ public class QuizMapper {
                 .content(question.getContent())
                 .options(parseOptions(question.getOptionsJson()))
                 .orderIndex(question.getOrderIndex())
+                .userAnswer(question.getUserAnswer())
                 .build();
     }
 

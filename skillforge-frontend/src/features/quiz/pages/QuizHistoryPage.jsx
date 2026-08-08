@@ -182,6 +182,19 @@ export default function QuizHistoryPage() {
                       : ""}
                   </p>
 
+                  {quiz.status === "IN_PROGRESS" ? (
+                    <Button asChild size="sm">
+                      <Link
+                        to={ROUTES.QUIZ.replace(
+                          ":quizId",
+                          quiz.id
+                        )}
+                      >
+                        Continue
+                      </Link>
+                    </Button>
+                  ) : null}
+
                   {quiz.status === "COMPLETED" ? (
                     <Button asChild size="sm" variant="outline">
                       <Link

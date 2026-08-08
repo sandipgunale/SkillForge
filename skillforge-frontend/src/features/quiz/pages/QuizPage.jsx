@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -17,6 +17,7 @@ import { getQuizDurationSeconds } from "../constants/quiz.constants";
 import { useQuizStore } from "../store/quizStore";
 import { useSubmitQuiz } from "../hooks/useSubmitQuiz";
 import { useQuiz } from "../hooks/useQuiz";
+import { quizApi } from "../api/quiz.api";
 import { DEFAULT_QUESTION_COUNT } from "../constants/quiz.constants";
 
 export default function QuizPage() {
@@ -29,6 +30,7 @@ export default function QuizPage() {
     answerQuestion,
     setCurrentQuestion,
     setQuiz,
+    hydrateAnswers,
     startTimer,
     quizEndsAt,
   } = useQuizStore();
@@ -52,8 +54,18 @@ export default function QuizPage() {
 
     if (!quiz || quiz.id !== fetchedQuiz.id) {
       setQuiz(fetchedQuiz);
+
+      const savedAnswers = {};
+
+      for (const question of fetchedQuiz.questions ?? []) {
+        if (question.userAnswer) {
+          savedAnswers[question.id] = question.userAnswer;
+        }
+      }
+
+      hydrateAnswers(savedAnswers);
     }
-  }, [fetchedQuiz, quiz, setQuiz]);
+  }, [fetchedQuiz, quiz, setQuiz, hydrateAnswers]);
 
   /*
    * ----------------------------------
@@ -72,6 +84,60 @@ export default function QuizPage() {
       );
     }
   }, [quiz, quizEndsAt, startTimer]);
+
+  /*
+   * ----------------------------------
+   * Auto-save answers (resume support)
+   * ----------------------------------
+   */
+
+  const saveTimerRef = useRef(null);
+  const pendingSaveRef = useRef(null);
+
+  useEffect(() => {
+    if (!quiz || quiz.status !== "IN_PROGRESS") return;
+
+    const entries = Object.entries(answers);
+
+    if (!entries.length) return;
+
+    const payload = {
+      answers: entries.map(([questionId, answer]) => ({
+        questionId,
+        answer,
+      })),
+    };
+
+    pendingSaveRef.current = payload;
+
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+    }
+
+    saveTimerRef.current = setTimeout(() => {
+      pendingSaveRef.current = null;
+      quizApi.saveAnswers(quiz.id, payload).catch(() => {
+        // Silent: auto-save is best-effort; the submit payload
+        // always carries the final answers.
+      });
+    }, 600);
+
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+    };
+  }, [answers, quiz]);
+
+  useEffect(() => {
+    return () => {
+      const payload = pendingSaveRef.current;
+
+      if (payload) {
+        quizApi.saveAnswers(quiz.id, payload).catch(() => {});
+      }
+    };
+  }, [quiz]);
 
   /*
    * ----------------------------------
