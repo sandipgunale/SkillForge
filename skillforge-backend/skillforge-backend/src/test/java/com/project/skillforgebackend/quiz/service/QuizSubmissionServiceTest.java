@@ -237,6 +237,69 @@ class QuizSubmissionServiceTest {
     }
 
     @Test
+    void saveAnswers_persistsPartialAnswersWithoutFinalizingQuiz() {
+        when(quizRepository.findByIdAndUser(quiz.getId(), user))
+                .thenReturn(Optional.of(quiz));
+        when(quizAnswerMapper.toAnswerMap(any(SubmitAnswersRequest.class)))
+                .thenReturn(Map.of(question.getId(), "A language"));
+
+        submissionService.saveAnswers(user, quiz.getId(), request);
+
+        assertThat(question.getUserAnswer()).isEqualTo("A language");
+        assertThat(quiz.getStatus()).isEqualTo(Quiz.QuizStatus.IN_PROGRESS);
+        verify(quizRepository).save(quiz);
+        verify(aiService, never()).evaluateQuiz(any());
+        verify(eventPublisher, never()).publishEvent(any(BusinessAuditEvent.class));
+    }
+
+    @Test
+    void saveAnswers_mergesPartialSetLeavingOtherAnswersUntouched() {
+        Question second = Question.builder()
+                .id(UUID.randomUUID())
+                .content("Second?")
+                .userAnswer("saved before")
+                .build();
+        quiz.setQuestions(List.of(question, second));
+
+        when(quizRepository.findByIdAndUser(quiz.getId(), user))
+                .thenReturn(Optional.of(quiz));
+        when(quizAnswerMapper.toAnswerMap(any(SubmitAnswersRequest.class)))
+                .thenReturn(Map.of(question.getId(), "A language"));
+
+        submissionService.saveAnswers(user, quiz.getId(), request);
+
+        assertThat(question.getUserAnswer()).isEqualTo("A language");
+        assertThat(second.getUserAnswer()).isEqualTo("saved before");
+        verify(quizRepository).save(quiz);
+    }
+
+    @Test
+    void saveAnswers_rejectsExpiredQuiz() {
+        quiz.setExpiresAt(LocalDateTime.now().minusMinutes(1));
+
+        when(quizRepository.findByIdAndUser(quiz.getId(), user))
+                .thenReturn(Optional.of(quiz));
+
+        assertThatThrownBy(() ->
+                submissionService.saveAnswers(user, quiz.getId(), request))
+                .isInstanceOf(QuizExpiredException.class)
+                .hasMessageContaining("expired");
+
+        assertThat(quiz.getStatus()).isEqualTo(Quiz.QuizStatus.ABANDONED);
+        verify(quizRepository, never()).save(any(Quiz.class));
+    }
+
+    @Test
+    void saveAnswers_throwsWhenQuizDoesNotBelongToUser() {
+        when(quizRepository.findByIdAndUser(quiz.getId(), user))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() ->
+                submissionService.saveAnswers(user, quiz.getId(), request))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
     void submitAnswers_updatesLearningPathProgressForPathQuizzes() {
         quiz.setSource(QuizSource.LEARNING_PATH);
         quiz.setWeekNumber(2);
