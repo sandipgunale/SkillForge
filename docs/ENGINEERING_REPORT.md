@@ -77,3 +77,17 @@ Key configuration:
 - `resourcesService` page mapping (`content/number/size/totalElements/...`) matches Spring `Page<ResourceDto>`.
 - Auth store shape (`session.{accessToken,tokenType,user,...}` + `login/logout/updateUser`) matches all consumers.
 - All `ROUTES` constants match `src/routes/index.jsx` (except the missing week-quiz route, F10).
+
+## 5. Resolution status
+
+This audit was the pre-implementation baseline. All blockers (B1–B3) and
+frontend findings (F1–F16) have since been resolved and verified:
+
+- **B1** V13 migration adds `estimated_minutes`; `ddl-auto=validate` passes.
+- **B2** SecurityConfig permitAll corrected to `/api/v1/...` paths.
+- **B3** RatingService upserts — first-time rating no longer 404.
+- **F1–F16** All import / module / hook / contract fixes shipped; `npm run build`
+  and `npm run lint` green, dead code deleted (see `docs/ROADMAP.md` Waves 1–8).
+
+The findings tables above are retained as the historical audit record — they no
+longer describe the current codebase.

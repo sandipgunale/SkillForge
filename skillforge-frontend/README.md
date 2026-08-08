@@ -1,16 +1,51 @@
-# React + Vite
+# SkillForge Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 19 + Vite 8 frontend for the SkillForge learning platform. Pair with the
+backend (`skillforge-backend/skillforge-backend`); the backend serves OpenAPI docs
+at `http://localhost:8080/swagger-ui.html`, with the full endpoint reference in
+`docs/API_REFERENCE.md` (repo root).
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React 19.2, Vite 8, react-router-dom 7, TanStack Query 5, Zustand (persist)
+- Tailwind 4 (`@tailwindcss/vite`), Base UI (shadcn-style), GSAP motion system,
+  Three.js/R3F (lazy-loaded premium scenes), recharts
+- react-hook-form + zod, sonner
+- Design tokens live in `src/lib/design-system.js`; ALL animation is centralized
+  in `src/lib/motion-gsap.js` (see AGENTS.md — GSAP Motion System, Three.js System).
 
-## React Compiler
+## Setup
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+npm install
+```
 
-## Expanding the ESLint configuration
+Copy `.env.example` to `.env` and set `VITE_API_BASE_URL` (default
+`http://localhost:8080/api`). Frontend runs on `http://localhost:5173`.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Scripts
+
+```bash
+npm run dev          # Vite dev server (HMR)
+npm run build        # production build (Route + 3D scenes code-split)
+npm run preview      # serve the production build (default http://localhost:4173)
+npm run lint         # ESLint — must be warning-free before merge
+```
+
+## Performance Budgets
+
+See AGENTS.md — Lighthouse >= 98, FCP < 1.5 s, LCP < 2.0 s, INP < 200 ms,
+CLS < 0.05. Routes and heavy 3D scenes are lazy-loaded; keep the JS bundle
+minimized and re-check with `/benchmark` on performance-sensitive PRs.
+
+## Project Structure
+
+```
+src/
+  features/    # feature modules (auth, quiz, resources, workspace, ...)
+  layouts/     # Landing / Auth / Main app shells
+  lib/         # design-system.js, motion-gsap.js, three-engine.js, chart-colors.js
+  routes/      # route definitions (lazy) + guards
+  services/    # shared API layer (axios + interceptors — unwraps ApiResponse, refresh)
+  store/       # authStore (in-memory session + refresh rotation)
+```

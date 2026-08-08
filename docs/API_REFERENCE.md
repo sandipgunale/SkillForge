@@ -65,6 +65,7 @@ Rate limits: login, refresh, forgot-password and reset-password are limited to 5
 |---|---|---|---|---|
 | POST | `/api/v1/quizzes` | ✔ | `QuizRequest` | `QuizDto` (201) |
 | POST | `/api/v1/quizzes/{quizId}/submit` | ✔ (owner) | `{ answers: [{ questionId, answer }] }` — 1–100 answers, each ≤ 2000 chars | `QuizResultDto` |
+| PUT | `/api/v1/quizzes/{quizId}/answers` | ✔ (owner) | `{ answers: [{ questionId, answer }] }` — partial set, 1–100 answers | `null` (persists partial answers for resume; only saves answers for questions present on the quiz) |
 | GET | `/api/v1/quizzes/active` | ✔ | – | `QuizDto` (in-progress quiz, if any) |
 | GET | `/api/v1/quizzes/{quizId}` | ✔ (owner) | – | `QuizDto` |
 | GET | `/api/v1/quizzes/{quizId}/result` | ✔ (owner) | – | `QuizResultDto` |

@@ -70,4 +70,6 @@ enforces a JaCoCo coverage floor (line >= 35%, branch >= 25%) at `verify`.
 ## API
 
 See `docs/API_REFERENCE.md` in the repository root for the endpoint
-reference.
+reference. Other project docs (also repo root): `docs/ROADMAP.md`
+(implementation history and phases), `docs/ENGINEERING_REPORT.md`
+(pre-implementation audit and resolution status).

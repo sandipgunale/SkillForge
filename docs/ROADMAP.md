@@ -97,6 +97,11 @@ Waves completed against the "world-class learning workspace" vision (focus · pr
 - Gates: `mvn -o test` 49/49; `npm run build` green; `npm run lint` 0 errors, 24 pre-existing warnings.
 - Docs: `API_REFERENCE.md` rewritten against the real surface (16 controllers, 60 endpoints incl. admin/gamification/notifications/bookmark folders/rate limits/error table).
 
+## Wave 8 — Design system + QA sweep + quiz resume (done)
+- Frontend: full design token system (`src/lib/design-system.js`), GSAP migration (`src/lib/motion-gsap.js`, `dashboard-motion.js`), Three.js engine (`src/lib/three-engine.js`), premium Landing/Dashboard/Auth/Workspace experiences, AI Copilot workspace (`copilotEngine.js`).
+- QA sweep fixes: refresh-token rotation, in-memory session persistence, bookmark mutation parity, profile save; rating cache eviction (stale `avgRating`); quiz resume — partial answers persisted via `PUT /api/v1/quizzes/{quizId}/answers`, debounced auto-save in `QuizPage`, `Continue` action for `IN_PROGRESS` quizzes in history.
+- Performance baseline (`/benchmark`, 2026-08-08): all pages FCP 132–244 ms, landing 671 KB / 19 reqs, route lazy chunks 1–9 KB — all budgets pass.
+
 ## Verification gates per phase
 
 - Backend: `mvn -q compile` then `mvn -q test` (context test needs DB + env; document `DB_URL` etc.).
