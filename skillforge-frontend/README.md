@@ -5,6 +5,10 @@ backend (`skillforge-backend/skillforge-backend`); the backend serves OpenAPI do
 at `http://localhost:8080/swagger-ui.html`, with the full endpoint reference in
 `docs/API_REFERENCE.md` (repo root).
 
+> **For recruiters:** `/showcase` — an engineering walkthrough (architecture,
+> auth, AI, performance) backed by an auto-generated repo manifest. Entry link
+> "For recruiters" in the landing navbar.
+
 ## Stack
 
 - React 19.2, Vite 8, react-router-dom 7, TanStack Query 5, Zustand (persist)
