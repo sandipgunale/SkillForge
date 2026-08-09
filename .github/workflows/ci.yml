@@ -38,3 +38,24 @@ jobs:
         run: npm run lint -- --max-warnings 0
       - name: Build
         run: npm run build
+
+  showcase-gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install frontend deps (for gzip budget check)
+        run: npm ci
+        working-directory: skillforge-frontend
+      - name: G1 — manifest fresh (regenerate == committed)
+        run: node scripts/export-showcase-data.mjs --check
+      - name: G2 — no hardcoded claim drift (numbers come from FACTS only)
+        run: node scripts/check-showcase-claims.mjs
+      - name: G3 — snapshot staleness guard (manifest date vs last commit)
+        run: node scripts/check-showcase-snapshot.mjs
+      - name: G4 — showcase chunk gzip budget (<= 12 kB)
+        run: node scripts/check-showcase-budget.mjs
