@@ -5,6 +5,49 @@ All notable changes to SkillForge are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to four-part versions (MAJOR.MINOR.PATCH.MICRO).
 
+## [0.2.0.0] - 2026-08-09
+
+Recruiter Mode: a dedicated engineering showcase page that tells the
+SkillForge story with live, repo-generated facts.
+
+### Added
+
+- Showcase page (`/showcase`): recruiters can now take a guided chapter tour
+  of how SkillForge was built — welcome ticker with live repo metrics, code
+  walkthrough chapters, architecture overview, and a print-ready summary
+  (`Ctrl/Cmd+P`), with keyboard-navigable chapter rail and hash anchors.
+- Facts pipeline: every number on the showcase comes from
+  `scripts/export-showcase-data.mjs` (commit counts, file counts, benchmark
+  results) — the page can never show hardcoded claims. A dedicated CI job
+  (`showcase-gates`) regenerates the manifest and fails the build on drift
+  (G1), hardcoded numbers (G2), stale snapshots (G3), or oversize chunks (G4).
+- Landing page navigation now links to the showcase.
+
+### Changed
+
+- `shadcn` CLI moved to devDependencies — production install no longer pulls
+  in its dependency tree (`npm audit --omit=dev` is clean).
+- `react-router-dom` bumped to 7.18.2.
+- Design system: ember/aurora radial accents and scroll-margin tokens for the
+  showcase chapter sections.
+
+### Fixed
+
+- `export-showcase-data.mjs --check` no longer rewrites the manifest before
+  comparing — it used to always pass and dirty the working tree; it now reads
+  the committed file and fails on real drift.
+- Showcase chapter rail now tracks the active chapter (the page was passing
+  the wrong prop, so no tab was ever marked selected and focus never moved).
+- CI gate G1 now works on pull-request runners: the branch field is excluded
+  from the manifest comparison (checkouts are detached) and the job fetches
+  full history so commit counts match.
+
+### Performance
+
+- Showcase chunk stays within budget: 7.79 kB gzip (G4 gate, ≤ 12 kB).
+- Showcase page: ~13 kB transfer, FCP 480–610 ms on first visit (2026-08-09
+  benchmark); landing unchanged at ~688 kB total.
+
 ## [0.1.0.0] - 2026-08-08
 
 First formal release: the platform goes from baseline to production-hardened

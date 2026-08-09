@@ -1,4 +1,4 @@
-# TODOS
+﻿# TODOS
 
 Format: priority — title — (owner) — note.
 
@@ -17,6 +17,7 @@ Format: priority — title — (owner) — note.
 - **P3** — `COOKIE_SECURE` has no prod-profile guard; fail startup when cookie secure=false under `prod` (m1, v0.1.0.0).
 - **P3** — Gate Swagger UI / `/v3/api-docs` in prod profile (m3, v0.1.0.0).
 - **P3** — Derive `expiresIn` in `AuthResponse` from `jwt.access-token-expiry` instead of hardcoding 900 (m2, v0.1.0.0).
+- **P3** — Run backend Docker runtime as non-root user (USER directive) in multi-stage image (m1, v0.2.0.0).
 
 ## Completed
 
