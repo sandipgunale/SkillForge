@@ -20,6 +20,7 @@ const FOOTER_COLUMNS = [
       { label: "Resources", href: ROUTES.RESOURCES },
       { label: "Quiz history", href: ROUTES.QUIZ_HISTORY },
       { label: "Bookmarks", href: ROUTES.BOOKMARKS },
+      { label: "Engineering showcase", href: ROUTES.SHOWCASE },
     ],
   },
   {

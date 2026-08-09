@@ -696,3 +696,29 @@ input:-webkit-autofill:focus {
     background-size: 200% 100%;
     animation: shimmer 2.4s var(--ease-in-out-soft) infinite;
 }
+
+/* ==========================================================================
+   Print — /showcase walks the codebase like a résumé. Hide the app chrome,
+   flatten the glass, and let chapters page-break cleanly.
+   ========================================================================== */
+@media print {
+    header,
+    .showcase-rail,
+    .showcase-stepper {
+        display: none !important;
+    }
+    body {
+        background: #fff !important;
+        color: #111 !important;
+    }
+    section[aria-labelledby] {
+        break-inside: avoid-page;
+    }
+    .dark {
+        --background: #fff;
+        --foreground: #111;
+        --card: #fff;
+        --muted: #f4f4f5;
+        color: #111 !important;
+    }
+}

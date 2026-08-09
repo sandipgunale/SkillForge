@@ -1,0 +1,32 @@
+{
+  "generatedAt": "2026-08-09T10:57:02.806Z",
+  "version": "0.2.0.0",
+  "git": {
+    "branch": "main",
+    "commits": 37,
+    "authors": 1,
+    "tags": [
+      "sprint-4-complete",
+      "sprint-5-complete",
+      "v0.1.0",
+      "v0.2.0",
+      "v0.3.0"
+    ],
+    "latestTag": "v0.3.0",
+    "firstCommitDate": "2026-06-25",
+    "lastCommitDate": "2026-08-08"
+  },
+  "code": {
+    "javaMainFiles": 224,
+    "javaTestFiles": 37,
+    "frontendFiles": 314,
+    "migrations": 20,
+    "controllers": 17
+  },
+  "perf": {
+    "recordedIn": "2026-08-09",
+    "fcp": "100–608ms",
+    "lcp": "236ms",
+    "landingTransferKb": "688"
+  }
+}

@@ -18,6 +18,8 @@ const NAV_LINKS = [
   { label: "FAQ", href: "#faq" },
 ];
 
+const SHOWCASE_LINK = { label: "For recruiters", to: ROUTES.SHOWCASE };
+
 export default function LandingNavbar() {
   const [scrolled, setScrolled] = useState(false);
 
@@ -52,6 +54,14 @@ export default function LandingNavbar() {
               </a>
             </li>
           ))}
+          <li>
+            <Link
+              to={SHOWCASE_LINK.to}
+              className="rounded-full px-3.5 py-2 font-mono text-xs uppercase tracking-[0.08em] text-ember transition-colors hover:bg-accent hover:text-ember/80"
+            >
+              {SHOWCASE_LINK.label}
+            </Link>
+          </li>
         </ul>
 
         <div className="flex items-center gap-2">
@@ -95,6 +105,14 @@ export default function LandingNavbar() {
                     </a>
                   </li>
                 ))}
+                <li>
+                  <Link
+                    to={SHOWCASE_LINK.to}
+                    className="block rounded-lg px-3 py-2.5 font-mono text-xs uppercase tracking-[0.08em] text-ember transition-colors hover:bg-accent hover:text-ember/80"
+                  >
+                    {SHOWCASE_LINK.label}
+                  </Link>
+                </li>
                 <li className="mt-3 flex items-center gap-2 border-t pt-4">
                   <Link to={ROUTES.LOGIN} className="flex-1">
                     <Button variant="outline" className="w-full rounded-full">

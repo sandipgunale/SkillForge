@@ -88,6 +88,10 @@ const LandingPage = lazy(
   () => import("@/features/landing/pages/LandingPage"),
 );
 
+const ShowcasePage = lazy(
+  () => import("@/features/showcase/pages/ShowcasePage"),
+);
+
 /* -------------------------------------------------------------------------- */
 /*                           Suspense Helper                                  */
 /* -------------------------------------------------------------------------- */
@@ -114,6 +118,17 @@ export const router = createBrowserRouter([
         element: withSuspense(LandingPage),
       },
     ],
+  },
+
+  // ------------------------------------------------------------------------
+  // Public: Engineering Showcase (recruiter walkthrough)
+  // Open route — no auth guard; works for anonymous and signed-in visitors.
+  // Own errorElement so chunk-load failures render AppError (ChunkLoadError).
+  // ------------------------------------------------------------------------
+  {
+    path: ROUTES.SHOWCASE,
+    errorElement: <AppError />,
+    element: withSuspense(ShowcasePage),
   },
 
   // ------------------------------------------------------------------------

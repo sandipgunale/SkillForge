@@ -258,7 +258,37 @@ export const EASE = {
 };
 
 /* ==========================================================================
-   4. Component tokens — auth atoms (fields, CTA, icon tiles, logo)
+   4. DIAGRAM tokens — visual-grammar primitives for the engineering
+   showcase (/showcase). Nodes, edges, layers, pills and arrows all compose
+   from the brand variables above — ember→aurora ramp only, alpha()/mix()
+   only, never ad-hoc colors. See DESIGN.md / Visual Grammar spec.
+   ========================================================================== */
+
+export const DIAGRAM = {
+  /* Node — a real class/chip rendered as a token */
+  node: `rounded-lg border ${BORDER.subtle} bg-card px-3 py-2 text-subtitle font-bold tracking-tight`,
+  /* Focused node — the current claim's anchor (warm ember ring) */
+  nodeFocused: `${BORDER.ember} bg-ember/5 shadow-md shadow-ember/20`,
+  /* Dim node — context, not claim */
+  nodeDim: "opacity-60",
+  /* Edge — connector between nodes (ember→aurora gradient rule) */
+  edge: "h-px w-full bg-gradient-to-r from-ember to-aurora",
+  /* Layer chip — a labeled horizontal band (architecture layer) */
+  layerChip: `inline-flex items-center gap-2 rounded-full ${BORDER.base} px-3 py-1 font-mono text-overline tracking-[0.12em] uppercase`,
+  /* Token pill — small fact value (e.g. "900000 ms") */
+  tokenPill:
+    "inline-flex items-center rounded-md border border-border bg-muted/40 px-2 py-0.5 font-mono text-2xs text-muted-foreground",
+  /* Callout — labeled annotation on a diagram (dim, mono) */
+  callout:
+    "rounded-md border border-dashed border-border bg-background/40 px-3 py-1.5 font-mono text-overline tracking-[0.08em] text-muted-foreground",
+  /* Link arrow — "→" used between steps (ember, mono) */
+  linkArrow: "font-mono text-sm text-ember",
+  /* Group — a bounded diagram region (dashed frame) */
+  group: "rounded-xl border border-dashed border-border/70 p-4",
+};
+
+/* ==========================================================================
+   5. Component tokens — auth atoms (fields, CTA, icon tiles, logo)
    ========================================================================== */
 
 export const COMPONENT = {
