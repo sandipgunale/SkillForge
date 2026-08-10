@@ -8,6 +8,7 @@ import com.project.skillforgebackend.resource.dto.TagDto;
 import com.project.skillforgebackend.resource.dto.UpdateTagRequest;
 import com.project.skillforgebackend.resource.entity.Tag;
 import com.project.skillforgebackend.resource.mapper.TagMapper;
+import com.project.skillforgebackend.resource.repository.ResourceRepository;
 import com.project.skillforgebackend.resource.repository.TagRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
@@ -25,6 +26,7 @@ public class TagService {
 
     private final TagRepository tagRepository;
     private final TagMapper tagMapper;
+    private final ResourceRepository resourceRepository;
 
     @Cacheable(cacheNames = "tags")
     public List<TagDto> getAllTags() {
@@ -89,6 +91,13 @@ public class TagService {
     public void deleteTag(UUID tagId) {
 
         Tag tag = getTagEntity(tagId);
+
+        if (resourceRepository.existsByTagsContaining(tag)) {
+            throw new IllegalStateException(
+                    "Tag '" + tag.getName()
+                            + "' is used by resources and cannot be deleted"
+            );
+        }
 
         tagRepository.delete(tag);
     }

@@ -3,6 +3,7 @@ package com.project.skillforgebackend.admin.controller;
 import com.project.skillforgebackend.admin.dto.AdminUserDto;
 import com.project.skillforgebackend.admin.dto.UpdateUserRoleRequest;
 import com.project.skillforgebackend.admin.service.AdminUserService;
+import com.project.skillforgebackend.auth.principal.AuthenticatedPrincipal;
 import com.project.skillforgebackend.common.response.ApiResponse;
 import com.project.skillforgebackend.quiz.dto.PagedResponse;
 import jakarta.validation.Valid;
@@ -11,6 +12,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -66,9 +68,14 @@ public class AdminUserController {
     @PutMapping("/{userId}")
     public ResponseEntity<ApiResponse<AdminUserDto>> updateUser(
             @PathVariable String userId,
-            @Valid @RequestBody UpdateUserRoleRequest request
+            @Valid @RequestBody UpdateUserRoleRequest request,
+            @AuthenticationPrincipal AuthenticatedPrincipal principal
     ) {
-        AdminUserDto user = adminUserService.updateUser(userId, request);
+        AdminUserDto user = adminUserService.updateUser(
+                userId,
+                request,
+                principal.id()
+        );
 
         return ResponseEntity.ok(
                 ApiResponse.success(

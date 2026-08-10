@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-08-10T05:34:09.798Z",
+  "generatedAt": "2026-08-10T13:05:49.308Z",
   "version": "0.2.0.0",
   "git": {
     "branch": "main",
-    "commits": 42,
+    "commits": 43,
     "authors": 1,
     "tags": [
       "sprint-4-complete",
@@ -14,14 +14,14 @@
     ],
     "latestTag": "v0.3.0",
     "firstCommitDate": "2026-06-25",
-    "lastCommitDate": "2026-08-09"
+    "lastCommitDate": "2026-08-10"
   },
   "code": {
-    "javaMainFiles": 226,
-    "javaTestFiles": 38,
-    "frontendFiles": 314,
+    "javaMainFiles": 227,
+    "javaTestFiles": 39,
+    "frontendFiles": 317,
     "migrations": 20,
-    "controllers": 17
+    "controllers": 18
   },
   "perf": {
     "recordedIn": "2026-08-09",

@@ -36,6 +36,7 @@ public class ResourceMapper {
                 )
                 .createdAt(resource.getCreatedAt())
                 .estimatedMinutes(resource.getEstimatedMinutes())
+                .active(resource.getActive())
                 .build();
     }
 

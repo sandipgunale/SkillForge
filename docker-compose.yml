@@ -27,7 +27,7 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/skillforge
       DB_USERNAME: postgres
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
-      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required — generate one with: openssl rand -base64 64}
+      JWT_SECRET: "${JWT_SECRET:?JWT_SECRET is required}"
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODELS: ${GEMINI_MODELS:-gemini-flash-latest,gemini-2.5-flash,gemini-2.0-flash}
       COOKIE_SECURE: "false"

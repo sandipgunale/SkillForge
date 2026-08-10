@@ -50,4 +50,34 @@ AND (
     boolean existsByTopic(Topic topic);
 
     boolean existsByTagsContaining(Tag tag);
+
+    @Query("""
+SELECT DISTINCT r
+FROM Resource r
+LEFT JOIN FETCH r.topic
+LEFT JOIN FETCH r.tags
+WHERE (:active IS NULL OR r.active = :active)
+AND (:topicId IS NULL OR r.topic.id = :topicId)
+AND (:difficulty IS NULL OR r.difficulty = :difficulty)
+AND (:type IS NULL OR r.type = :type)
+AND (
+    :search IS NULL
+    OR LOWER(r.title) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))
+    OR LOWER(r.description) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))
+    OR LOWER(r.topic.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))
+    OR EXISTS (
+        SELECT t
+        FROM r.tags t
+        WHERE LOWER(t.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))
+    )
+)
+""")
+    Page<Resource> findAllWithFiltersIncludingInactive(
+            UUID topicId,
+            Resource.Difficulty difficulty,
+            Resource.ResourceType type,
+            String search,
+            Boolean active,
+            Pageable pageable
+    );
 }

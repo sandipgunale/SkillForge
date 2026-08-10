@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { ChevronsLeft, Pin } from "lucide-react";
 
 import AppLogo from "@/components/layout/AppLogo";
@@ -10,6 +10,8 @@ import { getNavigationSections, ROLE_LABELS } from "@/config/navigation";
 import { useAuth } from "@/store/authStore";
 
 import { useMagnetic } from "@/lib/dashboard-motion";
+
+import { ROUTES } from "@/constants/routes";
 
 /* ==========================================================================
    Mission Shell — the primary chrome of SkillForge.
@@ -51,6 +53,7 @@ export default function MissionContent({
 }) {
   const { user, role } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const railRef = useRef(null);
   const [pinned, setPinned] = useState(() => readJson(PIN_KEY, []));
   const [recent, setRecent] = useState(() => readJson(RECENT_KEY, []));
@@ -90,6 +93,18 @@ export default function MissionContent({
       .toUpperCase() || "GU";
 
   const roles = ["STUDENT", "INSTRUCTOR", "ADMIN"];
+
+  const workspacePaths = {
+    STUDENT: ROUTES.WORKSPACE,
+    INSTRUCTOR: ROUTES.INSTRUCTOR,
+    ADMIN: ROUTES.ADMIN,
+  };
+
+  const switchWorkspace = (targetRole) => {
+    if (targetRole === role) return;
+    navigate(workspacePaths[targetRole]);
+    recordVisit(workspacePaths[targetRole]);
+  };
 
   /* Roving keyboard focus: Up/Down/Home/End inside the rail. */
   const handleKeyDown = (event) => {
@@ -218,6 +233,8 @@ export default function MissionContent({
               <button
                 key={r}
                 type="button"
+                onClick={() => switchWorkspace(r)}
+                aria-label={`Open ${ROLE_LABELS[r]} workspace`}
                 className={cn(
                   "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors",
                   role === r

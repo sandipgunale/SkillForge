@@ -82,6 +82,65 @@ public class ResourceService {
         return resourceMapper.toDto(resource);
     }
 
+    @Transactional(readOnly = true)
+    public Page<ResourceDto> getResourcesForAdmin(
+            UUID topicId,
+            Resource.Difficulty difficulty,
+            Resource.ResourceType type,
+            String search,
+            Boolean active,
+            Pageable pageable) {
+
+        search = search == null ? null : search.trim();
+
+        if (search != null && search.isBlank()) {
+            search = null;
+        }
+
+        return resourceRepository
+                .findAllWithFiltersIncludingInactive(
+                        topicId,
+                        difficulty,
+                        type,
+                        search,
+                        active,
+                        pageable
+                )
+                .map(resourceMapper::toDto);
+    }
+
+    @Transactional(readOnly = true)
+    public ResourceDto getResourceByIdForAdmin(UUID id) {
+
+        Resource resource = resourceRepository
+                .findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Resource", id));
+
+        return resourceMapper.toDto(resource);
+    }
+
+    @Transactional
+    @CacheEvict(cacheNames = {"topics", "resources"}, allEntries = true)
+    public ResourceDto restoreResource(UUID resourceId) {
+
+        Resource resource = getResourceEntityAny(resourceId);
+
+        resource.setActive(true);
+
+        Resource saved = resourceRepository.save(resource);
+
+        eventPublisher.publishEvent(new BusinessAuditEvent(
+                BusinessAuditEvent.Type.RESOURCE_UPDATED,
+                null,
+                "resource",
+                resourceId.toString(),
+                resource.getTitle()
+        ));
+
+        return resourceMapper.toDto(saved);
+    }
+
     @Cacheable(cacheNames = "topics")
     public List<TopicDto> getAllTopics() {
 
@@ -152,6 +211,13 @@ public class ResourceService {
     public void deleteTopic(UUID topicId) {
 
         Topic topic = getTopicEntity(topicId);
+
+        if (resourceRepository.existsByTopic(topic)) {
+            throw new IllegalStateException(
+                    "Topic '" + topic.getName()
+                            + "' has resources linked to it and cannot be deleted"
+            );
+        }
 
         topicRepository.delete(topic);
 
@@ -262,6 +328,17 @@ public class ResourceService {
     private Resource getResourceEntity(UUID resourceId) {
 
         return resourceRepository.findByIdAndActiveTrue(resourceId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Resource",
+                                resourceId
+                        ));
+    }
+
+
+    private Resource getResourceEntityAny(UUID resourceId) {
+
+        return resourceRepository.findById(resourceId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Resource",

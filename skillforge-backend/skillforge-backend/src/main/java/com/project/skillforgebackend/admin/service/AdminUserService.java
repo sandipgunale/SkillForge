@@ -18,6 +18,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -46,12 +48,24 @@ public class AdminUserService {
     }
 
     @Transactional
-    public AdminUserDto updateUser(String userId, UpdateUserRoleRequest request) {
-        User user = userRepository.findById(java.util.UUID.fromString(userId))
+    public AdminUserDto updateUser(
+            String userId,
+            UpdateUserRoleRequest request,
+            UUID actingAdminId
+    ) {
+        UUID targetId = java.util.UUID.fromString(userId);
+
+        if (targetId.equals(actingAdminId)) {
+            throw new IllegalStateException(
+                    "You cannot change your own role or status"
+            );
+        }
+
+        User user = userRepository.findById(targetId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "User",
-                                java.util.UUID.fromString(userId)
+                                targetId
                         )
                 );
 

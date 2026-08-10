@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -38,6 +39,10 @@ class AdminUserServiceTest {
     private AdminUserService adminUserService;
 
     private User user;
+
+    private final UUID actingAdminId = UUID.fromString(
+            "00000000-0000-0000-0000-000000000001"
+    );
 
     @BeforeEach
     void setUp() {
@@ -99,7 +104,8 @@ class AdminUserServiceTest {
 
         var updated = adminUserService.updateUser(
                 user.getId().toString(),
-                request
+                request,
+                actingAdminId
         );
 
         assertThat(updated.getRole()).isEqualTo("INSTRUCTOR");
@@ -117,7 +123,11 @@ class AdminUserServiceTest {
                 .build();
 
         assertThatThrownBy(() ->
-                adminUserService.updateUser(user.getId().toString(), request))
+                adminUserService.updateUser(
+                        user.getId().toString(),
+                        request,
+                        actingAdminId
+                ))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Invalid role");
     }
@@ -134,8 +144,59 @@ class AdminUserServiceTest {
         assertThatThrownBy(() ->
                 adminUserService.updateUser(
                         UUID.randomUUID().toString(),
-                        request
+                        request,
+                        actingAdminId
                 ))
                 .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void updateUserRejectsSelfModification() {
+        var request = UpdateUserRoleRequest.builder()
+                .role("INSTRUCTOR")
+                .build();
+
+        assertThatThrownBy(() ->
+                adminUserService.updateUser(
+                        actingAdminId.toString(),
+                        request,
+                        actingAdminId
+                ))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("own role");
+    }
+
+    @Test
+    void updateUserRejectsSelfDisable() {
+        var request = UpdateUserRoleRequest.builder()
+                .isActive(false)
+                .build();
+
+        assertThatThrownBy(() ->
+                adminUserService.updateUser(
+                        actingAdminId.toString(),
+                        request,
+                        actingAdminId
+                ))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("own role");
+    }
+
+    @Test
+    void updateUserDoesNotModifyOwnAccount() {
+        var request = UpdateUserRoleRequest.builder()
+                .role("ADMIN")
+                .isActive(true)
+                .build();
+
+        assertThatThrownBy(() ->
+                adminUserService.updateUser(
+                        actingAdminId.toString(),
+                        request,
+                        actingAdminId
+                ))
+                .isInstanceOf(IllegalStateException.class);
+
+        verify(userRepository, never()).save(any(User.class));
     }
 }

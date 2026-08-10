@@ -41,4 +41,6 @@ public class ResourceDto {
 
     private Integer estimatedMinutes;
 
+    private Boolean active;
+
 }
