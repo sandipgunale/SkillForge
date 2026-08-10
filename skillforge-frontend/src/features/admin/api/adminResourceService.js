@@ -22,20 +22,20 @@ class AdminResourceService {
   }
 
   async createResource(payload) {
-    const { data } = await apiClient.post("/admin/resources", payload);
+    const { data } = await apiClient.post("/v1/resources", payload);
     return data;
   }
 
   async updateResource(resourceId, payload) {
     const { data } = await apiClient.put(
-      `/admin/resources/${resourceId}`,
+      `/v1/resources/${resourceId}`,
       payload,
     );
     return data;
   }
 
   async deleteResource(resourceId) {
-    await apiClient.delete(`/admin/resources/${resourceId}`);
+    await apiClient.delete(`/v1/resources/${resourceId}`);
   }
 
   async restoreResource(resourceId) {
