@@ -38,11 +38,13 @@ public class AuthService {
             throw new EmailAlreadyExistsException();
         }
 
+        User.Role role = resolveRegistrationRole(request.getRole());
+
         User user = User.builder()
                 .email(email)
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName().trim())
-                .role(User.Role.STUDENT)
+                .role(role)
                 .isActive(true)
                 .build();
 
@@ -66,6 +68,25 @@ public class AuthService {
         ));
 
         return buildAuthResponse(saved, false, refreshToken);
+    }
+
+    /**
+     * Maps the optional role string from the register payload onto a
+     * self-service role. Blank/unknown falls back to STUDENT; ADMIN can
+     * never be granted through public registration (privilege escalation
+     * guard — it is assignable only by an existing admin).
+     */
+    private User.Role resolveRegistrationRole(String requested) {
+        if (requested == null || requested.isBlank()) {
+            return User.Role.STUDENT;
+        }
+        String normalized = requested.trim().toUpperCase();
+        if (!"STUDENT".equals(normalized) && !"INSTRUCTOR".equals(normalized)) {
+            throw new IllegalArgumentException(
+                    "Invalid role. Must be one of STUDENT, INSTRUCTOR"
+            );
+        }
+        return User.Role.valueOf(normalized);
     }
 
     public AuthResponse login(LoginRequest request) {

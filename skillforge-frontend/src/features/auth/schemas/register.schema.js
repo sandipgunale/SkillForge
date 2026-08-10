@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+export const ROLE_OPTIONS = [
+  { value: "STUDENT", label: "Student", description: "Learn, take quizzes, and track progress" },
+  { value: "INSTRUCTOR", label: "Instructor", description: "Create resources, quizzes, and learning paths" },
+];
+
 export const registerSchema = z.object({
   fullName: z
     .string()
@@ -19,10 +24,13 @@ export const registerSchema = z.object({
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).*$/,
       "Password must contain uppercase, lowercase and a number"
     ),
+
+  role: z.enum(["STUDENT", "INSTRUCTOR"]).default("STUDENT"),
 });
 
 export const defaultRegisterValues = {
   fullName: "",
   email: "",
   password: "",
+  role: "STUDENT",
 };

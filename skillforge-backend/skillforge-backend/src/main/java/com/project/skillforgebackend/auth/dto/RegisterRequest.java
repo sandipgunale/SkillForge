@@ -22,4 +22,11 @@ public class RegisterRequest {
             message = "Password must contain uppercase, lowercase, and a number"
     )
     private String password;
+
+    /**
+     * Role requested at registration. Only STUDENT (default) and INSTRUCTOR
+     * are assignable by self-service; ADMIN is reserved for existing admins
+     * (enforced in AuthService, never accepted here).
+     */
+    private String role;
 }

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-09T10:58:49.398Z",
+  "generatedAt": "2026-08-10T05:34:09.798Z",
   "version": "0.2.0.0",
   "git": {
     "branch": "main",
@@ -17,8 +17,8 @@
     "lastCommitDate": "2026-08-09"
   },
   "code": {
-    "javaMainFiles": 224,
-    "javaTestFiles": 37,
+    "javaMainFiles": 226,
+    "javaTestFiles": 38,
     "frontendFiles": 314,
     "migrations": 20,
     "controllers": 17

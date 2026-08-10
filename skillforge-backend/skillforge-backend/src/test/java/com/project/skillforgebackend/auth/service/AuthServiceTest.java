@@ -114,6 +114,92 @@ class AuthServiceTest {
                 .isInstanceOf(EmailAlreadyExistsException.class);
     }
 
+    @Test
+    void register_withInstructorRoleCreatesInstructor() {
+        when(userRepository.existsByEmail("teacher@example.com")).thenReturn(false);
+        when(passwordEncoder.encode("Str0ngPass123")).thenReturn("encoded");
+        User saved = User.builder()
+                .id(UUID.randomUUID())
+                .email("teacher@example.com")
+                .passwordHash("encoded")
+                .fullName("Teacher")
+                .role(User.Role.INSTRUCTOR)
+                .isActive(true)
+                .build();
+        when(userRepository.save(any(User.class))).thenReturn(saved);
+        when(jwtService.getRefreshTokenLifetime(false)).thenReturn(86_400_000L);
+        when(jwtService.generateRefreshToken("teacher@example.com", false))
+                .thenReturn("raw-refresh");
+        when(jwtService.generateAccessToken(eq("teacher@example.com"), any())).thenReturn("access");
+
+        RegisterRequest request = new RegisterRequest();
+        request.setFullName("Teacher");
+        request.setEmail("teacher@example.com");
+        request.setPassword("Str0ngPass123");
+        request.setRole("INSTRUCTOR");
+
+        AuthResponse response = authService.register(request);
+
+        assertThat(response.getUser().getRole()).isEqualTo("INSTRUCTOR");
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertThat(captor.getValue().getRole()).isEqualTo(User.Role.INSTRUCTOR);
+    }
+
+    @Test
+    void register_blankRoleDefaultsToStudent() {
+        when(userRepository.existsByEmail("blank-role@example.com")).thenReturn(false);
+        when(passwordEncoder.encode("Str0ngPass123")).thenReturn("encoded");
+        when(userRepository.save(any(User.class))).thenReturn(user);
+        when(jwtService.getRefreshTokenLifetime(false)).thenReturn(86_400_000L);
+        when(jwtService.generateRefreshToken("learner@example.com", false))
+                .thenReturn("raw-refresh");
+        when(jwtService.generateAccessToken(eq("learner@example.com"), any())).thenReturn("access");
+
+        RegisterRequest request = new RegisterRequest();
+        request.setFullName("Blank Role");
+        request.setEmail("blank-role@example.com");
+        request.setPassword("Str0ngPass123");
+        request.setRole("  ");
+
+        authService.register(request);
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertThat(captor.getValue().getRole()).isEqualTo(User.Role.STUDENT);
+    }
+
+    @Test
+    void register_adminRoleIsRejected() {
+        RegisterRequest request = new RegisterRequest();
+        request.setFullName("Hacker");
+        request.setEmail("hacker@example.com");
+        request.setPassword("Str0ngPass123");
+        request.setRole("ADMIN");
+
+        assertThatThrownBy(() -> authService.register(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("STUDENT, INSTRUCTOR");
+
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void register_unknownRoleIsRejected() {
+        RegisterRequest request = new RegisterRequest();
+        request.setFullName("Sneaky");
+        request.setEmail("sneaky@example.com");
+        request.setPassword("Str0ngPass123");
+        request.setRole("SUPERUSER");
+
+        assertThatThrownBy(() -> authService.register(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("STUDENT, INSTRUCTOR");
+
+        verify(userRepository, never()).save(any(User.class));
+    }
+
     // ── login ────────────────────────────────────────────────────────────────
 
     @Test

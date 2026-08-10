@@ -1,12 +1,13 @@
 import { useRef } from "react";
 import { Link } from "react-router-dom";
 
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import {
   registerSchema,
   defaultRegisterValues,
+  ROLE_OPTIONS,
 } from "../schemas/register.schema";
 
 import { useRegister } from "../hooks/useRegister";
@@ -15,6 +16,9 @@ import AuthCard from "./AuthCard";
 import AuthLogo from "./AuthLogo";
 import FloatingField from "./FloatingField";
 import AuthSubmitButton from "./AuthSubmitButton";
+
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 import { useReveal } from "@/lib/motion-gsap";
 import { TYPOGRAPHY } from "@/lib/design-system";
@@ -27,6 +31,7 @@ export default function RegisterForm() {
     register,
     watch,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(registerSchema),
@@ -106,6 +111,60 @@ export default function RegisterForm() {
             field={register("password")}
             error={errors.password?.message}
           />
+
+          {/* Role */}
+          <div className="space-y-3">
+            <div className="flex items-baseline justify-between">
+              <Label htmlFor="role" className="text-sm font-medium">
+                I am joining as
+              </Label>
+              {errors.role && (
+                <span className="text-xs font-medium text-destructive">
+                  {errors.role.message}
+                </span>
+              )}
+            </div>
+
+            <Controller
+              name="role"
+              control={control}
+              render={({ field }) => (
+                <RadioGroup
+                  id="role"
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  className="grid grid-cols-2 gap-3"
+                >
+                  {ROLE_OPTIONS.map((option) => (
+                    <Label
+                      key={option.value}
+                      htmlFor={`role-${option.value.toLowerCase()}`}
+                      className={cn(
+                        "flex cursor-pointer flex-col gap-1 rounded-xl border p-4 transition-colors",
+                        field.value === option.value
+                          ? "border-ember bg-ember/5"
+                          : "border-border hover:border-ember/40",
+                      )}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <RadioGroupItem
+                          value={option.value}
+                          id={`role-${option.value.toLowerCase()}`}
+                          checked={field.value === option.value}
+                        />
+                        <span className="text-sm font-semibold">
+                          {option.label}
+                        </span>
+                      </div>
+                      <span className="pl-6 text-xs leading-snug text-muted-foreground">
+                        {option.description}
+                      </span>
+                    </Label>
+                  ))}
+                </RadioGroup>
+              )}
+            />
+          </div>
 
           <AuthSubmitButton
             status={status}

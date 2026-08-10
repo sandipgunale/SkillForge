@@ -146,6 +146,31 @@ export default function LoginForm() {
             Create Account
           </Link>
         </div>
+
+        {/* Demo access */}
+        <div className="rounded-xl border border-dashed border-border bg-card/40 p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-aurora">
+            Demo access
+          </p>
+          <ul className="mt-2 space-y-1.5 text-xs leading-relaxed text-muted-foreground">
+            <li>
+              <span className="font-mono text-foreground">admin@skillforge.com</span>
+              {" — "}seeded at startup; password comes from{" "}
+              <code className="rounded bg-muted px-1 py-0.5 font-mono text-[0.7rem]">
+                ADMIN_PASSWORD
+              </code>{" "}
+              in the backend&apos;s{" "}
+              <code className="rounded bg-muted px-1 py-0.5 font-mono text-[0.7rem]">
+                .env
+              </code>
+            </li>
+            <li>
+              Instructor accounts: pick{" "}
+              <span className="font-semibold text-foreground">Instructor</span>{" "}
+              when registering — no admin needed.
+            </li>
+          </ul>
+        </div>
       </div>
     </AuthCard>
   );
