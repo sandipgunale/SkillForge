@@ -437,7 +437,7 @@ function SelectField({
         control={control}
         render={({ field }) => (
           <Select
-            value={field.value || undefined}
+            value={field.value ?? ""}
             onValueChange={field.onChange}
             disabled={disabled}
           >

@@ -1,6 +1,11 @@
 import { apiClient } from "@/services/api/axios";
 
 class CatalogService {
+  async getTopics() {
+    const response = await apiClient.get("/v1/topics");
+    return response.data;
+  }
+
   async getTags() {
     const response = await apiClient.get("/v1/tags");
     return response.data;
