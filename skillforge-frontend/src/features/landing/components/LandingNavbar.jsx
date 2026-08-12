@@ -74,9 +74,9 @@ export default function LandingNavbar() {
             Sign in
           </Link>
 
-          <Link to={ROUTES.REGISTER}>
-            <Button className="hidden rounded-full sm:inline-flex">Start free</Button>
-          </Link>
+          <Button asChild className="hidden rounded-full sm:inline-flex">
+            <Link to={ROUTES.REGISTER}>Start free</Link>
+          </Button>
 
           {/* Mobile menu */}
           <Sheet>
@@ -114,14 +114,12 @@ export default function LandingNavbar() {
                   </Link>
                 </li>
                 <li className="mt-3 flex items-center gap-2 border-t pt-4">
-                  <Link to={ROUTES.LOGIN} className="flex-1">
-                    <Button variant="outline" className="w-full rounded-full">
-                      Sign in
-                    </Button>
-                  </Link>
-                  <Link to={ROUTES.REGISTER} className="flex-1">
-                    <Button className="w-full rounded-full">Start free</Button>
-                  </Link>
+                  <Button asChild variant="outline" className="w-full rounded-full">
+                    <Link to={ROUTES.LOGIN}>Sign in</Link>
+                  </Button>
+                  <Button asChild className="w-full rounded-full">
+                    <Link to={ROUTES.REGISTER}>Start free</Link>
+                  </Button>
                 </li>
               </ul>
             </SheetContent>

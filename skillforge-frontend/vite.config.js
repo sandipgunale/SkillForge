@@ -20,6 +20,10 @@ export default defineConfig({
   },
 
   build: {
+    modulePreload: {
+      resolveDependencies: (_filename, deps) =>
+        deps.filter((dep) => !/vendor-charts/.test(dep)),
+    },
     rolldownOptions: {
       output: {
         codeSplitting: {

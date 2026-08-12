@@ -1,4 +1,4 @@
-import { lazy, Suspense, useRef } from "react";
+import { lazy, Suspense, useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Flame, Sparkles, Target, Zap } from "lucide-react";
 
@@ -7,10 +7,40 @@ import CountUp from "@/components/common/CountUp";
 import { ROUTES } from "@/constants/routes";
 import { useMotionScope, useReducedMotion } from "@/lib/motion-gsap";
 
-/* three.js is heavy — split into its own chunk and load after first paint */
+/* three.js is heavy — split into its own chunk and load only after first
+   paint and only when the hero is actually visible. */
 const ForgeCoreScene = lazy(() =>
   import("../components/three/ForgeCoreScene"),
 );
+
+/** Mount the 3D scene after first paint + idle, once the hero enters view. */
+function useDeferredScene() {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    if (!("IntersectionObserver" in window)) {
+      const t = setTimeout(() => setReady(true), 1500);
+      return () => clearTimeout(t);
+    }
+    const root = document.getElementById("top");
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        observer.disconnect();
+        const idle = "requestIdleCallback" in window
+          ? requestIdleCallback(() => setReady(true), { timeout: 2000 })
+          : setTimeout(() => setReady(true), 1200);
+        return () => {
+          if (typeof idle === "number") clearTimeout(idle);
+          else cancelIdleCallback(idle);
+        };
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(root ?? document.body);
+    return () => observer.disconnect();
+  }, []);
+  return ready;
+}
 
 const HERO_STATS = [
   { count: 100, suffix: "%", value: "100%", label: "Your attention, protected" },
@@ -21,6 +51,7 @@ const HERO_STATS = [
 export default function HeroSection() {
   const rootRef = useRef(null);
   const reduced = useReducedMotion();
+  const sceneReady = useDeferredScene();
 
   // Staged GSAP migration — the hero entrance is now timeline-based, fully
   // reverted on unmount and skipped under prefers-reduced-motion.
@@ -39,14 +70,24 @@ export default function HeroSection() {
           select("[data-hero='floating'] > *"),
           { opacity: 0, scale: 0.9, duration: 0.6, stagger: 0.12 },
           0.55,
-        )
-        .from(
-          select("[data-hero='core']"),
-          { opacity: 0, scale: 0.92, duration: 0.8 },
-          0.1,
         );
     },
     [reduced],
+    rootRef,
+  );
+
+  // The 3D core mounts after first paint; run its entrance when it appears.
+  useMotionScope(
+    ({ gsap, select }) => {
+      if (reduced) return;
+      gsap.from(select("[data-hero='core']"), {
+        opacity: 0,
+        scale: 0.92,
+        duration: 0.8,
+        ease: "expo.out",
+      });
+    },
+    [sceneReady, reduced],
     rootRef,
   );
 
@@ -62,14 +103,16 @@ export default function HeroSection() {
         <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-background to-transparent" />
       </div>
 
-      <Suspense fallback={null}>
-        <div
-          data-hero="core"
-          className="absolute inset-0 -z-20 h-full w-full"
-        >
-          <ForgeCoreScene className="h-full w-full" />
-        </div>
-      </Suspense>
+      {sceneReady && (
+        <Suspense fallback={null}>
+          <div
+            data-hero="core"
+            className="absolute inset-0 -z-20 h-full w-full"
+          >
+            <ForgeCoreScene className="h-full w-full" />
+          </div>
+        </Suspense>
+      )}
 
       <div className="mx-auto flex min-h-[92vh] max-w-screen-2xl flex-col items-center justify-center px-6 py-32 text-center lg:px-10">
         <div
