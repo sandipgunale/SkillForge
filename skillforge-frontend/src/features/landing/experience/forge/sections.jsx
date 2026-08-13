@@ -40,7 +40,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useMotionScope, useReducedMotion } from "@/lib/motion-gsap";
+import { useMotionScope, useMagnetic, useReducedMotion } from "@/lib/motion-gsap";
 
 import HeroContent from "../components/HeroContent";
 import DashboardMock from "../components/DashboardMock";
@@ -68,12 +68,12 @@ const T = {
   chip: "rounded-xl border border-border bg-card/60 px-3 py-2 backdrop-blur-sm",
 };
 
-function Chapter({ roman, label, title, lead, children, aside }) {
+function Chapter({ num, label, title, lead, children, aside }) {
   return (
     <div className="grid gap-10 lg:grid-cols-2 lg:gap-14">
       <div>
         <p className={T.overline}>
-          Chapter {roman} — {label}
+          {num} — {label}
         </p>
         <h2 className={`${T.h2} mt-4 max-w-[22ch]`}>{title}</h2>
         <p className={`${T.body} mt-5 max-w-[52ch]`}>{lead}</p>
@@ -386,10 +386,17 @@ function Section({ id, children, className = "" }) {
 
 /* ---- 1 · Hero -------------------------------------------------------------- */
 
-function useNearViewport(ref) {
+function useNearViewport(ref, anchorId) {
   const [near, setNear] = useState(false);
   useEffect(() => {
-    const node = ref.current;
+    /* In the Forge Fold every sheet is pinned to the viewport top, so a
+       section's own rect is ALWAYS "near". The anchor marker is static at
+       the section's measured slot — observe that instead. In the static
+       (reduced-motion) layout there is no marker, so fall back to the
+       section itself. */
+    const node =
+      (anchorId && document.querySelector(`[data-anchor="${anchorId}"]`)) ||
+      ref.current;
     if (!node || !("IntersectionObserver" in window)) {
       setNear(true);
       return undefined;
@@ -405,7 +412,7 @@ function useNearViewport(ref) {
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [ref]);
+  }, [ref, anchorId]);
   return near;
 }
 
@@ -428,6 +435,30 @@ function HeroSection({ cap }) {
           { opacity: 0, scale: 0.9, duration: 0.6, stagger: 0.12 },
           0.55,
         );
+
+      /* Hero-scroll response: as the hero gives way to the fold, the cap
+         recedes — it scales slightly down, sinks, and fades, so the
+         transition feels authored rather than abrupt. Scroll-scrubbed:
+         the user owns it. */
+      const capWrap = select("[data-cap-slot] > div");
+      if (capWrap.length) {
+        gsap.fromTo(
+          capWrap,
+          { scale: 1, opacity: 1, yPercent: 0 },
+          {
+            scale: 0.92,
+            opacity: 0.45,
+            yPercent: 10,
+            ease: "none",
+            scrollTrigger: {
+              trigger: rootRef.current,
+              start: "top top",
+              end: "bottom 70%",
+              scrub: 0.4,
+            },
+          },
+        );
+      }
     },
     [reduced],
     rootRef,
@@ -443,8 +474,10 @@ function HeroSection({ cap }) {
         aria-hidden="true"
         className="pointer-events-none absolute left-1/2 top-[55svh] z-0 -translate-x-1/2"
       >
-        <div className="aspect-square w-[95vw] -translate-y-[52%] sm:w-[78vw] lg:w-[68vw] 2xl:w-[72vw]">
-          {cap}
+        <div data-cap-scrub>
+          <div className="aspect-square w-[95vw] -translate-y-[52%] sm:w-[78vw] lg:w-[68vw] 2xl:w-[72vw]">
+            {cap}
+          </div>
         </div>
       </div>
 
@@ -529,7 +562,7 @@ function ProblemSection() {
   return (
     <Section id="what-is">
       <Chapter
-        roman="I"
+        num="01"
         label="The problem"
         title="The world's best classroom. Also its most distracting one."
         lead="Great teachers are everywhere. Great learning environments are not. The raw material for any skill exists — what's missing is a workspace built around finishing."
@@ -576,7 +609,7 @@ function LoopSection() {
   return (
     <Section id="how-it-works">
       <Chapter
-        roman="II"
+        num="02"
         label="The forge loop"
         title="People don't fail for lack of material. They fail because they lose the loop."
         lead="Focus → Practice → Feedback → Momentum. Repeat. The loop is the product — every feature exists to keep it turning."
@@ -652,7 +685,7 @@ function WorkspaceSection() {
   return (
     <Section id="workspace">
       <Chapter
-        roman="III"
+        num="03"
         label="The workspace"
         title="A workspace built around finishing"
         lead="Every surface exists for one job: keep the learner in flow. Search is instant, navigation is keyboard-first, and your library is yours."
@@ -717,7 +750,7 @@ function AiSection() {
   return (
     <Section id="architecture">
       <Chapter
-        roman="IV"
+        num="04"
         label="The AI"
         title="Practice, forged on demand"
         lead="Not a chatbot bolted on — a guarded, validated, observable pipeline that turns any topic into active recall."
@@ -790,7 +823,7 @@ function RoadmapSection() {
   return (
     <Section id="experience">
       <Chapter
-        roman="V"
+        num="05"
         label="The roadmap"
         title="Twelve weeks from starting to proven"
         lead="Instead of 'learn React someday', a week-by-week path with goals, resources, and quizzes — auto-completed when you finish, and it knows when you have."
@@ -852,13 +885,13 @@ function RoadmapSection() {
 
 function KnowledgeSection() {
   const sectionRef = useRef(null);
-  const near = useNearViewport(sectionRef);
+  const near = useNearViewport(sectionRef, "knowledge");
 
   return (
     <section ref={sectionRef} id="knowledge" className="forge-section">
       <div className="forge-container">
         <Chapter
-          roman="VI"
+          num="06"
           label="The knowledge map"
           title="The catalog, alive"
           lead="Every topic in the library — live from the platform. Follow any node to the resources, quizzes, and paths built around it."
@@ -922,7 +955,7 @@ function FaqSection() {
   return (
     <Section id="faq">
       <Chapter
-        roman="VII"
+        num="07"
         label="Questions & voices"
         title="Questions, answered"
         lead="Everything you might want to know before you forge your first skill."
@@ -980,6 +1013,9 @@ function FaqSection() {
 /* ---- 9 · Final CTA ------------------------------------------------------------- */
 
 function FinalSection() {
+  const primaryCtaRef = useRef(null);
+  useMagnetic(primaryCtaRef);
+
   return (
     <Section id="final">
       <div className="flex min-h-[70svh] flex-col items-center justify-center text-center">
@@ -993,16 +1029,18 @@ function FinalSection() {
           one minute away — your first badge is closer than you think.
         </p>
         <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row">
-          <Button
-            asChild
-            size="lg"
-            className="h-12 w-full rounded-full px-7 text-base shadow-lg shadow-ember/25 sm:w-auto"
-          >
-            <Link to={ROUTES.REGISTER}>
-              Forge your first skill
-              <ArrowRight className="ml-2 size-4" />
-            </Link>
-          </Button>
+          <div ref={primaryCtaRef}>
+            <Button
+              asChild
+              size="lg"
+              className="h-12 w-full rounded-full px-7 text-base shadow-lg shadow-ember/25 sm:w-auto"
+            >
+              <Link to={ROUTES.REGISTER}>
+                Forge your first skill
+                <ArrowRight className="ml-2 size-4" />
+              </Link>
+            </Button>
+          </div>
           <Button asChild variant="outline" size="lg" className="h-12 w-full rounded-full px-7 text-base sm:w-auto">
             <Link to={ROUTES.LOGIN}>I already have an account</Link>
           </Button>

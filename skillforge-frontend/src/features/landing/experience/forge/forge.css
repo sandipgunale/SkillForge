@@ -140,3 +140,11 @@
         padding: 0 2.5rem;
     }
 }
+
+/* ---- Custom cursor (landing only, desktop fine pointers) ------------------ */
+/* The Cursor component hides the native cursor only while it is mounted on
+   the landing route; removing the class restores it everywhere else. */
+.sf-cursor-none,
+.sf-cursor-none * {
+    cursor: none !important;
+}

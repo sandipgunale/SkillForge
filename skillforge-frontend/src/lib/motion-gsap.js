@@ -346,6 +346,45 @@ export function useMicroInteractions(
 }
 
 /**
+ * Magnetic pull for primary CTAs. The element eases toward the pointer
+ * within a small radius and springs back on leave. Desktop fine pointers
+ * only, disabled under prefers-reduced-motion. Restrained by design —
+ * the pull is a whisper, not a tug.
+ */
+export function useMagnetic(ref, { max = 6, strength = 0.15 } = {}) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const fine = window.matchMedia("(pointer: fine)").matches;
+    const wide = window.matchMedia("(min-width: 1024px)").matches;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!fine || !wide || reduced) return undefined;
+
+    const toX = gsap.quickTo(el, "x", { duration: 0.4, ease: "power3.out" });
+    const toY = gsap.quickTo(el, "y", { duration: 0.4, ease: "power3.out" });
+
+    const onMove = (e) => {
+      const r = el.getBoundingClientRect();
+      const dx = e.clientX - (r.left + r.width / 2);
+      const dy = e.clientY - (r.top + r.height / 2);
+      toX(Math.max(-max, Math.min(max, dx * strength)));
+      toY(Math.max(-max, Math.min(max, dy * strength)));
+    };
+    const onLeave = () => {
+      toX(0);
+      toY(0);
+    };
+
+    el.addEventListener("pointermove", onMove);
+    el.addEventListener("pointerleave", onLeave);
+    return () => {
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerleave", onLeave);
+    };
+  }, [ref, max, strength]);
+}
+
+/**
  * Mouse-follow 3D tilt with a springy settle, mirroring framer's
  * useMotionValue + useSpring + useTransform combo on the auth panel.
  */

@@ -13,19 +13,25 @@ import { useEffect, useRef } from "react";
 /*  the total. Nothing is hardcoded, so fonts, viewport changes, and content   */
 /*  edits cannot desync the physics.                                           */
 /*                                                                             */
+/*  Every sheet rests at the stage top (absolute, top 0), so the pin IS the   */
+/*  translate: translate = scrollY glues every page to the viewport top —     */
+/*  the z-index stack (deterministic N - i) decides what you see, the         */
+/*  rotation decides what's turning away, and fully turned pages go hidden.   */
+/*  Anchor positions (scrollY = slot.top) therefore show the right section    */
+/*  flat at the top of the screen. The last page never rotates — there is     */
+/*  nothing beneath it to reveal.                                              */
+/*                                                                             */
 /*  Each page i:                                                                */
 /*    raw  = clamp01((scrollY - slotTop[i]) / height[i])                       */
 /*    s    = smoothed(raw)  — the single smoothing mechanism (reversible,      */
 /*           fast-scroll safe)                                                  */
-/*    translate = slotTop[i] - scrollY   (pins the page to its scroll window)  */
-/*    rotateY   = -180·s deg             (around the right edge)               */
+/*    translate = scrollY     (the pin — every page tracks the viewport)       */
+/*    rotateY   = -180·s deg  (around the right edge)                           */
 /*    lift      = sin(s·π) · FLIP_LIFT   (3D depth, no margins)                */
 /*    edge opacity  = sin(s·π) · EDGE_MAX (ember hairline on the hinge)        */
 /*    cast opacity  = sin(sPrev·π) · CAST_MAX (shadow the turning page casts   */
 /*                   on the next page)                                          */
 /*                                                                             */
-/*  The page is transformed only while it is in play (its own window or the    */
-/*  window of the page beneath it); pages far below stay untransformed.        */
 /*  Reduced motion: the hook does nothing — the static layout replaces the     */
 /*  stage entirely.                                                             */
 /* -------------------------------------------------------------------------- */
@@ -85,19 +91,19 @@ export default function useForgeFold({ stageRef, pagesRef, reduced }) {
           }
         }
       });
-      /* Reset every page to its rest slot — safe after resize/remount. */
-      applied = pages.map((page, index) => {
+      /* Reset every page to the viewport-pin pose — safe after
+         resize/remount. */
+      applied = pages.map((page) => {
         const sheet = page.sheet;
         const cast = page.cast;
         const edge = page.edge;
-        const translate = slots[index].top;
         if (sheet) {
-          sheet.style.transform = `translate3d(0, ${translate}px, 0)`;
+          sheet.style.transform = "translate3d(0, 0, 0)";
           sheet.style.visibility = "visible";
         }
         if (cast) cast.style.opacity = "0";
         if (edge) edge.style.opacity = "0";
-        return { translate, rotate: 0, lift: 0, cast: 0, edge: 0, s: 0 };
+        return { translate: 0, rotate: 0, lift: 0, cast: 0, edge: 0, s: 0 };
       });
     };
 
@@ -120,17 +126,20 @@ export default function useForgeFold({ stageRef, pagesRef, reduced }) {
         const page = pages[index];
         const slot = slots[index];
         const prev = applied[index] ?? { s: 0 };
+        const isLast = index === count - 1;
 
         /* Raw progress through this page's window. */
         const raw = clamp01((scrollY - slot.top) / slot.height);
         /* Smooth toward raw (reversible: same path both directions). */
-        const s = prev.s + (raw - prev.s) * f;
-        const translate = slot.top - scrollY;
+        const s = isLast ? 0 : prev.s + (raw - prev.s) * f;
+        /* The pin: every sheet rests at the stage top, so tracking the
+           viewport keeps the current page flat at the top of the screen. */
+        const translate = scrollY;
 
         const sin = Math.sin(s * Math.PI);
-        const rotate = -180 * s;
-        const lift = s > 0 && s < 1 ? sin * FLIP_LIFT : 0;
-        const edge = sin * EDGE_MAX;
+        const rotate = isLast ? 0 : -180 * s;
+        const lift = !isLast && s > 0 && s < 1 ? sin * FLIP_LIFT : 0;
+        const edge = isLast ? 0 : sin * EDGE_MAX;
         const cast = sin * CAST_MAX;
 
         const tChanged =
@@ -139,7 +148,7 @@ export default function useForgeFold({ stageRef, pagesRef, reduced }) {
 
         const sheet = page.sheet;
         if (sheet && tChanged) {
-          /* The translate IS the layout (pages rest at their slot); the
+          /* The translate IS the pin (pages rest at the stage top); the
              rotate/lift only appear while the page swings. */
           const transform =
             s > 0.0005

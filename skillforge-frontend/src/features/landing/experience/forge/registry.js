@@ -31,5 +31,6 @@ export const SECTIONS = [
 /* Navbar-linked section ids. The fold renders a static zero-height marker
    per id (native hash navigation targets the marker, not the scroll-pinned
    section). "top" is excluded — the hero section keeps its own id and is
-   never hash-linked. */
-export const ANCHORS = ["what-is", "how-it-works", "architecture", "experience", "faq"];
+   never hash-linked. "knowledge" is included so scroll-deferred content
+   (the 3D constellation) can observe its static slot. */
+export const ANCHORS = ["what-is", "how-it-works", "architecture", "experience", "knowledge", "faq"];

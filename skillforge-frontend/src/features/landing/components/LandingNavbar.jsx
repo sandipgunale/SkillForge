@@ -21,6 +21,7 @@ const SHOWCASE_LINK = { label: "For recruiters", to: ROUTES.SHOWCASE };
 
 export default function LandingNavbar() {
   const [scrolled, setScrolled] = useState(false);
+  const [activeId, setActiveId] = useState(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -28,6 +29,40 @@ export default function LandingNavbar() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  /* Track the current section: in the Forge Fold every sheet is pinned to
+     the viewport top, so the current section is the one whose STATIC slot
+     has been scrolled past — the anchor markers carry those slot positions
+     (offsetTop is layout position, untouched by the pin transforms). In
+     the static reduced-motion layout there are no markers, so fall back to
+     the sections' document positions. */
+  useEffect(() => {
+    const docY = (id) => {
+      const marker = document.querySelector(`[data-anchor="${id}"]`);
+      if (marker) return marker.offsetTop;
+      const section = document.querySelector(`section#${id}`);
+      return section ? section.getBoundingClientRect().top + window.scrollY : Infinity;
+    };
+    const onScroll = () => {
+      const y = window.scrollY + 1;
+      let current = null;
+      for (const link of NAV_LINKS) {
+        const id = link.href.slice(1);
+        if (docY(id) <= y) current = id;
+      }
+      setActiveId(current);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const linkClass = (active) =>
+    `rounded-full px-3.5 py-2 text-sm font-medium transition-colors ${
+      active
+        ? "bg-accent text-foreground"
+        : "text-muted-foreground hover:bg-accent hover:text-foreground"
+    }`;
 
   return (
     <header
@@ -43,16 +78,20 @@ export default function LandingNavbar() {
 
         {/* Desktop links */}
         <ul className="hidden items-center gap-1 lg:flex">
-          {NAV_LINKS.map((link) => (
-            <li key={link.href}>
-              <a
-                href={link.href}
-                className="rounded-full px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              >
-                {link.label}
-              </a>
-            </li>
-          ))}
+          {NAV_LINKS.map((link) => {
+            const active = activeId === link.href.slice(1);
+            return (
+              <li key={link.href}>
+                <a
+                  href={link.href}
+                  aria-current={active ? "true" : undefined}
+                  className={linkClass(active)}
+                >
+                  {link.label}
+                </a>
+              </li>
+            );
+          })}
           <li>
             <Link
               to={SHOWCASE_LINK.to}
@@ -94,16 +133,24 @@ export default function LandingNavbar() {
             <SheetContent side="right" className="w-72">
               <SheetTitle className="px-1 pt-2">SkillForge</SheetTitle>
               <ul className="mt-4 flex flex-col gap-1">
-                {NAV_LINKS.map((link) => (
-                  <li key={link.href}>
-                    <a
-                      href={link.href}
-                      className="block rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                    >
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
+                {NAV_LINKS.map((link) => {
+                  const active = activeId === link.href.slice(1);
+                  return (
+                    <li key={link.href}>
+                      <a
+                        href={link.href}
+                        aria-current={active ? "true" : undefined}
+                        className={`block rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                          active
+                            ? "bg-accent text-foreground"
+                            : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                        }`}
+                      >
+                        {link.label}
+                      </a>
+                    </li>
+                  );
+                })}
                 <li>
                   <Link
                     to={SHOWCASE_LINK.to}

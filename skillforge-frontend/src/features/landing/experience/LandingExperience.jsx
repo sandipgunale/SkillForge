@@ -4,6 +4,9 @@ import CapEmblem from "./cap/CapEmblem";
 import useDeferredScene from "./useDeferredScene";
 import { useReducedMotion } from "@/lib/motion-gsap";
 
+import Cursor from "../components/Cursor";
+import ScrollProgress from "../components/ScrollProgress";
+
 import ForgePage from "./forge/ForgePage";
 import useForgeFold from "./forge/useForgeFold";
 import { ANCHORS, SECTIONS } from "./forge/registry";
@@ -46,7 +49,13 @@ export default function LandingExperience() {
   useForgeFold({ stageRef, pagesRef, reduced });
 
   if (reduced) {
-    return <StaticSections />;
+    return (
+      <>
+        <Cursor />
+        <ScrollProgress />
+        <StaticSections />
+      </>
+    );
   }
 
   const heroCap = (
@@ -62,17 +71,21 @@ export default function LandingExperience() {
   );
 
   return (
-    <div ref={stageRef} className="forge-fold" data-forge-fold>
-      {/* Static anchor markers — see [data-anchor] in forge.css. They must
-          precede the pages so native hash navigation resolves to them. */}
-      {ANCHORS.map((id) => (
-        <div key={`anchor-${id}`} id={id} data-anchor={id} aria-hidden="true" />
-      ))}
-      {SECTIONS.map(({ Component }, index) => (
-        <ForgePage key={index} index={index} zIndex={SECTIONS.length - index} onBind={bindPage}>
-          <Component cap={index === 0 ? heroCap : undefined} />
-        </ForgePage>
-      ))}
-    </div>
+    <>
+      <Cursor />
+      <ScrollProgress />
+      <div ref={stageRef} className="forge-fold" data-forge-fold>
+        {/* Static anchor markers — see [data-anchor] in forge.css. They must
+            precede the pages so native hash navigation resolves to them. */}
+        {ANCHORS.map((id) => (
+          <div key={`anchor-${id}`} id={id} data-anchor={id} aria-hidden="true" />
+        ))}
+        {SECTIONS.map(({ Component }, index) => (
+          <ForgePage key={index} index={index} zIndex={SECTIONS.length - index} onBind={bindPage}>
+            <Component cap={index === 0 ? heroCap : undefined} />
+          </ForgePage>
+        ))}
+      </div>
+    </>
   );
 }

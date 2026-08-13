@@ -1,9 +1,11 @@
+import { useRef } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Flame } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import CountUp from "@/components/common/CountUp";
 import { ROUTES } from "@/constants/routes";
+import { useMagnetic } from "@/lib/motion-gsap";
 
 /* -------------------------------------------------------------------------- */
 /*  HeroContent — the hero promise (badge, title, subtitle, CTAs, stats).     */
@@ -18,6 +20,9 @@ const HERO_STATS = [
 ];
 
 export default function HeroContent() {
+  const primaryCtaRef = useRef(null);
+  useMagnetic(primaryCtaRef);
+
   return (
     <div className="flex flex-col items-center text-center">
       <div
@@ -50,16 +55,18 @@ export default function HeroContent() {
         data-hero="cta"
         className="mt-9 flex flex-col items-center gap-3 sm:flex-row"
       >
-        <Button
-          asChild
-          size="lg"
-          className="group h-12 w-full rounded-full px-7 text-base shadow-lg shadow-ember/20 transition-transform duration-300 hover:scale-[1.04] active:scale-[0.97] sm:w-auto"
-        >
-          <Link to={ROUTES.REGISTER}>
-            Start learning free
-            <ArrowRight className="ml-2 size-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-          </Link>
-        </Button>
+        <div ref={primaryCtaRef}>
+          <Button
+            asChild
+            size="lg"
+            className="group h-12 w-full rounded-full px-7 text-base shadow-lg shadow-ember/20 sm:w-auto"
+          >
+            <Link to={ROUTES.REGISTER}>
+              Start learning free
+              <ArrowRight className="ml-2 size-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+            </Link>
+          </Button>
+        </div>
         <Button
           asChild
           size="lg"

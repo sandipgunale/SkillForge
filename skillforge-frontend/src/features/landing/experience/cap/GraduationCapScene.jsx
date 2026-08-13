@@ -37,6 +37,54 @@ function damp(delta, rate) {
   return 1 - Math.exp(-delta * rate);
 }
 
+/**
+ * Subtle woven-fabric bump map generated once on a tiny canvas — thread
+ * diagonal warp/weft lines over speckled noise. Used as a bumpMap so the
+ * board and skullcap read as premium fabric instead of flat plastic.
+ * Greyscale (bump maps are never color-managed).
+ */
+function fabricBumpTexture() {
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = "#808080";
+  ctx.fillRect(0, 0, size, size);
+
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "rgba(255,255,255,0.14)";
+  for (let y = -size; y < size * 2; y += 4) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(size, y - size);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = "rgba(0,0,0,0.12)";
+  for (let y = -size; y < size * 2; y += 4) {
+    ctx.beginPath();
+    ctx.moveTo(size, y);
+    ctx.lineTo(0, y - size);
+    ctx.stroke();
+  }
+
+  const image = ctx.getImageData(0, 0, size, size);
+  const data = image.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const n = (Math.random() - 0.5) * 16;
+    data[i] = 128 + n;
+    data[i + 1] = 128 + n;
+    data[i + 2] = 128 + n;
+  }
+  ctx.putImageData(image, 0, 0);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(3, 3);
+  return texture;
+}
+
 /** Curves a THREE.Color toward `target` in place. */
 function lerpColor(current, target, factor) {
   current.lerp(target, factor);
@@ -108,6 +156,7 @@ function CapRig({
   reduced,
   hidden,
   palette,
+  bump,
   boardMat,
   fabricMat,
   buttonMat,
@@ -223,6 +272,8 @@ function CapRig({
             color={palette.board}
             roughness={0.72}
             metalness={0.08}
+            bumpMap={bump}
+            bumpScale={0.02}
           />
         </mesh>
 
@@ -234,6 +285,8 @@ function CapRig({
             color={palette.fabric}
             roughness={0.9}
             metalness={0.02}
+            bumpMap={bump}
+            bumpScale={0.014}
           />
         </mesh>
 
@@ -286,6 +339,10 @@ function CapCanvas({ reduced, hidden }) {
   const palette = useScenePaletteLive();
   const { dpr } = useSceneBudget({ high: 480, low: 240, baseDpr: 1.75 });
 
+  /* Woven-fabric bump map, generated once and disposed with the scene. */
+  const bump = useMemo(() => fabricBumpTexture(), []);
+  useEffect(() => () => bump.dispose(), [bump]);
+
   /* One ref per material, shared with the frame loop for theme lerping. */
   const boardMat = useRef(null);
   const fabricMat = useRef(null);
@@ -321,6 +378,7 @@ function CapCanvas({ reduced, hidden }) {
         reduced={reduced}
         hidden={hidden}
         palette={palette}
+        bump={bump}
         boardMat={boardMat}
         fabricMat={fabricMat}
         buttonMat={buttonMat}
