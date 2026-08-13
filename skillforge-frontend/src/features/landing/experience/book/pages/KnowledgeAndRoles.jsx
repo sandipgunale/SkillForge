@@ -70,7 +70,7 @@ const ROLES = [
 
 export function RolesRight({ number, total }) {
   return (
-    <BookPage chapter="Chapter Six" number={number} total={total} side="right">
+    <BookPage chapter="Chapter Six" number={number} total={total} side="left">
       <div className="flex h-full flex-col">
         <p className={`${PAGE.overline} ${PAGE.muted}`}>One platform, three roles</p>
         <h3 className={`${PAGE.h3} mt-2`}>Everyone who touches learning gets a workspace</h3>

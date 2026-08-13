@@ -101,7 +101,7 @@ export function WorkspaceLeft({ number, total }) {
 
 export function MetricsRight({ number, total }) {
   return (
-    <BookPage chapter="Chapter Three" number={number} total={total} side="right">
+    <BookPage chapter="Chapter Three" number={number} total={total} side="left">
       <div className="flex h-full flex-col">
         <p className={`${PAGE.overline} ${PAGE.muted}`}>The budget</p>
         <h3 className={`${PAGE.h3} mt-2`}>

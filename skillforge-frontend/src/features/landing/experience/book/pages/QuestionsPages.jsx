@@ -106,7 +106,7 @@ const TESTIMONIALS = [
 
 export function VoicesRight({ number, total }) {
   return (
-    <BookPage chapter="Chapter Seven" number={number} total={total} side="right">
+    <BookPage chapter="Chapter Seven" number={number} total={total} side="left">
       <div className="flex h-full flex-col">
         <p className={`${PAGE.overline} ${PAGE.muted}`}>Voices from the forge</p>
         <h3 className={`${PAGE.h3} mt-2`}>What happens when learners keep the loop</h3>

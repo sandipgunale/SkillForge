@@ -1,5 +1,4 @@
 import CapEmblem from "./cap/CapEmblem";
-import CoverPage from "./book/CoverPage";
 import { TitlePage, ProblemLeft, ProblemRight } from "./book/pages/TitleAndProblem";
 import { LoopLeft, LoopRight } from "./book/pages/LoopPages";
 import { WorkspaceLeft, MetricsRight } from "./book/pages/WorkspacePages";
@@ -7,65 +6,71 @@ import { AiLeft, BuiltRight } from "./book/pages/AiPages";
 import { RoadmapLeft, MomentumRight } from "./book/pages/RoadmapPages";
 import { MapLeft, RolesRight } from "./book/pages/KnowledgeAndRoles";
 import { FaqLeft, VoicesRight } from "./book/pages/QuestionsPages";
-import { CtaInside, BackCoverOutside } from "./book/pages/EndPages";
+import { CtaInside } from "./book/pages/EndPages";
 import HeroContent from "./components/HeroContent";
 
 /* -------------------------------------------------------------------------- */
 /*  StaticBook — prefers-reduced-motion layout. The fixed 3D stage never      */
 /*  mounts; the same real content renders as a calm, readable book flowing    */
-/*  with the page — no transforms, no scrubbing, no motion.                   */
+/*  with the page — one page at a time, right-hand spine, no transforms,      */
+/*  no scrubbing, no motion.                                                  */
 /* -------------------------------------------------------------------------- */
 
+const TOTAL_PAGES = 16;
+
 const PAGES = [
-  { key: "problem", Left: ProblemLeft, Right: ProblemRight, leftProps: { number: 3 }, rightProps: { number: 4 } },
-  { key: "loop", Left: LoopLeft, Right: LoopRight, leftProps: { number: 5 }, rightProps: { number: 6 } },
-  { key: "workspace", Left: WorkspaceLeft, Right: MetricsRight, leftProps: { number: 7 }, rightProps: { number: 8 } },
-  { key: "ai", Left: AiLeft, Right: BuiltRight, leftProps: { number: 9 }, rightProps: { number: 10 } },
-  { key: "roadmap", Left: RoadmapLeft, Right: MomentumRight, leftProps: { number: 11 }, rightProps: { number: 12 } },
-  { key: "map", Left: MapLeft, Right: RolesRight, leftProps: { number: 13 }, rightProps: { number: 14 } },
-  { key: "voices", Left: FaqLeft, Right: VoicesRight, leftProps: { number: 15 }, rightProps: { number: 16 } },
+  { key: "problem-open", id: "what-is", Page: ProblemLeft, number: 2 },
+  { key: "problem-answer", Page: ProblemRight, number: 3 },
+  { key: "loop-open", id: "how-it-works", Page: LoopLeft, number: 4 },
+  { key: "loop-continued", Page: LoopRight, number: 5 },
+  { key: "workspace-open", Page: WorkspaceLeft, number: 6 },
+  { key: "metrics", Page: MetricsRight, number: 7 },
+  { key: "ai-open", Page: AiLeft, number: 8 },
+  { key: "built", id: "architecture", Page: BuiltRight, number: 9 },
+  { key: "roadmap-open", Page: RoadmapLeft, number: 10 },
+  { key: "momentum", id: "experience", Page: MomentumRight, number: 11 },
+  { key: "map", Page: MapLeft, number: 12 },
+  { key: "roles", Page: RolesRight, number: 13 },
+  { key: "faq", id: "faq", Page: FaqLeft, number: 14 },
+  { key: "voices", Page: VoicesRight, number: 15 },
 ];
+
+function StaticPage({ id, Page, number }) {
+  return (
+    <section id={id} aria-label={`Page ${number}`} className="book-static-page mx-auto max-w-4xl">
+      <div className="h-[clamp(540px,78vh,900px)] overflow-hidden rounded-[10px]">
+        <Page number={number} total={TOTAL_PAGES} />
+      </div>
+      <div aria-hidden="true" className="book-static-spine" />
+    </section>
+  );
+}
 
 export default function StaticBook() {
   return (
-    <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+    <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
       {/* Hero */}
       <section id="top" className="relative flex flex-col items-center py-16 text-center">
         <CapEmblem className="mx-auto mb-8 h-32 w-32 sm:h-40 sm:w-40" />
         <HeroContent />
       </section>
 
-      {/* Title spread */}
-      <section className="grid gap-8 lg:grid-cols-2" aria-label="Title page">
-        <div className="min-h-[34rem]">
-          <CoverPage />
-        </div>
-        <div className="min-h-[34rem]">
-          <TitlePage number={2} total={17} />
-        </div>
-      </section>
+      {/* Title page */}
+      <div className="mt-4">
+        <StaticPage Page={TitlePage} number={1} />
+      </div>
 
-      {/* Chapter spreads */}
-      {PAGES.map(({ key, Left, Right, leftProps, rightProps }) => (
-        <section key={key} className="mt-8 grid gap-8 lg:grid-cols-2" aria-label={`Chapter ${leftProps.number - 1}`}>
-          <div className="min-h-[34rem]">
-            <Left {...leftProps} total={17} />
-          </div>
-          <div className="min-h-[34rem]">
-            <Right {...rightProps} total={17} />
-          </div>
-        </section>
-      ))}
+      {/* The book, one page at a time */}
+      <div className="mt-8 space-y-8">
+        {PAGES.map(({ key, ...page }) => (
+          <StaticPage key={key} {...page} />
+        ))}
+      </div>
 
-      {/* Final CTA + back cover */}
-      <section className="mt-8 grid gap-8 lg:grid-cols-2" aria-label="Get started">
-        <div className="min-h-[34rem]">
-          <CtaInside number={17} total={17} />
-        </div>
-        <div className="min-h-[34rem]">
-          <BackCoverOutside />
-        </div>
-      </section>
+      {/* Final CTA */}
+      <div className="mt-8">
+        <StaticPage Page={CtaInside} number={16} />
+      </div>
     </div>
   );
 }

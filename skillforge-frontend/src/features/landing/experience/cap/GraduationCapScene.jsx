@@ -12,22 +12,22 @@ import {
 } from "@/lib/three-engine";
 
 /* -------------------------------------------------------------------------- */
-/*  GraduationCapScene — the hero's first visual.                             */
+/*  GraduationCapScene — the landing stage's atmospheric backdrop.            */
 /*  A premium mortarboard: tapered board, skullcap, button and a swaying      */
 /*  ember tassel. Slow Y rotation with subtle sinusoidal X/Z, floating lift,  */
-/*  damped mouse parallax (desktop), a gentle hover response, and a springy   */
-/*  entrance. Materials resolve the --cap-* / --ember tokens live, so the     */
-/*  cap re-tints smoothly when the theme switches. Falls back to CapEmblem    */
-/*  when WebGL is unavailable and freezes to a static pose under              */
-/*  prefers-reduced-motion.                                                   */
+/*  damped mouse parallax (desktop), and a springy entrance. Mounted as a     */
+/*  full-stage background layer (pointer-events: none) behind the hero and    */
+/*  the book; it recedes on scroll but never fully hides. Materials resolve   */
+/*  the --cap-* / --ember tokens live, so the cap re-tints smoothly when the  */
+/*  theme switches. Falls back to CapEmblem when WebGL is unavailable and     */
+/*  freezes to a static pose under prefers-reduced-motion.                    */
 /* -------------------------------------------------------------------------- */
 
-const ROTATION_SPEED = 0.16;
+const ROTATION_SPEED = 0.1;
 const FLOAT_AMPLITUDE = 0.13;
 const TASSEL_SWAY = 0.35;
 const PARALLAX_Y = 0.26;
 const PARALLAX_X = 0.18;
-const HOVER_SCALE = 1.05;
 
 /** Exponential damping factor per frame: ~4/s convergence. */
 function damp(delta, rate = 4) {
@@ -148,7 +148,7 @@ function CapRig({
 
     if (reduced || hidden || !group || !inner) return;
 
-    /* Entrance + hover scale (springy approach) */
+    /* Entrance scale (springy approach) */
     const s = scaleRef.current;
     s.value += (s.target - s.value) * Math.min(1, delta * 2.4);
     group.scale.setScalar(Math.max(0.0001, s.value));
@@ -176,15 +176,7 @@ function CapRig({
   });
 
   return (
-    <group
-      ref={groupRef}
-      onPointerOver={() => {
-        scaleRef.current.target = HOVER_SCALE;
-      }}
-      onPointerOut={() => {
-        scaleRef.current.target = 1;
-      }}
-    >
+    <group ref={groupRef}>
       <group ref={innerRef}>
         {/* Mortarboard — tapered cylinder, top slightly wider */}
         <mesh position={[0, 0.58, 0]}>
@@ -271,7 +263,7 @@ function CapCanvas({ reduced, hidden }) {
     <Canvas
       dpr={dpr}
       frameloop={reduced ? "demand" : "always"}
-      camera={{ position: [0, 1.05, 5.3], fov: 38 }}
+      camera={{ position: [0, 1.05, 4.2], fov: 38 }}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       style={{ background: "transparent" }}
     >

@@ -6,9 +6,9 @@ import { useMotionScope, useReducedMotion } from "@/lib/motion-gsap";
 
 /* -------------------------------------------------------------------------- */
 /*  HeroLayer — the stage's opening scene.                                    */
-/*  Sits inside the fixed experience stage. The cap anchor marks where the    */
-/*  floating 3D cap lives; on scroll the cap flies from here into the cover   */
-/*  emblem. Entrance choreography via GSAP (reduced-motion safe).             */
+/*  Sits inside the fixed experience stage, above the giant atmospheric cap.  */
+/*  A soft halo behind the copy keeps it readable over the cap. Entrance      */
+/*  choreography via GSAP (reduced-motion safe).                              */
 /* -------------------------------------------------------------------------- */
 
 export default function HeroLayer() {
@@ -43,17 +43,12 @@ export default function HeroLayer() {
       >
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,color-mix(in_oklch,var(--ember)_10%,transparent)_0%,transparent_55%)]" />
         <div className="absolute inset-0 animate-aurora bg-[radial-gradient(ellipse_60%_50%_at_80%_20%,color-mix(in_oklch,var(--aurora)_10%,transparent)_0%,transparent_60%)]" />
+        {/* Soft halo so the copy stays readable over the atmospheric cap */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_52%_46%_at_50%_46%,color-mix(in_oklch,var(--background)_78%,transparent)_0%,transparent_72%)]" />
         <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-background to-transparent" />
       </div>
 
       <div className="flex h-full flex-col items-center justify-center px-6 py-24 lg:px-10">
-        {/* The floating 3D cap floats above this anchor (desktop stage) */}
-        <div
-          data-cap-anchor="hero"
-          aria-hidden="true"
-          className="pointer-events-none relative mb-2 h-36 w-full sm:h-44"
-        />
-
         <HeroContent />
 
         <a

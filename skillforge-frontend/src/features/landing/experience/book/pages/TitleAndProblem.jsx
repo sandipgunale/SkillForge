@@ -35,7 +35,7 @@ const PROBLEMS = [
 
 export function TitlePage({ number, total }) {
   return (
-    <BookPage chapter="Title page" number={number} total={total} side="right">
+    <BookPage chapter="Title page" number={number} total={total} side="left">
       <div className="flex h-full flex-col items-center justify-center text-center">
         <p className={`${PAGE.overline} ${PAGE.ember}`}>A SkillForge original</p>
 
@@ -108,7 +108,7 @@ export function ProblemLeft({ number, total }) {
 
 export function ProblemRight({ number, total }) {
   return (
-    <BookPage chapter="Chapter One" number={number} total={total} side="right">
+    <BookPage chapter="Chapter One" number={number} total={total} side="left">
       <div className="flex h-full flex-col">
         <p className={`${PAGE.overline} ${PAGE.muted}`}>The answer in one screen</p>
         <h3 className={`${PAGE.h3} mt-2`}>One focused workspace, zero tab soup</h3>

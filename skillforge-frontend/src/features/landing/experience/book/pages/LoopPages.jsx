@@ -85,7 +85,7 @@ export function LoopLeft({ number, total }) {
 
 export function LoopRight({ number, total }) {
   return (
-    <BookPage chapter="Chapter Two" number={number} total={total} side="right">
+    <BookPage chapter="Chapter Two" number={number} total={total} side="left">
       <div className="flex h-full flex-col">
         <p className={`${PAGE.overline} ${PAGE.muted}`}>The loop, continued</p>
         <div className="mt-4 flex-1">

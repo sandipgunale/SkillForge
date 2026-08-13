@@ -94,7 +94,7 @@ export function RoadmapLeft({ number, total }) {
 
 export function MomentumRight({ number, total }) {
   return (
-    <BookPage chapter="Chapter Five" number={number} total={total} side="right">
+    <BookPage chapter="Chapter Five" number={number} total={total} side="left">
       <div className="flex h-full flex-col">
         <p className={`${PAGE.overline} ${PAGE.muted}`}>The momentum layer</p>
         <h3 className={`${PAGE.h3} mt-2`}>Progress you can see, and keep</h3>
