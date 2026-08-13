@@ -549,7 +549,7 @@ function HeroSection({ cap }) {
             </div>
           </div>
 
-          <div className="glass absolute right-[24%] top-[46%] animate-float rounded-2xl border p-4 shadow-xl [animation-delay:1.4s]">
+          <div className="glass absolute right-[18%] top-[50%] animate-float rounded-2xl border p-4 shadow-xl [animation-delay:1.4s]">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-xl bg-aurora/15 text-aurora">
                 <Target className="size-5" />
