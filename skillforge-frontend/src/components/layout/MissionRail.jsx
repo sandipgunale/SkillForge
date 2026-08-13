@@ -106,26 +106,24 @@ export default function MissionContent({
     recordVisit(workspacePaths[targetRole]);
   };
 
-  /* Roving keyboard focus: Up/Down/Home/End inside the rail. */
+  /* Roving keyboard focus: Up/Down/Home/End move focus within the rail.
+     All other keys (Enter, Space, Tab, Shift+Tab, letters) are left to
+     native behavior so links stay activatable and focus can escape. */
   const handleKeyDown = (event) => {
     if (!railRef.current) return;
+    const { key } = event;
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(key)) return;
     const links = Array.from(
       railRef.current.querySelectorAll("a[href], button[data-rail]"),
     ).filter((el) => el.offsetParent !== null);
     const index = links.indexOf(document.activeElement);
     if (index === -1) return;
 
-    const { key } = event;
     let next;
     if (key === "ArrowDown") next = Math.min(index + 1, links.length - 1);
     else if (key === "ArrowUp") next = Math.max(index - 1, 0);
     else if (key === "Home") next = 0;
-    else if (key === "End") next = links.length - 1;
-    else {
-      event.preventDefault();
-      links[index]?.focus();
-      return;
-    }
+    else next = links.length - 1;
 
     event.preventDefault();
     links[next]?.focus();

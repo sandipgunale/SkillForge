@@ -76,17 +76,47 @@ export default function CommandPalette() {
 
   useEffect(() => {
     if (!open) return undefined;
+    const previouslyFocused = document.activeElement;
     requestAnimationFrame(() => searchRef.current?.focus());
 
-    if (reduced || !panelRef.current) return undefined;
-    const tween = gsap.from(panelRef.current, {
+    const panel = panelRef.current;
+
+    if (reduced || !panel) return () => previouslyFocused?.focus?.();
+
+    const tween = gsap.from(panel, {
       opacity: 0,
       scale: 0.96,
       y: -12,
       duration: 0.22,
       ease: GSAP_EASE.outExpo,
     });
-    return () => tween.revert();
+
+    /* Trap Tab inside the dialog so focus cannot escape the modal. */
+    const trapFocus = (event) => {
+      if (event.key !== "Tab") return;
+      const focusables = Array.from(
+        panel.querySelectorAll(
+          'button, input, [href], [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    panel.addEventListener("keydown", trapFocus);
+
+    return () => {
+      tween.revert();
+      panel.removeEventListener("keydown", trapFocus);
+      previouslyFocused?.focus?.();
+    };
   }, [open, reduced]);
 
   useEffect(() => {
