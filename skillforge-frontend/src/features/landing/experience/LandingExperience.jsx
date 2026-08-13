@@ -1,179 +1,78 @@
 import { lazy, Suspense, useCallback, useRef } from "react";
 
-import HeroLayer from "./hero/HeroLayer";
-import BookLayer from "./book/BookLayer";
-import StaticBook from "./StaticBook";
+import CapEmblem from "./cap/CapEmblem";
 import useDeferredScene from "./useDeferredScene";
-import { useMotionScope, useReducedMotion } from "@/lib/motion-gsap";
+import { useReducedMotion } from "@/lib/motion-gsap";
 
-import "./book.css";
+import ForgePage from "./forge/ForgePage";
+import useForgeFold from "./forge/useForgeFold";
+import { ANCHORS, SECTIONS } from "./forge/registry";
+import StaticSections from "./forge/StaticSections";
+
+import "./forge/forge.css";
 
 /* -------------------------------------------------------------------------- */
-/*  LandingExperience — the landing page as a scroll-driven 3D book.          */
-/*                                                                           */
-/*  One fixed stage holds three layers: the atmospheric graduation cap       */
-/*  (background), the hero, and the book. Native scroll over eleven 100vh    */
-/*  slots drives ONE GSAP master timeline (scrubbed, fully reversible):      */
-/*    [0.00–0.08] hero exits, the book rises, the cap recedes but stays      */
-/*    [0.08–0.94] sixteen single pages flip — rotateY around the fixed       */
-/*                right-hand spine, depth z, hinge shadow peaking at 90°     */
-/*    [0.94–1.00] the book fades as the footer takes over                    */
-/*  Each page's front face is visible for exactly one segment and swapped    */
-/*  at the 90° apex, so exactly one page is ever readable or tabbable.       */
-/*  No per-frame React state; refs only. Under prefers-reduced-motion the    */
-/*  fixed stage never mounts — StaticBook renders the same content as a      */
-/*  normal readable layout.                                                  */
+/*  LandingExperience — the landing as a normal full-screen website with      */
+/*  one physical transition: the section itself folds away around its right   */
+/*  edge as the next section scrolls up underneath it.                        */
+/*                                                                             */
+/*  Nine full-width, min-height 100svh sections live in one measured stage    */
+/*  (height = sum of the sections' own heights). The Forge Fold controller    */
+/*  (useForgeFold) pins each page to its scroll window and rotates it around  */
+/*  its right edge (rotateY 0 -> -180) — the next page is already underneath. */
+/*  z-index is deterministic (earlier pages above later); the rotating page   */
+/*  is lifted toward the viewer by translateZ — depth comes from perspective  */
+/*  and shadow, never margins, so there is no layout gap.                     */
+/*                                                                             */
+/*  The giant graduation cap lives ONLY in the hero section (a decorative,    */
+/*  pointer-events-none backdrop behind the copy) and folds away with it.     */
+/*  Under prefers-reduced-motion the stage never mounts — StaticSections      */
+/*  renders the same sections in normal flow.                                  */
 /* -------------------------------------------------------------------------- */
 
 const GraduationCapScene = lazy(() => import("./cap/GraduationCapScene"));
-
-const HERO_SEG = 0.08;
-const BOOK_END = 0.94;
-const FLIP_DEPTH = 380;
-const SETTLED_DEPTH = 0.5;
-
-const SLOTS = [
-  {},
-  {},
-  { id: "what-is" },
-  { id: "how-it-works" },
-  {},
-  { id: "architecture" },
-  {},
-  {},
-  { id: "experience" },
-  { id: "faq" },
-  {},
-];
 
 export default function LandingExperience() {
   const reduced = useReducedMotion();
   const sceneReady = useDeferredScene();
 
   const stageRef = useRef(null);
-  const heroLayerRef = useRef(null);
-  const bookLayerRef = useRef(null);
-  const capWrapRef = useRef(null);
-  const slotsRef = useRef(null);
-  const bookLeaves = useRef({ rotations: [], stacks: [], shadows: [], fronts: [] });
+  const pagesRef = useRef([]);
 
-  const bindLeaves = useCallback((leaves) => {
-    bookLeaves.current = leaves;
+  const bindPage = useCallback((index, refs) => {
+    if (refs) pagesRef.current[index] = refs;
   }, []);
 
-  useMotionScope(
-    ({ gsap }) => {
-      const { rotations, stacks, shadows, fronts } = bookLeaves.current;
-      if (!rotations.length || !slotsRef.current) return;
-
-      const wrap = capWrapRef.current;
-
-      const tl = gsap.timeline({
-        defaults: { ease: "none" },
-        scrollTrigger: {
-          trigger: slotsRef.current,
-          start: "top top",
-          end: "bottom bottom",
-          scrub: 0.6,
-        },
-      });
-
-      /* --- Hero exit, book rise, cap recedes into the backdrop ---------- */
-      tl.to(heroLayerRef.current, { opacity: 0, y: -48, scale: 1.02, duration: 0.07, ease: "power1.in" }, 0)
-        .set(heroLayerRef.current, { visibility: "hidden" }, 0.071)
-        .set(bookLayerRef.current, { visibility: "visible" }, 0.012)
-        .fromTo(
-          bookLayerRef.current,
-          { opacity: 0, y: 90, scale: 0.94 },
-          { opacity: 1, y: 0, scale: 1, duration: 0.07, ease: "power1.out" },
-          0.012,
-        )
-        .fromTo(
-          wrap,
-          { opacity: 1, scale: 1 },
-          { opacity: 0.45, scale: 0.85, duration: 0.16, ease: "none" },
-          0,
-        );
-
-      /* --- Leaves: flip around the right-hand spine, depth, hinge shadow */
-      const seg = (BOOK_END - HERO_SEG) / rotations.length;
-
-      rotations.forEach((rot, index) => {
-        const start = HERO_SEG + index * seg;
-        tl.fromTo(rot, { rotateY: 0 }, { rotateY: 180, duration: seg }, start);
-        tl.fromTo(
-          stacks[index],
-          { z: 2 + (rotations.length - 1 - index) * 1.5 },
-          { z: FLIP_DEPTH, duration: seg * 0.06 },
-          start,
-        );
-        tl.to(stacks[index], { z: SETTLED_DEPTH, duration: seg * 0.06 }, start + seg * 0.94);
-        tl.fromTo(shadows[index], { opacity: 0 }, { opacity: 0.5, duration: seg * 0.5 }, start);
-        tl.to(shadows[index], { opacity: 0, duration: seg * 0.5 }, start + seg * 0.5);
-      });
-
-      /* Interactive faces: page 1 is visible from the start; every other
-         front swaps in at its leaf's 90° apex and out at the next one, so
-         exactly one page is readable (and tabbable) at any moment. */
-      tl.set(fronts[0], { visibility: "hidden" }, HERO_SEG + seg * 0.5);
-      for (let index = 1; index < fronts.length; index += 1) {
-        tl.set(fronts[index], { visibility: "visible" }, HERO_SEG + (index - 1) * seg + seg * 0.5);
-        tl.set(fronts[index], { visibility: "hidden" }, HERO_SEG + index * seg + seg * 0.5);
-      }
-
-      /* --- Footer takeover ------------------------------------------------ */
-      tl.to(bookLayerRef.current, { opacity: 0, duration: 0.005 }, 0.995)
-        .set(bookLayerRef.current, { visibility: "hidden" }, 1)
-        .set(stageRef.current, { pointerEvents: "none" }, 0.996);
-    },
-    [reduced, sceneReady],
-    stageRef,
-  );
+  useForgeFold({ stageRef, pagesRef, reduced });
 
   if (reduced) {
-    return <StaticBook />;
+    return <StaticSections />;
   }
 
+  const heroCap = (
+    <div className="aspect-square h-full w-full">
+      {sceneReady ? (
+        <Suspense fallback={null}>
+          <GraduationCapScene className="h-full w-full" />
+        </Suspense>
+      ) : (
+        <CapEmblem className="h-full w-full opacity-80" />
+      )}
+    </div>
+  );
+
   return (
-    <>
-      <div ref={stageRef} className="experience-stage fixed inset-0 z-0">
-        {/* The giant atmospheric cap — first in the stage DOM so it sits
-            behind the hero and the book; pointer-events-none so it never
-            blocks content. It recedes on scroll but never fully hides. */}
-        <div className="pointer-events-none absolute inset-0 flex items-start justify-center pt-[4vh]">
-          <div
-            ref={capWrapRef}
-            data-cap-wrap
-            className="aspect-square w-[120vw] sm:w-[min(110vw,115vh)] lg:w-[min(92vw,100vh)]"
-          >
-            {sceneReady && (
-              <Suspense fallback={null}>
-                <GraduationCapScene className="h-full w-full" />
-              </Suspense>
-            )}
-          </div>
-        </div>
-
-        <div ref={heroLayerRef} className="absolute inset-0">
-          <HeroLayer />
-        </div>
-
-        <div
-          ref={bookLayerRef}
-          className="absolute inset-0 flex items-center justify-center"
-          style={{ opacity: 0, visibility: "hidden" }}
-        >
-          <BookLayer bindLeaves={bindLeaves} />
-        </div>
-      </div>
-
-      {/* Scroll height — one 100vh slot per stage beat; anchors land on the
-          slot whose page reveals the linked chapter */}
-      <div ref={slotsRef} aria-hidden="true">
-        {SLOTS.map((slot, index) => (
-          <section key={index} id={slot.id} className="h-screen pointer-events-none" />
-        ))}
-      </div>
-    </>
+    <div ref={stageRef} className="forge-fold" data-forge-fold>
+      {/* Static anchor markers — see [data-anchor] in forge.css. They must
+          precede the pages so native hash navigation resolves to them. */}
+      {ANCHORS.map((id) => (
+        <div key={`anchor-${id}`} id={id} data-anchor={id} aria-hidden="true" />
+      ))}
+      {SECTIONS.map(({ Component }, index) => (
+        <ForgePage key={index} index={index} zIndex={SECTIONS.length - index} onBind={bindPage}>
+          <Component cap={index === 0 ? heroCap : undefined} />
+        </ForgePage>
+      ))}
+    </div>
   );
 }

@@ -1,0 +1,35 @@
+import {
+  HeroSectionComponent,
+  ProblemSectionComponent,
+  LoopSectionComponent,
+  WorkspaceSectionComponent,
+  AiSectionComponent,
+  RoadmapSectionComponent,
+  KnowledgeSectionComponent,
+  FaqSectionComponent,
+  FinalSectionComponent,
+} from "./sections";
+
+/* -------------------------------------------------------------------------- */
+/*  Section registry — the nine Forge Fold sections in document order.        */
+/*  Kept apart from sections.jsx so that file stays components-only           */
+/*  (fast-refresh friendly).                                                  */
+/* -------------------------------------------------------------------------- */
+
+export const SECTIONS = [
+  { id: "top", Component: HeroSectionComponent },
+  { id: "what-is", Component: ProblemSectionComponent },
+  { id: "how-it-works", Component: LoopSectionComponent },
+  { id: "workspace", Component: WorkspaceSectionComponent },
+  { id: "architecture", Component: AiSectionComponent },
+  { id: "experience", Component: RoadmapSectionComponent },
+  { id: "knowledge", Component: KnowledgeSectionComponent },
+  { id: "faq", Component: FaqSectionComponent },
+  { id: "final", Component: FinalSectionComponent },
+];
+
+/* Navbar-linked section ids. The fold renders a static zero-height marker
+   per id (native hash navigation targets the marker, not the scroll-pinned
+   section). "top" is excluded — the hero section keeps its own id and is
+   never hash-linked. */
+export const ANCHORS = ["what-is", "how-it-works", "architecture", "experience", "faq"];

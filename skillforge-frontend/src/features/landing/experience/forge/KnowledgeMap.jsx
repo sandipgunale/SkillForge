@@ -3,12 +3,11 @@ import { Atom, Briefcase, Circle, Cloud, Coffee, Database, Leaf, Network, Server
 
 import { useTopics } from "@/features/resources/hooks/useTopics";
 import { ROUTES } from "@/constants/routes";
-import { PAGE } from "./styles";
 
 /* -------------------------------------------------------------------------- */
 /*  KnowledgeMap — the real topic catalog rendered as a constellation.        */
 /*  Nodes come from GET /api/v1/topics (public); if the catalog is            */
-/*  unreachable the page falls back to the topics seeded in the database      */
+/*  unreachable the section falls back to the topics seeded in the database   */
 /*  migration (V9), so the map is always the project's own data — never       */
 /*  invented. Each node links to the live resource library filtered by        */
 /*  topic.                                                                    */
@@ -103,18 +102,16 @@ function TopicNode({ topic, index, count }) {
     <Link
       to={`${ROUTES.RESOURCES}?topicId=${topic.id}`}
       aria-label={`Explore resources for ${topic.name}`}
-      className="group absolute -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[var(--book-rule)] bg-[color-mix(in_oklch,var(--book-page)_88%,transparent)] p-2 text-center shadow-sm backdrop-blur-sm transition-all duration-300 hover:z-10 hover:scale-110 hover:border-ember/50 hover:shadow-md focus-visible:scale-110"
+      className="group absolute -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-card/85 p-2 text-center shadow-sm backdrop-blur-sm transition-all duration-300 hover:z-10 hover:scale-110 hover:border-ember/50 hover:shadow-md focus-visible:scale-110"
       style={{ left: `${x}%`, top: `${y}%` }}
     >
       <span className="mx-auto flex size-8 items-center justify-center rounded-lg bg-ember/12 text-ember transition-colors group-hover:bg-ember/20 sm:size-9">
         <Icon className="size-4 sm:size-4.5" />
       </span>
-      <span className={`${PAGE.small} mt-1 block max-w-[7.5rem] font-semibold leading-tight`}>
+      <span className="mt-1 block max-w-[7.5rem] text-xs font-semibold leading-tight">
         {topic.name}
       </span>
-      <span
-        className={`${PAGE.small} hidden text-[0.55rem] leading-snug text-[var(--book-page-muted)] sm:block`}
-      >
+      <span className="hidden text-[0.55rem] leading-snug text-muted-foreground sm:block">
         {topic.description}
       </span>
     </Link>
@@ -177,9 +174,9 @@ export default function KnowledgeMap({ className = "" }) {
       {/* Center hub */}
       <div
         aria-hidden="true"
-        className="absolute left-1/2 top-1/2 flex size-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-ember/40 bg-[var(--book-page)] shadow-[0_0_0_6px_color-mix(in_oklch,var(--ember)_12%,transparent)] sm:size-16"
+        className="absolute left-1/2 top-1/2 flex size-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-ember/40 bg-card shadow-[0_0_0_6px_color-mix(in_oklch,var(--ember)_12%,transparent)] sm:size-16"
       >
-        <span className={`${PAGE.small} font-bold tracking-tight text-ember`}>
+        <span className="text-sm font-bold tracking-tight text-ember">
           {isLoading ? "…" : `${topics.length}`}
         </span>
       </div>

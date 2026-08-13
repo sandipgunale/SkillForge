@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, useEffect } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 
 import CapEmblem from "./CapEmblem";
 import {
@@ -12,25 +13,27 @@ import {
 } from "@/lib/three-engine";
 
 /* -------------------------------------------------------------------------- */
-/*  GraduationCapScene — the landing stage's atmospheric backdrop.            */
-/*  A premium mortarboard: tapered board, skullcap, button and a swaying      */
-/*  ember tassel. Slow Y rotation with subtle sinusoidal X/Z, floating lift,  */
-/*  damped mouse parallax (desktop), and a springy entrance. Mounted as a     */
-/*  full-stage background layer (pointer-events: none) behind the hero and    */
-/*  the book; it recedes on scroll but never fully hides. Materials resolve   */
-/*  the --cap-* / --ember tokens live, so the cap re-tints smoothly when the  */
-/*  theme switches. Falls back to CapEmblem when WebGL is unavailable and     */
-/*  freezes to a static pose under prefers-reduced-motion.                    */
+/*  GraduationCapScene — the hero's giant realistic graduation cap.           */
+/*  A premium mortarboard: square beveled board, skullcap, center button,     */
+/*  and a tassel whose yaw LAGS behind the cap's spin (damped secondary       */
+/*  motion) with a gentle pendulum sway. Slow Y rotation with subtle          */
+/*  sinusoidal X/Z, floating lift, damped mouse parallax (desktop), and a     */
+/*  springy entrance. Mounted ONLY in the hero section as a decorative        */
+/*  backdrop (pointer-events: none); it folds away with the hero. Materials   */
+/*  resolve the --cap-* / --ember tokens live, so the cap re-tints smoothly   */
+/*  when the theme switches. Falls back to CapEmblem when WebGL is            */
+/*  unavailable and freezes to a static pose under prefers-reduced-motion.    */
 /* -------------------------------------------------------------------------- */
 
 const ROTATION_SPEED = 0.1;
-const FLOAT_AMPLITUDE = 0.13;
-const TASSEL_SWAY = 0.35;
-const PARALLAX_Y = 0.26;
-const PARALLAX_X = 0.18;
+const FLOAT_AMPLITUDE = 0.12;
+const TASSEL_SWAY = 0.16;
+const PARALLAX_Y = 0.16;
+const PARALLAX_X = 0.12;
+const TASSEL_LAG_RATE = 3.5;
 
-/** Exponential damping factor per frame: ~4/s convergence. */
-function damp(delta, rate = 4) {
+/** Exponential damping factor per frame: ~rate/s convergence. */
+function damp(delta, rate) {
   return 1 - Math.exp(-delta * rate);
 }
 
@@ -40,29 +43,34 @@ function lerpColor(current, target, factor) {
   return current;
 }
 
-function Tassel({ stringMat, tailMat, palette }) {
+function Tassel({ stringMat, tailMat, knotMat, palette, tasselRef }) {
   const groupRef = useRef(null);
 
+  /* Cord: from the center button, across the board top, over the front
+     right edge, dangling beside the board. */
   const curve = useMemo(
     () =>
       new THREE.CatmullRomCurve3([
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(0.5, -0.28, 0),
-        new THREE.Vector3(1.05, -0.42, 0.05),
-        new THREE.Vector3(1.5, -0.16, 0.08),
+        new THREE.Vector3(0, 0.03, 0),
+        new THREE.Vector3(0.85, 0.03, 0.1),
+        new THREE.Vector3(1.45, 0.0, 0.16),
+        new THREE.Vector3(1.62, -0.28, 0.15),
       ]),
     [],
   );
 
   useFrame((state) => {
+    const group = groupRef.current;
+    if (!group) return;
     const t = state.clock.elapsedTime;
-    groupRef.current.rotation.x = Math.sin(t * 0.9 + 0.8) * TASSEL_SWAY;
-    groupRef.current.rotation.z = Math.cos(t * 0.5 + 0.4) * 0.08;
+    /* Gentle pendulum sway on top of the yaw lag applied by the rig. */
+    group.rotation.x = Math.sin(t * 0.8 + 0.8) * TASSEL_SWAY;
+    group.rotation.z = Math.cos(t * 0.45 + 0.4) * 0.05;
   });
 
   return (
-    <group ref={groupRef} position={[0.1, 0.62, 0]}>
-      <mesh geometry={new THREE.TubeGeometry(curve, 16, 0.024, 8)}>
+    <group ref={tasselRef} position={[0, 0.62, 0]}>
+      <mesh geometry={new THREE.TubeGeometry(curve, 24, 0.026, 8)}>
         <meshStandardMaterial
           ref={stringMat}
           color={palette.fabric}
@@ -70,8 +78,19 @@ function Tassel({ stringMat, tailMat, palette }) {
           metalness={0.02}
         />
       </mesh>
-      <mesh position={[1.62, -0.44, 0.08]} rotation={[0, 0, -0.18]}>
-        <capsuleGeometry args={[0.05, 0.3, 6, 10]} />
+      {/* Knot where the cord leaves the board edge */}
+      <mesh position={[1.63, -0.3, 0.15]}>
+        <sphereGeometry args={[0.07, 12, 10]} />
+        <meshStandardMaterial
+          ref={knotMat}
+          color={palette.ember}
+          roughness={0.5}
+          metalness={0.04}
+        />
+      </mesh>
+      {/* Dangling tassel tail */}
+      <mesh position={[1.62, -0.62, 0.15]} rotation={[0, 0, -0.12]}>
+        <capsuleGeometry args={[0.05, 0.34, 6, 10]} />
         <meshStandardMaterial
           ref={tailMat}
           color={palette.ember}
@@ -93,13 +112,23 @@ function CapRig({
   fabricMat,
   buttonMat,
   stringMat,
+  knotMat,
   tailMat,
 }) {
   const groupRef = useRef(null);
   const innerRef = useRef(null);
+  const tasselRef = useRef(null);
   const scaleRef = useRef({ value: 0, target: 1 });
   const pointerRef = useRef({ x: 0, y: 0, active: false });
+  const lagRef = useRef(0);
   const colorState = useRef(null);
+
+  /* The addon class is CJS-interop wrapped by Vite, so it must be invoked
+     explicitly with `new` (JSX construction fails in @react-three/fiber). */
+  const boardGeometry = useMemo(
+    () => new RoundedBoxGeometry(3.2, 0.12, 3.2, 4, 0.06),
+    [],
+  );
 
   const [glowTexture] = useState(() => softGlowTexture());
 
@@ -136,12 +165,14 @@ function CapRig({
     const boardMaterial = boardMat.current;
     const fabricMaterial = fabricMat.current;
     const stringMaterial = stringMat.current;
+    const knotMaterial = knotMat.current;
     const tailMaterial = tailMat.current;
     if (paletteColors && boardMaterial && fabricMaterial && tailMaterial) {
       const f = damp(delta, 4);
       lerpColor(boardMaterial.color, paletteColors.board, f);
       lerpColor(fabricMaterial.color, paletteColors.fabric, f);
       if (stringMaterial) lerpColor(stringMaterial.color, paletteColors.fabric, f);
+      if (knotMaterial) lerpColor(knotMaterial.color, paletteColors.ember, f);
       lerpColor(tailMaterial.color, paletteColors.ember, f);
       tailMaterial.emissive.lerp(paletteColors.ember, f);
     }
@@ -158,6 +189,13 @@ function CapRig({
     inner.rotation.x = Math.sin(t * 0.2) * 0.05;
     inner.rotation.z = Math.cos(t * 0.13) * 0.04;
 
+    /* Tassel secondary motion: its yaw lags behind the cap's spin, so it
+       drags and catches up — damped, never rigid. */
+    lagRef.current += (inner.rotation.y - lagRef.current) * damp(delta, TASSEL_LAG_RATE);
+    if (tasselRef.current) {
+      tasselRef.current.rotation.y = -(inner.rotation.y - lagRef.current);
+    }
+
     /* Floating lift */
     inner.position.y = Math.sin(t * 0.8) * FLOAT_AMPLITUDE;
 
@@ -167,7 +205,7 @@ function CapRig({
     if (px.active) {
       group.rotation.y += ((px.x * PARALLAX_X) - group.rotation.y) * f;
       group.rotation.x += ((px.y * PARALLAX_Y) - group.rotation.x) * f;
-      group.position.x += (-px.x * 0.18 - group.position.x) * f;
+      group.position.x += (-px.x * 0.12 - group.position.x) * f;
     } else {
       group.rotation.y += -group.rotation.y * f;
       group.rotation.x += -group.rotation.x * f;
@@ -178,9 +216,8 @@ function CapRig({
   return (
     <group ref={groupRef}>
       <group ref={innerRef}>
-        {/* Mortarboard — tapered cylinder, top slightly wider */}
-        <mesh position={[0, 0.58, 0]}>
-          <cylinderGeometry args={[1.52, 1.6, 0.1, 48]} />
+        {/* Mortarboard — square, beveled, with real thickness */}
+        <mesh geometry={boardGeometry} position={[0, 0.58, 0]}>
           <meshStandardMaterial
             ref={boardMat}
             color={palette.board}
@@ -200,8 +237,8 @@ function CapRig({
           />
         </mesh>
 
-        {/* Button */}
-        <mesh position={[0, 0.68, 0]}>
+        {/* Center button */}
+        <mesh position={[0, 0.66, 0]}>
           <sphereGeometry args={[0.13, 16, 12]} />
           <meshStandardMaterial
             ref={buttonMat}
@@ -211,7 +248,13 @@ function CapRig({
           />
         </mesh>
 
-        <Tassel stringMat={stringMat} tailMat={tailMat} palette={palette} />
+        <Tassel
+          stringMat={stringMat}
+          tailMat={tailMat}
+          knotMat={knotMat}
+          palette={palette}
+          tasselRef={tasselRef}
+        />
       </group>
 
       {/* Soft contact shadow + ember under-glow */}
@@ -248,6 +291,7 @@ function CapCanvas({ reduced, hidden }) {
   const fabricMat = useRef(null);
   const buttonMat = useRef(null);
   const stringMat = useRef(null);
+  const knotMat = useRef(null);
   const tailMat = useRef(null);
 
   const lightPalette = useMemo(
@@ -267,7 +311,8 @@ function CapCanvas({ reduced, hidden }) {
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       style={{ background: "transparent" }}
     >
-      <ambientLight intensity={0.75} />
+      <ambientLight intensity={0.5} />
+      <hemisphereLight args={["#fff7ec", "#17131c", 0.45]} />
       <directionalLight position={[3, 4.5, 5]} intensity={1.15} color={lightPalette.key} />
       <directionalLight position={[-4, 2, -3]} intensity={0.55} color={lightPalette.aurora} />
       <pointLight position={[0, -2.2, 2.4]} intensity={2.2} distance={6} color={lightPalette.ember} />
@@ -280,6 +325,7 @@ function CapCanvas({ reduced, hidden }) {
         fabricMat={fabricMat}
         buttonMat={buttonMat}
         stringMat={stringMat}
+        knotMat={knotMat}
         tailMat={tailMat}
       />
     </Canvas>
