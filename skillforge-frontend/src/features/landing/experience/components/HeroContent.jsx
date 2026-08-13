@@ -24,7 +24,7 @@ export default function HeroContent() {
   useMagnetic(primaryCtaRef);
 
   return (
-    <div className="flex flex-col items-center text-center">
+    <div className="flex max-w-[56rem] flex-col items-center text-center lg:items-start lg:text-left">
       <div
         data-hero="badge"
         className="inline-flex items-center gap-2 rounded-full border bg-card/60 px-4 py-1.5 text-sm text-muted-foreground backdrop-blur"
@@ -35,7 +35,7 @@ export default function HeroContent() {
 
       <h1
         data-hero="title"
-        className="mt-7 max-w-4xl text-5xl font-bold leading-[1.05] tracking-tight sm:text-6xl lg:text-[5.25rem]"
+        className="mt-7 text-5xl font-bold leading-[1.02] tracking-tight sm:text-6xl lg:text-[5.75rem] lg:leading-[0.98]"
       >
         The internet is infinite.
         <br />
@@ -53,7 +53,7 @@ export default function HeroContent() {
 
       <div
         data-hero="cta"
-        className="mt-9 flex flex-col items-center gap-3 sm:flex-row"
+        className="mt-9 flex flex-col items-center gap-3 sm:flex-row lg:justify-start"
       >
         <div ref={primaryCtaRef}>
           <Button

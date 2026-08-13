@@ -439,7 +439,8 @@ function HeroSection({ cap }) {
       /* Hero-scroll response: as the hero gives way to the fold, the cap
          recedes — it scales slightly down, sinks, and fades, so the
          transition feels authored rather than abrupt. Scroll-scrubbed:
-         the user owns it. */
+         the user owns it. The copy drifts up and lets go at the same
+         pace, so the whole first chapter exits as one gesture. */
       const capWrap = select("[data-cap-slot] > div");
       if (capWrap.length) {
         gsap.fromTo(
@@ -453,7 +454,25 @@ function HeroSection({ cap }) {
             scrollTrigger: {
               trigger: rootRef.current,
               start: "top top",
-              end: "bottom 70%",
+              end: "bottom 45%",
+              scrub: 0.4,
+            },
+          },
+        );
+      }
+      const copyWrap = select("[data-hero-copy]");
+      if (copyWrap.length) {
+        gsap.fromTo(
+          copyWrap,
+          { yPercent: 0, opacity: 1 },
+          {
+            yPercent: -8,
+            opacity: 0.88,
+            ease: "none",
+            scrollTrigger: {
+              trigger: rootRef.current,
+              start: "top top",
+              end: "bottom 45%",
               scrub: 0.4,
             },
           },
@@ -467,15 +486,16 @@ function HeroSection({ cap }) {
   return (
     <section ref={rootRef} id="top" className="relative min-h-svh overflow-hidden">
       {/* The giant graduation cap — only here, only on the hero. Decorative,
-          never blocks input. Its center of interest lands at 55% of the
-          hero height on every device. */}
+          never blocks input. On desktop it sits right of center and runs
+          past the bottom edge of the viewport; on mobile it stays centered
+          behind the copy so the statement always stays readable. */}
       <div
         data-cap-slot
         aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-[55svh] z-0 -translate-x-1/2"
+        className="pointer-events-none absolute left-1/2 top-[55svh] z-0 -translate-x-1/2 lg:left-[63%]"
       >
         <div data-cap-scrub>
-          <div className="aspect-square w-[95vw] -translate-y-[52%] sm:w-[78vw] lg:w-[68vw] 2xl:w-[72vw]">
+          <div className="aspect-square w-[98vw] -translate-y-[52%] sm:w-[82vw] lg:w-[72vw] 2xl:w-[74vw]">
             {cap}
           </div>
         </div>
@@ -488,18 +508,20 @@ function HeroSection({ cap }) {
       >
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,color-mix(in_oklch,var(--ember)_10%,transparent)_0%,transparent_55%)]" />
         <div className="absolute inset-0 animate-aurora bg-[radial-gradient(ellipse_60%_50%_at_80%_20%,color-mix(in_oklch,var(--aurora)_10%,transparent)_0%,transparent_60%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_52%_46%_at_50%_46%,color-mix(in_oklch,var(--background)_78%,transparent)_0%,transparent_72%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_52%_46%_at_60%_55%,color-mix(in_oklch,var(--background)_78%,transparent)_0%,transparent_72%)]" />
         <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-background to-transparent" />
       </div>
 
-      <div className="relative z-20 flex min-h-svh flex-col items-center justify-center px-6 py-24 lg:px-10">
-        <HeroContent />
+      <div className="relative z-20 flex min-h-svh flex-col items-center justify-center px-6 py-24 lg:items-start lg:px-16 lg:py-16">
+        <div data-hero-copy className="flex w-full justify-center lg:justify-start">
+          <HeroContent />
+        </div>
 
         <a
           data-hero="scroll"
           href="#what-is"
           aria-label="Scroll to learn more"
-          className="absolute bottom-6 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 text-muted-foreground transition-colors hover:text-foreground md:flex"
+          className="absolute bottom-6 right-8 hidden flex-col items-center gap-2 text-muted-foreground transition-colors hover:text-foreground md:flex"
         >
           <span className="text-[0.6875rem] font-medium uppercase tracking-[0.18em]">
             Scroll
@@ -515,7 +537,7 @@ function HeroSection({ cap }) {
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 hidden lg:block"
         >
-          <div className="glass absolute right-[8%] top-[18%] animate-float rounded-2xl border p-4 shadow-xl">
+          <div className="glass absolute right-[8%] top-[16%] animate-float rounded-2xl border p-4 shadow-xl">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-xl bg-ember/15 text-ember">
                 <Zap className="size-5" />
@@ -527,7 +549,7 @@ function HeroSection({ cap }) {
             </div>
           </div>
 
-          <div className="glass absolute left-[7%] top-[42%] animate-float rounded-2xl border p-4 shadow-xl [animation-delay:1.4s]">
+          <div className="glass absolute right-[24%] top-[46%] animate-float rounded-2xl border p-4 shadow-xl [animation-delay:1.4s]">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-xl bg-aurora/15 text-aurora">
                 <Target className="size-5" />
@@ -539,7 +561,7 @@ function HeroSection({ cap }) {
             </div>
           </div>
 
-          <div className="glass absolute bottom-[18%] right-[14%] animate-float rounded-2xl border p-4 shadow-xl [animation-delay:2.2s]">
+          <div className="glass absolute bottom-[13%] right-[9%] animate-float rounded-2xl border p-4 shadow-xl [animation-delay:2.2s]">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-xl bg-success/15 text-success">
                 <Sparkles className="size-5" />
@@ -929,11 +951,11 @@ function KnowledgeSection() {
             </div>
           }
         >
-          <div className="relative mt-8 h-[46svh] min-h-[22rem]">
+          <div className="relative mt-8 h-[52svh] min-h-[24rem]">
             {/* 3D knowledge constellation — ambient backdrop, deferred until
                 the section nears the viewport, never blocks the map. */}
             {near && (
-              <KnowledgeConstellation className="absolute inset-0 h-full w-full opacity-45" />
+              <KnowledgeConstellation className="absolute inset-0 h-full w-full opacity-50" />
             )}
             <div className="absolute inset-0">
               <KnowledgeMap />

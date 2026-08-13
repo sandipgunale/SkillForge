@@ -92,8 +92,6 @@ function lerpColor(current, target, factor) {
 }
 
 function Tassel({ stringMat, tailMat, knotMat, palette, tasselRef }) {
-  const groupRef = useRef(null);
-
   /* Cord: from the center button, across the board top, over the front
      right edge, dangling beside the board. */
   const curve = useMemo(
@@ -108,7 +106,7 @@ function Tassel({ stringMat, tailMat, knotMat, palette, tasselRef }) {
   );
 
   useFrame((state) => {
-    const group = groupRef.current;
+    const group = tasselRef.current;
     if (!group) return;
     const t = state.clock.elapsedTime;
     /* Gentle pendulum sway on top of the yaw lag applied by the rig. */
