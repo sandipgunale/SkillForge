@@ -44,7 +44,7 @@ const STACK = [
     title: "Quality Gates",
     accent: "text-success",
     chip: "bg-success/12",
-    items: ["149+ tests", "JaCoCo gate", "Zero-warning lint", "Perf budgets"],
+    items: ["240+ tests", "JaCoCo gate", "Zero-warning lint", "Perf budgets"],
   },
 ];
 

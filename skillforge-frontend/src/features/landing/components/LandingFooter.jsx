@@ -7,10 +7,10 @@ const FOOTER_COLUMNS = [
   {
     heading: "Product",
     links: [
-      { label: "Features", href: "#features" },
-      { label: "Method", href: "#method" },
-      { label: "AI practice", href: "#ai" },
-      { label: "Roles", href: "#roles" },
+      { label: "Features", href: "#what-is" },
+      { label: "Method", href: "#how-it-works" },
+      { label: "AI practice", href: "#faq" },
+      { label: "Roles", href: "#experience" },
     ],
   },
   {
@@ -56,16 +56,27 @@ export default function LandingFooter() {
             <nav key={column.heading} aria-label={column.heading}>
               <h3 className="text-sm font-semibold">{column.heading}</h3>
               <ul className="mt-4 space-y-2.5">
-                {column.links.map((link) => (
-                  <li key={link.label}>
-                    <Link
-                      to={link.href}
-                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
+                {column.links.map((link) =>
+                  link.href.startsWith("#") ? (
+                    <li key={link.label}>
+                      <a
+                        href={link.href}
+                        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        {link.label}
+                      </a>
+                    </li>
+                  ) : (
+                    <li key={link.label}>
+                      <Link
+                        to={link.href}
+                        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        {link.label}
+                      </Link>
+                    </li>
+                  ),
+                )}
               </ul>
             </nav>
           ))}

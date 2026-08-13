@@ -145,24 +145,24 @@ export default function HeroSection() {
           data-hero="cta"
           className="mt-9 flex flex-col items-center gap-3 sm:flex-row"
         >
-          <Link to={ROUTES.REGISTER} className="group">
-            <Button
-              size="lg"
-              className="h-12 w-full rounded-full px-7 text-base shadow-lg shadow-ember/20 transition-transform duration-300 hover:scale-[1.04] active:scale-[0.97] sm:w-auto"
-            >
+          <Button
+            asChild
+            size="lg"
+            className="group h-12 w-full rounded-full px-7 text-base shadow-lg shadow-ember/20 transition-transform duration-300 hover:scale-[1.04] active:scale-[0.97] sm:w-auto"
+          >
+            <Link to={ROUTES.REGISTER}>
               Start learning free
               <ArrowRight className="ml-2 size-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-            </Button>
-          </Link>
-          <Link to={ROUTES.LOGIN}>
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-12 w-full rounded-full px-7 text-base transition-transform duration-300 hover:scale-[1.04] active:scale-[0.97] sm:w-auto"
-            >
-              Explore the dashboard
-            </Button>
-          </Link>
+            </Link>
+          </Button>
+          <Button
+            asChild
+            size="lg"
+            variant="outline"
+            className="h-12 w-full rounded-full px-7 text-base transition-transform duration-300 hover:scale-[1.04] active:scale-[0.97] sm:w-auto"
+          >
+            <Link to={ROUTES.LOGIN}>Explore the dashboard</Link>
+          </Button>
         </div>
 
         <dl

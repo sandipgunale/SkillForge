@@ -133,7 +133,7 @@ export default function ExperienceSection() {
             >
               <Quote className="size-6 text-ember" aria-hidden="true" />
               <blockquote className="mt-4 flex-1 text-sm leading-relaxed text-foreground/90">
-                "{quote}"
+                {quote}
               </blockquote>
               <figcaption className="mt-6 flex items-center gap-3">
                 <Avatar className="size-10 border">

@@ -27,7 +27,7 @@ const METRICS = [
   },
   {
     icon: ShieldCheck,
-    value: 169,
+    value: 240,
     suffix: "+",
     label: "Automated tests",
     note: "Unit, integration, and contract",
@@ -76,7 +76,7 @@ export default function MetricsSection() {
           </span>
           <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl lg:text-[2.75rem] lg:leading-[1.15]">
             Fast is a feature.{" "}
-            <span className="text-gradient-ember">Here's the proof.</span>
+            <span className="text-gradient-ember">Here's the budget.</span>
           </h2>
         </div>
 
@@ -92,7 +92,7 @@ export default function MetricsSection() {
                   <Icon className="size-5" />
                 </div>
                 <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  Live budget
+                  Target
                 </span>
               </div>
 

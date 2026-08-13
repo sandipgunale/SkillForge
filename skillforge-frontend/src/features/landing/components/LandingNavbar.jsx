@@ -10,11 +10,10 @@ import ThemeToggle from "@/components/common/ThemeToggle";
 import { ROUTES } from "@/constants/routes";
 
 const NAV_LINKS = [
-  { label: "Problem", href: "#problem" },
-  { label: "Method", href: "#method" },
-  { label: "Features", href: "#features" },
-  { label: "AI", href: "#ai" },
-  { label: "Roles", href: "#roles" },
+  { label: "Problem", href: "#what-is" },
+  { label: "Method", href: "#how-it-works" },
+  { label: "AI", href: "#architecture" },
+  { label: "Roles", href: "#experience" },
   { label: "FAQ", href: "#faq" },
 ];
 

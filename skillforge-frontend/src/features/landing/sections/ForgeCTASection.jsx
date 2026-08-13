@@ -68,24 +68,19 @@ export default function ForgeCTASection() {
             </p>
 
             <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Link to={ROUTES.REGISTER}>
-                <Button
-                  size="lg"
-                  className="group h-13 rounded-full px-8 text-base shadow-xl shadow-ember/25"
-                >
+              <Button
+                asChild
+                size="lg"
+                className="group h-13 rounded-full px-8 text-base shadow-xl shadow-ember/25"
+              >
+                <Link to={ROUTES.REGISTER}>
                   Forge your first skill
                   <ArrowRight className="ml-2 size-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-                </Button>
-              </Link>
-              <Link to={ROUTES.LOGIN}>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="h-13 rounded-full px-8 text-base"
-                >
-                  I already have an account
-                </Button>
-              </Link>
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="h-13 rounded-full px-8 text-base">
+                <Link to={ROUTES.LOGIN}>I already have an account</Link>
+              </Button>
             </div>
           </div>
         </div>
