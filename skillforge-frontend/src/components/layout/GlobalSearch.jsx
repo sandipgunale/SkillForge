@@ -12,12 +12,14 @@ import { resourceApi } from "@/features/resources/api/resource.api";
 import { ROUTES } from "@/constants/routes";
 import { useDebounce } from "@/hooks/useDebounce";
 import { usePopover } from "@/lib/motion-gsap";
+import { cn } from "@/lib/utils";
 
 const MIN_QUERY_LENGTH = 2;
 
 export default function GlobalSearch() {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
   const navigate = useNavigate();
   const panelRef = useRef(null);
 
@@ -37,6 +39,12 @@ export default function GlobalSearch() {
 
   const results = data?.resources ?? [];
 
+  const [prevQuery, setPrevQuery] = useState(debouncedQuery);
+  if (prevQuery !== debouncedQuery) {
+    setPrevQuery(debouncedQuery);
+    setActiveIndex(0);
+  }
+
   const showPanel =
     open && debouncedQuery.length >= MIN_QUERY_LENGTH;
 
@@ -47,6 +55,28 @@ export default function GlobalSearch() {
   };
 
   const close = () => setOpen(false);
+
+  const handleKeyDown = (event) => {
+    if (event.key === "Escape") {
+      close();
+      return;
+    }
+    if (!showPanel || results.length === 0) return;
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveIndex((i) => Math.min(i + 1, results.length - 1));
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveIndex((i) => Math.max(i - 1, 0));
+    } else if (event.key === "Enter" && results[activeIndex]) {
+      event.preventDefault();
+      goToResource(results[activeIndex].id);
+    }
+  };
+
+  const activeId = results[activeIndex]
+    ? `global-search-option-${results[activeIndex].id}`
+    : undefined;
 
   return (
     <div
@@ -65,17 +95,17 @@ export default function GlobalSearch() {
           setQuery(event.target.value);
           setOpen(true);
         }}
-        onFocus={() => setOpen(true)}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") {
-            close();
-          }
+        onFocus={() => {
+          setOpen(true);
+          setActiveIndex(0);
         }}
+        onKeyDown={handleKeyDown}
         placeholder="Search resources..."
         className="h-9 rounded-full bg-muted/60 pl-9 pr-8"
         role="combobox"
         aria-expanded={showPanel}
         aria-controls="global-search-results"
+        aria-activedescendant={showPanel ? activeId : undefined}
         aria-label="Search resources"
       />
 
@@ -121,12 +151,16 @@ export default function GlobalSearch() {
           ) : (
             <>
               <ul>
-                {results.map((resource) => (
-                  <li key={resource.id} role="option">
+                {results.map((resource, i) => (
+                  <li key={resource.id} role="option" aria-selected={i === activeIndex} id={`global-search-option-${resource.id}`}>
                     <button
                       type="button"
                       onClick={() => goToResource(resource.id)}
-                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-muted"
+                      onMouseEnter={() => setActiveIndex(i)}
+                      className={cn(
+                        "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors",
+                        i === activeIndex ? "bg-muted" : "hover:bg-muted",
+                      )}
                     >
                       <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                         <FileText className="size-4" />

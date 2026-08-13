@@ -1,10 +1,11 @@
 import { useMemo, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, NavLink } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 
 import { getNavigationSections } from "@/config/navigation";
 import { useAuth } from "@/store/authStore";
 import { useMountAnimation } from "@/lib/motion-gsap";
+import { ROUTES } from "@/constants/routes";
 
 export default function MissionBreadcrumbs() {
   const { role } = useAuth();
@@ -33,9 +34,12 @@ export default function MissionBreadcrumbs() {
       aria-label="Breadcrumb"
       className="hidden items-center gap-1.5 text-sm lg:flex"
     >
-      <span className="font-medium text-muted-foreground transition-colors hover:text-foreground">
+      <NavLink
+        to={ROUTES.DASHBOARD}
+        className="font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
         Forge
-      </span>
+      </NavLink>
       <ChevronRight className="size-3.5 text-muted-foreground/50" />
       <span ref={crumbRef} className="max-w-56 truncate font-semibold">
         {segment}
