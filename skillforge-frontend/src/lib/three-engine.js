@@ -58,6 +58,44 @@ export function useScenePalette() {
   }), []);
 }
 
+function resolveScenePalette() {
+  return {
+    ember: resolveColor("--ember"),
+    aurora: resolveColor("--aurora"),
+    dim: resolveColor("--muted-foreground"),
+    board: resolveColor("--cap-board"),
+    fabric: resolveColor("--cap-fabric"),
+  };
+}
+
+/**
+ * Live palette — re-resolves the design tokens whenever the theme class on
+ * <html> changes (next-themes toggles `.dark`). Scenes that must re-tint on
+ * theme switch (the graduation cap) use this; the palette itself is stable,
+ * so materials lerp toward the new values in their frame loops.
+ */
+export function useScenePaletteLive() {
+  const [palette, setPalette] = useState(resolveScenePalette);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return undefined;
+    const probe = () => setPalette(resolveScenePalette());
+    const observer = new MutationObserver(probe);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    media.addEventListener("change", probe);
+    return () => {
+      observer.disconnect();
+      media.removeEventListener("change", probe);
+    };
+  }, []);
+
+  return palette;
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Soft radial glow sprite texture (shared by all scenes)                     */
 /* -------------------------------------------------------------------------- */

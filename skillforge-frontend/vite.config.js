@@ -20,6 +20,13 @@ export default defineConfig({
   },
 
   build: {
+    /* vendor-three (three.js + @react-three/fiber) minifies to ~880 kB and
+       can never fit the default 500 kB heuristic — three's core alone is
+       ~700 kB. It is ONLY reachable through lazy-loaded 3D routes (auth
+       scenes, dashboard orb, the landing cap scene), never the landing or
+       dashboard critical path, and gzips to ~234 kB. The limit sits just
+       above that chunk so regressions in any OTHER chunk still surface. */
+    chunkSizeWarningLimit: 900,
     modulePreload: {
       resolveDependencies: (_filename, deps) =>
         deps.filter((dep) => !/vendor-charts/.test(dep)),

@@ -1,0 +1,186 @@
+/* ==========================================================================
+   SkillForge 3D Book — the landing page as an interactive book.
+   One fixed stage, native scroll, one GSAP master timeline drives the
+   leaf rotations. All surfaces resolve --book-* / --cap-* tokens so the
+   book re-tints with the theme. Desktop = two-page spread; <1024px the
+   book becomes a single-page portrait layout. The fixed stage is never
+   mounted under prefers-reduced-motion (the static layout replaces it).
+   ========================================================================== */
+
+/* ---- Stage -------------------------------------------------------------- */
+.experience-stage {
+    perspective: 2200px;
+    perspective-origin: 50% 40%;
+}
+
+/* ---- Book --------------------------------------------------------------- */
+.book {
+    position: relative;
+    transform-style: preserve-3d;
+    width: min(92vw, 128vh, 1440px);
+    aspect-ratio: 3 / 2;
+}
+
+/* Page-block thickness — a hair of depth behind every page */
+.book-block {
+    position: absolute;
+    inset: 0 -3px -3px 3px;
+    transform: translateZ(-4px);
+    pointer-events: none;
+    border-radius: 8px;
+    background: linear-gradient(
+        90deg,
+        color-mix(in oklch, var(--book-page) 78%, var(--book-spine)) 0%,
+        var(--book-page) 46%,
+        var(--book-page) 54%,
+        color-mix(in oklch, var(--book-page) 78%, var(--book-spine)) 100%
+    );
+    box-shadow:
+        0 1px 1px color-mix(in oklch, var(--book-spine) 45%, transparent),
+        0 8px 24px -8px color-mix(in oklch, var(--book-spine) 60%, transparent);
+}
+
+/* Hinge seam — the page-stack shadow at the spine */
+.book-spine {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(50% - 9px);
+    width: 18px;
+    transform: translateZ(0.5px);
+    pointer-events: none;
+    background:
+        linear-gradient(90deg, transparent 0%, var(--book-spine) 46%, var(--book-spine) 54%, transparent 100%);
+    opacity: 0.55;
+}
+
+/* ---- Covers ------------------------------------------------------------- */
+.book-cover {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 50%;
+    transform-style: preserve-3d;
+}
+
+.book-cover--left {
+    left: 0;
+}
+
+.book-cover--right {
+    right: 0;
+}
+
+/* ---- Leaves ------------------------------------------------------------- */
+.book-leaf-stack {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 50%;
+    transform-style: preserve-3d;
+}
+
+.book-leaf {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    transform-origin: left center;
+}
+
+.book-face {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+.book-face--back {
+    transform: rotateY(180deg);
+    /* Mirror around the face's own center so the leaf's flip un-mirrors the
+       content — it lands on the left page, readable, inside the leaf's box. */
+}
+
+/* Hinge shadow revealed while the leaf swings (opacity scrubbed by GSAP:
+   peaks at 90° like sin(progress·π)) */
+.book-leaf-shadow {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -8px;
+    width: 46%;
+    transform: translateZ(-0.5px);
+    opacity: 0;
+    pointer-events: none;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        color-mix(in oklch, var(--book-spine) 42%, transparent) 100%
+    );
+}
+
+/* ---- Surfaces ----------------------------------------------------------- */
+.book-page-surface {
+    background:
+        linear-gradient(
+            160deg,
+            color-mix(in oklch, var(--book-page) 98%, #fff) 0%,
+            var(--book-page) 34%,
+            color-mix(in oklch, var(--book-page) 94%, var(--book-spine)) 100%
+        );
+    color: var(--book-page-text);
+    border-radius: 6px;
+    box-shadow:
+        inset 0 0 0 1px var(--book-rule),
+        inset 0 1px 0 color-mix(in oklch, var(--book-page-text) 8%, transparent),
+        0 1px 2px color-mix(in oklch, var(--book-spine) 35%, transparent);
+}
+
+.book-cover-surface {
+    background:
+        radial-gradient(120% 90% at 20% 0%, color-mix(in oklch, var(--ember) 14%, transparent) 0%, transparent 55%),
+        radial-gradient(100% 80% at 90% 100%, color-mix(in oklch, var(--aurora) 10%, transparent) 0%, transparent 50%),
+        linear-gradient(160deg, color-mix(in oklch, var(--book-cover) 92%, var(--ember)) 0%, var(--book-cover) 55%, color-mix(in oklch, var(--book-cover) 94%, var(--book-spine)) 100%);
+    color: var(--book-cover-text);
+    border-radius: 6px;
+    box-shadow:
+        inset 0 0 0 1px color-mix(in oklch, var(--book-cover-text) 12%, transparent),
+        inset 0 0 64px -24px color-mix(in oklch, var(--ember) 30%, transparent),
+        0 2px 4px color-mix(in oklch, var(--book-spine) 55%, transparent),
+        0 24px 48px -16px color-mix(in oklch, var(--book-spine) 70%, transparent);
+}
+
+/* ---- Single-page layout (tablet + mobile) ------------------------------- */
+@media (max-width: 1023px) {
+    .book {
+        width: min(94vw, 64vh);
+        aspect-ratio: 3 / 4;
+    }
+
+    .book-cover,
+    .book-leaf-stack {
+        width: 100%;
+    }
+
+    .book-cover--left,
+    .book-cover--right,
+    .book-leaf-stack {
+        left: 0;
+    }
+
+    .book-spine {
+        left: 0;
+        width: 12px;
+        background: linear-gradient(90deg, var(--book-spine) 0%, transparent 100%);
+    }
+
+    .book-block {
+        inset: 0 -3px -3px 3px;
+        background: linear-gradient(
+            90deg,
+            color-mix(in oklch, var(--book-page) 74%, var(--book-spine)) 0%,
+            var(--book-page) 24%
+        );
+    }
+}
