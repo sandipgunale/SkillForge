@@ -486,16 +486,18 @@ function HeroSection({ cap }) {
   return (
     <section ref={rootRef} id="top" className="relative min-h-svh overflow-hidden">
       {/* The giant graduation cap — only here, only on the hero. Decorative,
-          never blocks input. On desktop it sits right of center and runs
-          past the bottom edge of the viewport; on mobile it stays centered
-          behind the copy so the statement always stays readable. */}
+          never blocks input. On desktop it anchors to the right edge BELOW
+          the statement (the statement block ends at ~52svh), so the cap's
+          mass never covers the H1, the CTAs, the stats, or the navbar.
+          On mobile it stays centered behind the copy so the statement
+          always stays readable. */}
       <div
         data-cap-slot
         aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-[55svh] z-0 -translate-x-1/2 lg:left-[63%]"
+        className="pointer-events-none absolute right-0 top-[52svh] z-0"
       >
         <div data-cap-scrub>
-          <div className="aspect-square w-[98vw] -translate-y-[52%] sm:w-[82vw] lg:w-[72vw] 2xl:w-[74vw]">
+          <div className="aspect-square w-[98vw] sm:w-[82vw] lg:w-[56vw] 2xl:w-[64vw]">
             {cap}
           </div>
         </div>
@@ -537,7 +539,7 @@ function HeroSection({ cap }) {
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 hidden lg:block"
         >
-          <div className="glass absolute right-[8%] top-[16%] animate-float rounded-2xl border p-4 shadow-xl">
+          <div className="glass absolute right-[6%] top-[13%] animate-float rounded-2xl border p-4 shadow-xl">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-xl bg-ember/15 text-ember">
                 <Zap className="size-5" />
@@ -549,7 +551,7 @@ function HeroSection({ cap }) {
             </div>
           </div>
 
-          <div className="glass absolute right-[18%] top-[50%] animate-float rounded-2xl border p-4 shadow-xl [animation-delay:1.4s]">
+          <div className="glass absolute right-[18%] top-[29%] animate-float rounded-2xl border p-4 shadow-xl [animation-delay:1.4s]">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-xl bg-aurora/15 text-aurora">
                 <Target className="size-5" />
@@ -561,7 +563,7 @@ function HeroSection({ cap }) {
             </div>
           </div>
 
-          <div className="glass absolute bottom-[13%] right-[9%] animate-float rounded-2xl border p-4 shadow-xl [animation-delay:2.2s]">
+          <div className="glass absolute bottom-6 left-6 animate-float rounded-2xl border p-4 shadow-xl [animation-delay:2.2s]">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-xl bg-success/15 text-success">
                 <Sparkles className="size-5" />

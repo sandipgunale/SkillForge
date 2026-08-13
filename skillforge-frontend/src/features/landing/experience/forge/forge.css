@@ -59,6 +59,11 @@
     position: relative;
     width: 100%;
     min-height: 100svh;
+    /* Opaque surface: every sheet is a solid page. Only the current page
+       (and the next page while it swings away) is ever painted, so no
+       content can leak through the stack — the viewport always shows
+       exactly one section. */
+    background: var(--background);
     transform-origin: 100% 50%;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;

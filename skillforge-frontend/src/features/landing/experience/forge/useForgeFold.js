@@ -103,7 +103,7 @@ export default function useForgeFold({ stageRef, pagesRef, reduced }) {
         }
         if (cast) cast.style.opacity = "0";
         if (edge) edge.style.opacity = "0";
-        return { translate: 0, rotate: 0, lift: 0, cast: 0, edge: 0, s: 0 };
+        return { translate: 0, rotate: 0, lift: 0, cast: 0, edge: 0, s: 0, visible: true };
       });
     };
 
@@ -122,16 +122,33 @@ export default function useForgeFold({ stageRef, pagesRef, reduced }) {
       const f = damp(delta, SMOOTH_RATE);
       let changed = false;
 
-      for (let index = 0; index < count; index += 1) {
-        const page = pages[index];
+      /* Pass 1 — smooth progress through every page's scroll window. */
+      const sList = pages.map((page, index) => {
         const slot = slots[index];
         const prev = applied[index] ?? { s: 0 };
         const isLast = index === count - 1;
+        const raw = clamp01((scrollY - slot.top) / slot.height);
+        return isLast ? 0 : prev.s + (raw - prev.s) * f;
+      });
+
+      /* The active surface: the first page that hasn't fully turned. Only
+         it — and the page beneath it while it is actually swinging — is
+         ever visible; every other sheet stays hidden, so stacked pages can
+         never leak through one another. */
+      let current = 0;
+      while (current < count - 1 && sList[current] > 0.999) current += 1;
+      const turning = sList[current] > 0.005;
+
+      for (let index = 0; index < count; index += 1) {
+        const page = pages[index];
+        const prev = applied[index] ?? { s: 0 };
+        const isLast = index === count - 1;
+        const s = sList[index];
+
+        const visible =
+          index === current || (index === current + 1 && turning);
 
         /* Raw progress through this page's window. */
-        const raw = clamp01((scrollY - slot.top) / slot.height);
-        /* Smooth toward raw (reversible: same path both directions). */
-        const s = isLast ? 0 : prev.s + (raw - prev.s) * f;
         /* The pin: every sheet rests at the stage top, so tracking the
            viewport keeps the current page flat at the top of the screen. */
         const translate = scrollY;
@@ -155,8 +172,12 @@ export default function useForgeFold({ stageRef, pagesRef, reduced }) {
               ? `translate3d(0, ${translate}px, ${lift}px) rotateY(${rotate}deg)`
               : `translate3d(0, ${translate}px, 0)`;
           sheet.style.transform = transform;
-          /* Fully turned pages are hidden: never painted, never focused. */
-          sheet.style.visibility = s > 0.999 ? "hidden" : "visible";
+        }
+        /* Visibility is the architectural guard, not a transform side
+           effect: it is applied every frame the decision changes, so at
+           rest only the hero (and nothing else) is ever painted. */
+        if (sheet && prev.visible !== visible) {
+          sheet.style.visibility = visible ? "visible" : "hidden";
         }
 
         if (page.edge && edge !== prev.edge) {
@@ -178,6 +199,7 @@ export default function useForgeFold({ stageRef, pagesRef, reduced }) {
           lift,
           edge,
           cast,
+          visible,
         };
       }
 
@@ -199,6 +221,10 @@ export default function useForgeFold({ stageRef, pagesRef, reduced }) {
     };
 
     measure();
+    /* Force one apply on the very first frame (before the first paint)
+       so the visibility pair is established immediately — no flash of
+       stacked pages. */
+    stateRef.current.dirty = true;
     stateRef.current.scrollY = window.scrollY;
     rafId = requestAnimationFrame(loop);
 
