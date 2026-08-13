@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { CircleDot, Flame, Hammer, RefreshCw } from "lucide-react";
 
 import SectionHeading from "../components/SectionHeading";
-import { useMotionScope, useReducedMotion } from "@/lib/motion-gsap";
+import { useSectionReveal } from "@/lib/motion-gsap";
 
 /* -------------------------------------------------------------------------- */
 /*  HowItWorksSection — Story 3: the forge loop.                               */
@@ -43,30 +43,11 @@ const LOOP = [
 
 export default function HowItWorksSection() {
   const rootRef = useRef(null);
-  const reduced = useReducedMotion();
 
-  useMotionScope(
-    ({ gsap, select }) => {
-      if (reduced) return;
-      gsap.from(select("[data-how='heading']"), {
-        opacity: 0,
-        y: 24,
-        duration: 0.7,
-        ease: "power2.out",
-        scrollTrigger: { trigger: rootRef.current, start: "top 78%", once: true },
-      });
-      gsap.from(select("[data-how='step']"), {
-        opacity: 0,
-        y: 30,
-        duration: 0.65,
-        stagger: 0.16,
-        ease: "power2.out",
-        scrollTrigger: { trigger: rootRef.current, start: "top 72%", once: true },
-      });
-    },
-    [reduced],
-    rootRef,
-  );
+  useSectionReveal(rootRef, [
+    { selector: "[data-how='heading']", y: 24, duration: 0.7, trigger: "top 78%" },
+    { selector: "[data-how='step']", y: 30, duration: 0.65, stagger: 0.16, trigger: "top 72%" },
+  ]);
 
   return (
     <section id="how-it-works" ref={rootRef} className="relative overflow-hidden py-24 lg:py-32">

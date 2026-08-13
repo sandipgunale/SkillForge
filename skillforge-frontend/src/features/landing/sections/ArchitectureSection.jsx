@@ -10,7 +10,7 @@ import {
   Workflow,
 } from "lucide-react";
 
-import { useMotionScope, useReducedMotion } from "@/lib/motion-gsap";
+import { useSectionReveal } from "@/lib/motion-gsap";
 
 /* -------------------------------------------------------------------------- */
 /*  ArchitectureSection — the engineering story. A production-grade system     */
@@ -56,30 +56,11 @@ const LAYERS = [
 
 export default function ArchitectureSection() {
   const rootRef = useRef(null);
-  const reduced = useReducedMotion();
 
-  useMotionScope(
-    ({ gsap, select }) => {
-      if (reduced) return;
-      gsap.from(select("[data-arch='heading']"), {
-        opacity: 0,
-        y: 24,
-        duration: 0.7,
-        ease: "power2.out",
-        scrollTrigger: { trigger: rootRef.current, start: "top 78%", once: true },
-      });
-      gsap.from(select("[data-arch='layer']"), {
-        opacity: 0,
-        y: 28,
-        duration: 0.65,
-        stagger: 0.14,
-        ease: "power2.out",
-        scrollTrigger: { trigger: rootRef.current, start: "top 72%", once: true },
-      });
-    },
-    [reduced],
-    rootRef,
-  );
+  useSectionReveal(rootRef, [
+    { selector: "[data-arch='heading']", y: 24, duration: 0.7, trigger: "top 78%" },
+    { selector: "[data-arch='layer']", y: 28, duration: 0.65, stagger: 0.14, trigger: "top 72%" },
+  ]);
 
   return (
     <section

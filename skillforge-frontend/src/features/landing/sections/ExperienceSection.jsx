@@ -3,7 +3,7 @@ import { BookOpen, Library, Quote, ShieldCheck } from "lucide-react";
 
 import SectionHeading from "../components/SectionHeading";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useMotionScope, useReducedMotion } from "@/lib/motion-gsap";
+import { useSectionReveal } from "@/lib/motion-gsap";
 
 /* -------------------------------------------------------------------------- */
 /*  ExperienceSection — Story 7: who the forge serves.                         */
@@ -76,38 +76,12 @@ const ROLES = [
 
 export default function ExperienceSection() {
   const rootRef = useRef(null);
-  const reduced = useReducedMotion();
 
-  useMotionScope(
-    ({ gsap, select }) => {
-      if (reduced) return;
-      gsap.from(select("[data-xp='heading']"), {
-        opacity: 0,
-        y: 24,
-        duration: 0.7,
-        ease: "power2.out",
-        scrollTrigger: { trigger: rootRef.current, start: "top 78%", once: true },
-      });
-      gsap.from(select("[data-xp='voice']"), {
-        opacity: 0,
-        y: 28,
-        duration: 0.65,
-        stagger: 0.12,
-        ease: "power2.out",
-        scrollTrigger: { trigger: rootRef.current, start: "top 74%", once: true },
-      });
-      gsap.from(select("[data-xp='role']"), {
-        opacity: 0,
-        y: 26,
-        duration: 0.65,
-        stagger: 0.12,
-        ease: "power2.out",
-        scrollTrigger: { trigger: rootRef.current, start: "top 70%", once: true },
-      });
-    },
-    [reduced],
-    rootRef,
-  );
+  useSectionReveal(rootRef, [
+    { selector: "[data-xp='heading']", y: 24, duration: 0.7, trigger: "top 78%" },
+    { selector: "[data-xp='voice']", y: 28, duration: 0.65, stagger: 0.12, trigger: "top 74%" },
+    { selector: "[data-xp='role']", y: 26, duration: 0.65, stagger: 0.12, trigger: "top 70%" },
+  ]);
 
   return (
     <section id="experience" ref={rootRef} className="relative overflow-hidden py-24 lg:py-32">

@@ -1,6 +1,6 @@
 import { useRef } from "react";
 
-import { useMotionScope, useReducedMotion } from "@/lib/motion-gsap";
+import { useSectionReveal } from "@/lib/motion-gsap";
 
 /**
  * SectionHeading — eyebrow pill + title + description, revealed by GSAP
@@ -14,46 +14,12 @@ export default function SectionHeading({
   align = "center",
 }) {
   const rootRef = useRef(null);
-  const reduced = useReducedMotion();
 
-  useMotionScope(
-    ({ gsap, select }) => {
-      if (reduced) return;
-      const reveal = (targets, vars) => {
-        if (targets.length) {
-          gsap.from(targets, vars);
-        }
-      };
-      const trigger = (start) => ({
-        trigger: rootRef.current,
-        start,
-        once: true,
-      });
-      reveal(select("[data-heading='eyebrow']"), {
-        opacity: 0,
-        y: 16,
-        duration: 0.55,
-        ease: "power2.out",
-        scrollTrigger: trigger("top 82%"),
-      });
-      reveal(select("[data-heading='title']"), {
-        opacity: 0,
-        y: 24,
-        duration: 0.65,
-        ease: "power2.out",
-        scrollTrigger: trigger("top 80%"),
-      });
-      reveal(select("[data-heading='description']"), {
-        opacity: 0,
-        y: 20,
-        duration: 0.6,
-        ease: "power2.out",
-        scrollTrigger: trigger("top 78%"),
-      });
-    },
-    [reduced],
-    rootRef,
-  );
+  useSectionReveal(rootRef, [
+    { selector: "[data-heading='eyebrow']", y: 16, duration: 0.55, trigger: "top 82%" },
+    { selector: "[data-heading='title']", y: 24, duration: 0.65, trigger: "top 80%" },
+    { selector: "[data-heading='description']", y: 20, duration: 0.6, trigger: "top 78%" },
+  ]);
 
   const alignment =
     align === "center"

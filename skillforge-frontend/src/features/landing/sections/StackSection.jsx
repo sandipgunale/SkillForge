@@ -10,7 +10,7 @@ import {
   Sparkles,
 } from "lucide-react";
 
-import { useMotionScope, useReducedMotion } from "@/lib/motion-gsap";
+import { useSectionReveal } from "@/lib/motion-gsap";
 
 /* -------------------------------------------------------------------------- */
 /*  StackSection — the honest engineering stack, grouped by discipline.        */
@@ -57,32 +57,11 @@ const PRINCIPLES = [
 
 export default function StackSection() {
   const rootRef = useRef(null);
-  const reduced = useReducedMotion();
 
-  useMotionScope(
-    ({ gsap, select }) => {
-      if (reduced) return;
-
-      gsap.from(select("[data-stack='cell']"), {
-        opacity: 0,
-        y: 22,
-        duration: 0.6,
-        stagger: 0.1,
-        ease: "power2.out",
-        scrollTrigger: { trigger: rootRef.current, start: "top 76%", once: true },
-      });
-      gsap.from(select("[data-stack='principle']"), {
-        opacity: 0,
-        x: -20,
-        duration: 0.5,
-        stagger: 0.08,
-        ease: "power2.out",
-        scrollTrigger: { trigger: rootRef.current, start: "top 70%", once: true },
-      });
-    },
-    [reduced],
-    rootRef,
-  );
+  useSectionReveal(rootRef, [
+    { selector: "[data-stack='cell']", y: 22, duration: 0.6, stagger: 0.1, trigger: "top 76%" },
+    { selector: "[data-stack='principle']", x: -20, duration: 0.5, stagger: 0.08, trigger: "top 70%" },
+  ]);
 
   return (
     <section id="stack" ref={rootRef} className="relative py-24 lg:py-32">

@@ -4,7 +4,7 @@ import { ArrowRight, Flame } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants/routes";
-import { useMotionScope, useReducedMotion } from "@/lib/motion-gsap";
+import { useSectionReveal } from "@/lib/motion-gsap";
 
 /* -------------------------------------------------------------------------- */
 /*  ForgeCTASection — Story 8: the invitation.                                 */
@@ -14,31 +14,11 @@ import { useMotionScope, useReducedMotion } from "@/lib/motion-gsap";
 
 export default function ForgeCTASection() {
   const rootRef = useRef(null);
-  const reduced = useReducedMotion();
 
-  useMotionScope(
-    ({ gsap, select }) => {
-      if (reduced) return;
-      gsap.from(select("[data-forge-cta='panel']"), {
-        opacity: 0,
-        y: 36,
-        scale: 0.97,
-        duration: 0.8,
-        ease: "power2.out",
-        scrollTrigger: { trigger: rootRef.current, start: "top 78%", once: true },
-      });
-      gsap.from(select("[data-forge-cta='content'] > *"), {
-        opacity: 0,
-        y: 22,
-        duration: 0.6,
-        stagger: 0.1,
-        ease: "power2.out",
-        scrollTrigger: { trigger: rootRef.current, start: "top 74%", once: true },
-      });
-    },
-    [reduced],
-    rootRef,
-  );
+  useSectionReveal(rootRef, [
+    { selector: "[data-forge-cta='panel']", y: 36, scale: 0.97, duration: 0.8, trigger: "top 78%" },
+    { selector: "[data-forge-cta='content'] > *", y: 22, duration: 0.6, stagger: 0.1, trigger: "top 74%" },
+  ]);
 
   return (
     <section ref={rootRef} className="relative py-24 lg:py-32">

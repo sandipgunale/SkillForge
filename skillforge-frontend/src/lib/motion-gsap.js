@@ -226,6 +226,47 @@ export function useStaggerIn(
 }
 
 /**
+ * Scroll reveal for one or more selector groups inside a section root.
+ * Collapses the near-identical per-section GSAP blocks (AGENTS.md: never
+ * duplicate animation logic) into one declarative config. Each entry is
+ * `{ selector, trigger?, ...vars }` where `trigger` is the ScrollTrigger
+ * start position. Reduced-motion renders content immediately visible.
+ *
+ *   const root = useRef(null);
+ *   useSectionReveal(root, [
+ *     { selector: "[data-x='heading']", y: 24, trigger: "top 78%" },
+ *     { selector: "[data-x='card']", y: 28, stagger: 0.12, trigger: "top 74%" },
+ *   ]);
+ */
+export function useSectionReveal(rootRef, configs) {
+  const { reduced } = useMotionSafe();
+
+  useMotionScope(
+    ({ gsap, select }) => {
+      if (reduced) return;
+      configs.forEach(({ selector, trigger, ...vars }) => {
+        const targets = select(selector);
+        if (!targets.length) return;
+        gsap.from(targets, {
+          opacity: 0,
+          y: 24,
+          duration: 0.65,
+          ease: GSAP_EASE.smooth,
+          ...vars,
+          scrollTrigger: {
+            trigger: rootRef.current,
+            start: trigger ?? "top 78%",
+            once: true,
+          },
+        });
+      });
+    },
+    [reduced],
+    rootRef,
+  );
+}
+
+/**
  * Mount/replay helper for state-keyed swaps (e.g. theme icon, question
  * counter, trailing form adornments). Plays an in-on-mount tween and
  * force-kills on unmount. Keyboard: runs like `gsap.from`, respecting

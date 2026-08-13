@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { CheckCircle2, Flame, LayoutDashboard, LineChart, MonitorPlay, MousePointerClick, TimerOff } from "lucide-react";
 
 import SectionHeading from "../components/SectionHeading";
-import { useMotionScope, useReducedMotion } from "@/lib/motion-gsap";
+import { useSectionReveal } from "@/lib/motion-gsap";
 
 /* -------------------------------------------------------------------------- */
 /*  WhatIsSection — Story 2: what the forge actually is.                       */
@@ -124,38 +124,12 @@ function DashboardMock() {
 
 export default function WhatIsSection() {
   const rootRef = useRef(null);
-  const reduced = useReducedMotion();
 
-  useMotionScope(
-    ({ gsap, select }) => {
-      if (reduced) return;
-      gsap.from(select("[data-what='heading']"), {
-        opacity: 0,
-        y: 24,
-        duration: 0.7,
-        ease: "power2.out",
-        scrollTrigger: { trigger: rootRef.current, start: "top 78%", once: true },
-      });
-      gsap.from(select("[data-what='problem']"), {
-        opacity: 0,
-        y: 28,
-        duration: 0.65,
-        stagger: 0.12,
-        ease: "power2.out",
-        scrollTrigger: { trigger: rootRef.current, start: "top 74%", once: true },
-      });
-      gsap.from(select("[data-what='mock']"), {
-        opacity: 0,
-        y: 40,
-        scale: 0.96,
-        duration: 0.8,
-        ease: "power2.out",
-        scrollTrigger: { trigger: rootRef.current, start: "top 70%", once: true },
-      });
-    },
-    [reduced],
-    rootRef,
-  );
+  useSectionReveal(rootRef, [
+    { selector: "[data-what='heading']", y: 24, duration: 0.7, trigger: "top 78%" },
+    { selector: "[data-what='problem']", y: 28, duration: 0.65, stagger: 0.12, trigger: "top 74%" },
+    { selector: "[data-what='mock']", y: 40, scale: 0.96, duration: 0.8, trigger: "top 70%" },
+  ]);
 
   return (
     <section id="what-is" ref={rootRef} className="relative overflow-hidden py-24 lg:py-32">

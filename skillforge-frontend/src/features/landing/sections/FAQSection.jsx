@@ -7,7 +7,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { useMotionScope, useReducedMotion } from "@/lib/motion-gsap";
+import { useSectionReveal } from "@/lib/motion-gsap";
 
 const FAQS = [
   {
@@ -44,23 +44,10 @@ const FAQS = [
 
 export default function FAQSection() {
   const rootRef = useRef(null);
-  const reduced = useReducedMotion();
 
-  useMotionScope(
-    ({ gsap, select }) => {
-      if (reduced) return;
-      gsap.from(select("[data-faq='item']"), {
-        opacity: 0,
-        y: 22,
-        duration: 0.55,
-        stagger: 0.08,
-        ease: "power2.out",
-        scrollTrigger: { trigger: rootRef.current, start: "top 76%", once: true },
-      });
-    },
-    [reduced],
-    rootRef,
-  );
+  useSectionReveal(rootRef, [
+    { selector: "[data-faq='item']", y: 22, duration: 0.55, stagger: 0.08, trigger: "top 76%" },
+  ]);
 
   return (
     <section id="faq" ref={rootRef} className="relative py-24 lg:py-32">

@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { Gauge, Lightbulb, ShieldCheck, Timer } from "lucide-react";
 
 import CountUp from "@/components/common/CountUp";
-import { useMotionScope, useReducedMotion } from "@/lib/motion-gsap";
+import { useSectionReveal } from "@/lib/motion-gsap";
 
 /* -------------------------------------------------------------------------- */
 /*  MetricsSection — engineering performance told as numbers, not slogans.     */
@@ -43,24 +43,10 @@ const METRICS = [
 
 export default function MetricsSection() {
   const rootRef = useRef(null);
-  const reduced = useReducedMotion();
 
-  useMotionScope(
-    ({ gsap, select }) => {
-      if (reduced) return;
-
-      gsap.from(select("[data-metrics='card']"), {
-        opacity: 0,
-        y: 26,
-        duration: 0.6,
-        stagger: 0.1,
-        ease: "power2.out",
-        scrollTrigger: { trigger: rootRef.current, start: "top 76%", once: true },
-      });
-    },
-    [reduced],
-    rootRef,
-  );
+  useSectionReveal(rootRef, [
+    { selector: "[data-metrics='card']", y: 26, duration: 0.6, stagger: 0.1, trigger: "top 76%" },
+  ]);
 
   return (
     <section id="metrics" ref={rootRef} className="relative overflow-hidden py-24 lg:py-32">
