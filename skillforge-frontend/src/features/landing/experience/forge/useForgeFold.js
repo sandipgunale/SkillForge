@@ -26,7 +26,7 @@ import { useEffect, useRef } from "react";
 /*    s    = smoothed(raw)  — the single smoothing mechanism (reversible,      */
 /*           fast-scroll safe)                                                  */
 /*    translate = scrollY     (the pin — every page tracks the viewport)       */
-/*    rotateY   = -180·s deg  (around the right edge)                           */
+/*    rotateY   = -180·E(s) deg, E = easeInOutSine  (around the right edge)    */
 /*    lift      = sin(s·π) · FLIP_LIFT   (3D depth, no margins)                */
 /*    edge opacity  = sin(s·π) · EDGE_MAX (ember hairline on the hinge)        */
 /*    cast opacity  = sin(sPrev·π) · CAST_MAX (shadow the turning page casts   */
@@ -154,7 +154,14 @@ export default function useForgeFold({ stageRef, pagesRef, reduced }) {
         const translate = scrollY;
 
         const sin = Math.sin(s * Math.PI);
-        const rotate = isLast ? 0 : -180 * s;
+        /* The rotation is eased (ease-in-out-sine) so the page breaks away
+           gently, sweeps decisively through the edge-on 90° moment, then
+           settles softly onto the page beneath. Lift, edge, and cast stay
+           tied to sin(s·π), so they still peak exactly at the edge-on
+           instant. Deterministic and reversible — same path both ways. */
+        const rotate = isLast
+          ? 0
+          : -180 * (0.5 - 0.5 * Math.cos(Math.PI * s));
         const lift = !isLast && s > 0 && s < 1 ? sin * FLIP_LIFT : 0;
         const edge = isLast ? 0 : sin * EDGE_MAX;
         const cast = sin * CAST_MAX;

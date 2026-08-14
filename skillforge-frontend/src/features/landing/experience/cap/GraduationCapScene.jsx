@@ -25,12 +25,14 @@ import {
 /*  unavailable and freezes to a static pose under prefers-reduced-motion.    */
 /* -------------------------------------------------------------------------- */
 
-const ROTATION_SPEED = 0.1;
-const FLOAT_AMPLITUDE = 0.12;
-const TASSEL_SWAY = 0.16;
-const PARALLAX_Y = 0.16;
-const PARALLAX_X = 0.12;
-const TASSEL_LAG_RATE = 3.5;
+const ROTATION_SPEED = 0.09;
+const ROTATION_BREATH = 0.42;
+const FLOAT_AMPLITUDE = 0.08;
+const FLOAT_RATE = 0.55;
+const TASSEL_SWAY = 0.1;
+const PARALLAX_Y = 0.18;
+const PARALLAX_X = 0.14;
+const TASSEL_LAG_RATE = 2.8;
 
 /** Exponential damping factor per frame: ~rate/s convergence. */
 function damp(delta, rate) {
@@ -91,7 +93,7 @@ function lerpColor(current, target, factor) {
   return current;
 }
 
-function Tassel({ stringMat, tailMat, knotMat, palette, tasselRef }) {
+function Tassel({ stringMat, tailMat, knotMat, palette, tasselRef, lagRef }) {
   /* Cord: from the center button, across the board top, over the front
      right edge, dangling beside the board. */
   const curve = useMemo(
@@ -108,10 +110,14 @@ function Tassel({ stringMat, tailMat, knotMat, palette, tasselRef }) {
   useFrame((state) => {
     const group = tasselRef.current;
     if (!group) return;
+    /* The pendulum is driven by the cap's lag error: when the cap changes
+       direction the tassel whips briefly, then damps back to a whisper of
+       idle drift. Clamped so it never swings theatrically. */
+    const error = lagRef.current;
+    const sway = Math.max(-TASSEL_SWAY, Math.min(TASSEL_SWAY, error * 0.55));
     const t = state.clock.elapsedTime;
-    /* Gentle pendulum sway on top of the yaw lag applied by the rig. */
-    group.rotation.x = Math.sin(t * 0.8 + 0.8) * TASSEL_SWAY;
-    group.rotation.z = Math.cos(t * 0.45 + 0.4) * 0.05;
+    group.rotation.x = sway + Math.sin(t * 0.4 + 0.8) * 0.035;
+    group.rotation.z = Math.cos(t * 0.3 + 0.4) * 0.03;
   });
 
   return (
@@ -143,7 +149,7 @@ function Tassel({ stringMat, tailMat, knotMat, palette, tasselRef }) {
           emissive={palette.ember}
           roughness={0.45}
           metalness={0.05}
-          emissiveIntensity={0.3}
+          emissiveIntensity={0.18}
         />
       </mesh>
     </group>
@@ -165,7 +171,8 @@ function CapRig({
   const groupRef = useRef(null);
   const innerRef = useRef(null);
   const tasselRef = useRef(null);
-  const scaleRef = useRef({ value: 0, target: 1 });
+  const shadowRef = useRef(null);
+  const springRef = useRef({ value: 0, target: 1, vel: 0 });
   const pointerRef = useRef({ x: 0, y: 0, active: false });
   const lagRef = useRef(0);
   const colorState = useRef(null);
@@ -173,7 +180,7 @@ function CapRig({
   /* The addon class is CJS-interop wrapped by Vite, so it must be invoked
      explicitly with `new` (JSX construction fails in @react-three/fiber). */
   const boardGeometry = useMemo(
-    () => new RoundedBoxGeometry(3.2, 0.12, 3.2, 4, 0.06),
+    () => new RoundedBoxGeometry(3.2, 0.12, 3.2, 6, 0.08),
     [],
   );
 
@@ -226,15 +233,20 @@ function CapRig({
 
     if (reduced || hidden || !group || !inner) return;
 
-    /* Entrance scale (springy approach) */
-    const s = scaleRef.current;
-    s.value += (s.target - s.value) * Math.min(1, delta * 2.4);
-    group.scale.setScalar(Math.max(0.0001, s.value));
+    /* Entrance scale — underdamped spring with a slight overshoot, so the
+       cap settles into place like it was set down, not dropped. */
+    const spring = springRef.current;
+    spring.vel += (spring.target - spring.value) * 32 * delta;
+    spring.vel *= Math.max(0, 1 - 9 * delta);
+    spring.value += spring.vel * delta;
+    group.scale.setScalar(Math.max(0.0001, spring.value));
 
-    /* Slow rotation: primary Y spin, subtle sinusoidal X/Z drift */
-    inner.rotation.y += delta * ROTATION_SPEED;
-    inner.rotation.x = Math.sin(t * 0.2) * 0.05;
-    inner.rotation.z = Math.cos(t * 0.13) * 0.04;
+    /* Slow rotation with a long, organic breath: the spin speed swells and
+       fades on a ~90s cycle so it never reads as a mechanical loop. */
+    const breath = 1 + ROTATION_BREATH * Math.sin(t * 0.07 + 1.3);
+    inner.rotation.y += delta * ROTATION_SPEED * breath;
+    inner.rotation.x = Math.sin(t * 0.11) * 0.032;
+    inner.rotation.z = Math.cos(t * 0.083) * 0.026;
 
     /* Tassel secondary motion: its yaw lags behind the cap's spin, so it
        drags and catches up — damped, never rigid. */
@@ -243,8 +255,8 @@ function CapRig({
       tasselRef.current.rotation.y = -(inner.rotation.y - lagRef.current);
     }
 
-    /* Floating lift */
-    inner.position.y = Math.sin(t * 0.8) * FLOAT_AMPLITUDE;
+    /* Floating lift — a slow, barely-there hover */
+    inner.position.y = Math.sin(t * FLOAT_RATE) * FLOAT_AMPLITUDE;
 
     /* Damped mouse parallax (desktop) */
     const px = pointerRef.current;
@@ -257,6 +269,17 @@ function CapRig({
       group.rotation.y += -group.rotation.y * f;
       group.rotation.x += -group.rotation.x * f;
       group.position.x += -group.position.x * f;
+    }
+
+    /* Contact shadow follows the cap: it slides opposite the drift and
+       deepens slightly as the cap tilts, grounding the float. */
+    const shadow = shadowRef.current;
+    if (shadow) {
+      shadow.position.x = -group.position.x * 1.2;
+      const tilt = Math.abs(group.rotation.x) * 0.5 + Math.abs(group.rotation.y) * 0.25;
+      shadow.material.opacity = 0.24 + Math.min(0.09, tilt);
+      const k = Math.max(0.86, 1 - tilt * 0.3);
+      shadow.scale.set(3.8 * k, 1.9 * k, 1);
     }
   });
 
@@ -305,16 +328,17 @@ function CapRig({
           knotMat={knotMat}
           palette={palette}
           tasselRef={tasselRef}
+          lagRef={lagRef}
         />
       </group>
 
       {/* Soft contact shadow + ember under-glow */}
-      <sprite position={[0, -1.42, 0]} scale={[3.8, 1.9, 1]}>
+      <sprite ref={shadowRef} position={[0, -1.42, 0]} scale={[3.8, 1.9, 1]}>
         <spriteMaterial
           map={glowTexture}
           color={palette.dim}
           transparent
-          opacity={0.28}
+          opacity={0.24}
           depthWrite={false}
           blending={THREE.NormalBlending}
         />
@@ -324,7 +348,7 @@ function CapRig({
           map={glowTexture}
           color={palette.ember}
           transparent
-          opacity={0.22}
+          opacity={0.15}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
         />
@@ -366,11 +390,12 @@ function CapCanvas({ reduced, hidden }) {
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       style={{ background: "transparent" }}
     >
-      <ambientLight intensity={0.5} />
+      <ambientLight intensity={0.42} />
       <hemisphereLight args={["#fff7ec", "#17131c", 0.45]} />
       <directionalLight position={[3, 4.5, 5]} intensity={1.15} color={lightPalette.key} />
       <directionalLight position={[-4, 2, -3]} intensity={0.55} color={lightPalette.aurora} />
-      <pointLight position={[0, -2.2, 2.4]} intensity={2.2} distance={6} color={lightPalette.ember} />
+      <directionalLight position={[4, 3, -4]} intensity={0.5} color={lightPalette.key} />
+      <pointLight position={[0, -2.2, 2.4]} intensity={1.3} distance={7} color={lightPalette.ember} />
 
       <CapRig
         reduced={reduced}

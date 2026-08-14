@@ -25,17 +25,36 @@ import {
 /* -------------------------------------------------------------------------- */
 
 const EDGE_DISTANCE = 2.6;
-const CAMERA_Z = 11;
+
+function clamp01(value) {
+  return Math.max(0, Math.min(1, value));
+}
 
 const scratch = new THREE.Vector3();
 
 function ConstellationField({ reducedMotion, nodeCount, palette, containerRef }) {
   const groupRef = useRef(null);
   const hoverSpriteRef = useRef(null);
-  const [rotationSpeed] = useState(() => 0.035 + Math.random() * 0.02);
+  const [rotationSpeed] = useState(() => 0.018 + Math.random() * 0.012);
+  const slotTopRef = useRef(0);
 
   const pointerRef = useRef({ x: 0, y: 0, active: false });
   const hoverPos = useRef(new THREE.Vector3());
+
+  /* The section's slot top (where the knowledge page comes to rest) drives
+     the camera: a slow orbital + dolly that sweeps across the section's
+     window, so the tree glides as the user scrolls — and holds at rest.
+     Re-measured on resize and font load (the fold may shift the markers). */
+  useEffect(() => {
+    const measureSlot = () => {
+      const marker = document.querySelector('[data-anchor="knowledge"]');
+      slotTopRef.current = marker ? marker.offsetTop : 0;
+    };
+    measureSlot();
+    window.addEventListener("resize", measureSlot);
+    document.fonts?.ready.then(measureSlot).catch(() => {});
+    return () => window.removeEventListener("resize", measureSlot);
+  }, []);
 
   const { home: positions, colors } = useMemo(
     () =>
@@ -89,6 +108,18 @@ function ConstellationField({ reducedMotion, nodeCount, palette, containerRef })
       group.rotation.y += delta * rotationSpeed;
       group.rotation.x =
         Math.sin(t * 0.08) * 0.12 + Math.cos(t * 0.05) * 0.06;
+
+      /* Scroll-driven camera: one slow sweep across the section's window —
+         pulled back and left before the page arrives, eased in and slightly
+         right while it rests, receding as it turns away. Deterministic and
+         reversible. */
+      const vh = window.innerHeight || 800;
+      const progress = clamp01((window.scrollY - (slotTopRef.current - vh)) / (vh * 2));
+      const camera = state.camera;
+      camera.position.x = Math.sin(progress * Math.PI) * 0.5;
+      camera.position.y = Math.cos(progress * Math.PI * 0.5) * 0.22;
+      camera.position.z = 11.6 - 0.55 * progress;
+      camera.lookAt(0, 0, 0);
     }
 
     /* Hover: find the node nearest the pointer in screen space (radius
@@ -104,13 +135,14 @@ function ConstellationField({ reducedMotion, nodeCount, palette, containerRef })
     }
     const aspect = rect.width / rect.height;
     const k = Math.tan((state.camera.fov * Math.PI) / 360);
+    const camZ = state.camera.position.z;
     let best = -1;
     let bestD = Infinity;
     for (let i = 0; i < positions.length; i++) {
       scratch
         .set(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2])
         .applyEuler(group.rotation);
-      const dist = CAMERA_Z - scratch.z;
+      const dist = camZ - scratch.z;
       if (dist <= 0.1) continue;
       const ndcX = scratch.x / (dist * k * aspect);
       const ndcY = scratch.y / (dist * k);

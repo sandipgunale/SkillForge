@@ -68,18 +68,186 @@ const T = {
   chip: "rounded-xl border border-border bg-card/60 px-3 py-2 backdrop-blur-sm",
 };
 
-function Chapter({ num, label, title, lead, children, aside }) {
+/* ---- Section entrance ---------------------------------------------------- */
+/* When a section becomes the active page (its anchor marker crosses the
+   viewport top — the exact moment the fold hands over), its content plays
+   one short entrance. Variants keep sections from all moving the same way:
+   rise (default), clip (type reveals), scatter (fragments converge — the
+   problem section's scattered knowledge pulling together), activate (units
+   light in sequence — the forge loop starting up), forge (layers settle —
+   the AI pipeline coming together). Deterministic from-states, once-only,
+   and disabled under prefers-reduced-motion. */
+function useSectionEntrance(anchorId, variant = "rise") {
+  const rootRef = useRef(null);
+  const reduced = useReducedMotion();
+
+  useMotionScope(
+    ({ gsap, select }) => {
+      if (reduced) return undefined;
+
+      const label = select("[data-entrance='label']");
+      const head = select("[data-entrance='head']");
+      const lead = select("[data-entrance='lead']");
+      const content = select("[data-entrance='content']");
+      const aside = select("[data-entrance='aside']");
+      if (!head.length) return undefined;
+
+      /* fromTo + immediateRender:false + paused:true — nothing is hidden or
+         played at mount (a non-paused timeline autoplays the moment a tween
+         is added — that would fire every entrance on page load). The
+         from-states apply the instant the trigger calls play(), one
+         invisible frame, so StrictMode remounts and reverted contexts can
+         never leave content stuck hidden. */
+      const tl = gsap.timeline({
+        paused: true,
+        defaults: { ease: "expo.out", immediateRender: false, clearProps: "opacity,transform" },
+      });
+
+      if (variant === "clip") {
+        tl.fromTo(
+          head,
+          { opacity: 0, y: 44, clipPath: "inset(100% 0% 0% 0%)" },
+          { opacity: 1, y: 0, clipPath: "inset(0% 0% 0% 0%)", duration: 0.9, ease: "expo.out" },
+          0,
+        );
+      } else {
+        tl.fromTo(
+          head,
+          { opacity: 0, y: 40 },
+          { opacity: 1, y: 0, duration: 0.8, ease: "expo.out" },
+          0,
+        );
+      }
+      tl.fromTo(
+        label,
+        { opacity: 0, y: 16 },
+        { opacity: 1, y: 0, duration: 0.55, ease: "expo.out" },
+        0.05,
+      )
+        .fromTo(
+          lead,
+          { opacity: 0, y: 24 },
+          { opacity: 1, y: 0, duration: 0.7, ease: "expo.out" },
+          0.12,
+        )
+        .fromTo(
+          aside,
+          { opacity: 0, y: 30 },
+          { opacity: 1, y: 0, duration: 0.8, ease: "expo.out" },
+          0.18,
+        );
+
+      if (variant === "scatter") {
+        const units = [
+          ...select("[data-entrance='content'] > *"),
+          ...select("[data-entrance='aside'] > *"),
+        ];
+        tl.fromTo(
+          units,
+          {
+            opacity: 0.45,
+            x: () => gsap.utils.random(-16, 16),
+            y: () => gsap.utils.random(-12, 12),
+            rotation: () => gsap.utils.random(-1.6, 1.6),
+          },
+          { opacity: 1, x: 0, y: 0, rotation: 0, duration: 0.7, stagger: 0.09, ease: "power3.out" },
+          0.18,
+        );
+      } else if (variant === "activate") {
+        const units = [
+          ...select("[data-entrance='content'] > *"),
+          ...select("[data-entrance='aside'] > *"),
+        ];
+        tl.fromTo(
+          units,
+          { opacity: 0, y: 26 },
+          { opacity: 1, y: 0, duration: 0.6, stagger: 0.13 },
+          0.2,
+        );
+      } else if (variant === "forge") {
+        const units = [
+          ...select("[data-entrance='content'] > *"),
+          ...select("[data-entrance='aside'] > *"),
+        ];
+        tl.fromTo(
+          units,
+          { opacity: 0, scale: 0.96 },
+          { opacity: 1, scale: 1, duration: 0.8, stagger: 0.09 },
+          0.16,
+        );
+      } else {
+        tl.fromTo(
+          content,
+          { opacity: 0, y: 28 },
+          { opacity: 1, y: 0, duration: 0.8, ease: "expo.out" },
+          0.18,
+        );
+      }
+
+      const marker = document.querySelector(`[data-anchor="${anchorId}"]`);
+      const stage = document.querySelector(".forge-fold");
+      let played = false;
+
+      /* Slot top for the trigger: the anchor marker (placed by the fold's
+         measure) when it exists; for the last page there is no marker, so
+         derive it from the stage — the fold's own geometry. */
+      const slotTop = () => {
+        if (marker && marker.style.top) return parseFloat(marker.style.top);
+        if (!stage) return -1;
+        const sheets = stage.querySelectorAll(".forge-page-sheet");
+        const last = sheets[sheets.length - 1];
+        if (!last) return -1;
+        return stage.offsetHeight - last.offsetHeight;
+      };
+
+      /* Scroll-based trigger: the entrance fires as the page arrives (the
+         marker crosses the viewport top, i.e. scrollY reaches its slot).
+         Ground truth is the fold's own geometry, so it always matches the
+         handover — and it re-reads the marker each time, so re-measures
+         (resize/fonts) can never desync it. */
+      const check = () => {
+        if (played) return;
+        const top = slotTop();
+        if (top < 0) return;
+        if (window.scrollY >= top - 9) {
+          played = true;
+          tl.play();
+        }
+      };
+      window.addEventListener("scroll", check, { passive: true });
+      /* Also catch an arrival that predates this mount (refresh mid-page):
+         poll a few frames until the fold's measure has placed the markers. */
+      let frames = 0;
+      const poll = () => {
+        frames += 1;
+        check();
+        if (frames < 30 && !played) requestAnimationFrame(poll);
+      };
+      requestAnimationFrame(poll);
+      return () => {
+        window.removeEventListener("scroll", check);
+      };
+    },
+    [reduced, anchorId, variant],
+    rootRef,
+  );
+
+  return rootRef;
+}
+
+function Chapter({ num, label, title, lead, children, aside, anchorId, variant = "rise" }) {
+  const rootRef = useSectionEntrance(anchorId, variant);
   return (
-    <div className="grid gap-10 lg:grid-cols-2 lg:gap-14">
+    <div ref={rootRef} className="grid gap-10 lg:grid-cols-2 lg:gap-14">
       <div>
-        <p className={T.overline}>
+        <p data-entrance="label" className={T.overline}>
           {num} — {label}
         </p>
-        <h2 className={`${T.h2} mt-4 max-w-[22ch]`}>{title}</h2>
-        <p className={`${T.body} mt-5 max-w-[52ch]`}>{lead}</p>
-        {children}
+        <h2 data-entrance="head" className={`${T.h2} mt-4 max-w-[22ch]`}>{title}</h2>
+        <p data-entrance="lead" className={`${T.body} mt-5 max-w-[52ch]`}>{lead}</p>
+        <div data-entrance="content">{children}</div>
       </div>
-      {aside ? <div className="flex flex-col">{aside}</div> : null}
+      {aside ? <div data-entrance="aside" className="flex flex-col">{aside}</div> : null}
     </div>
   );
 }
@@ -391,27 +559,49 @@ function useNearViewport(ref, anchorId) {
   useEffect(() => {
     /* In the Forge Fold every sheet is pinned to the viewport top, so a
        section's own rect is ALWAYS "near". The anchor marker is static at
-       the section's measured slot — observe that instead. In the static
-       (reduced-motion) layout there is no marker, so fall back to the
-       section itself. */
-    const node =
-      (anchorId && document.querySelector(`[data-anchor="${anchorId}"]`)) ||
-      ref.current;
-    if (!node || !("IntersectionObserver" in window)) {
+       the section's measured slot — use the fold's geometry directly. In
+       the static (reduced-motion) layout there is no marker, so fall back
+       to the section itself. */
+    const marker =
+      (anchorId && document.querySelector(`[data-anchor="${anchorId}"]`)) || null;
+    if (!marker && !ref.current) {
       setNear(true);
       return undefined;
     }
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setNear(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "500px" },
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
+    const stage = document.querySelector(".forge-fold");
+
+    /* Fire when the marker is within ~500px below the viewport bottom —
+       the classic "about to arrive" moment. Mirrors useSectionEntrance's
+       geometry (marker style.top or derived last-page slot). */
+    const slotTop = () => {
+      if (marker && marker.style.top) return parseFloat(marker.style.top);
+      if (!stage) return -1;
+      const sheets = stage.querySelectorAll(".forge-page-sheet");
+      const last = sheets[sheets.length - 1];
+      if (!last) return -1;
+      return stage.offsetHeight - last.offsetHeight;
+    };
+    const vh = () => window.innerHeight || 800;
+    let fired = false;
+
+    const check = () => {
+      if (fired) return;
+      const top = slotTop();
+      if (top < 0) return;
+      if (window.scrollY >= top - vh() - 500) {
+        fired = true;
+        setNear(true);
+      }
+    };
+    window.addEventListener("scroll", check, { passive: true });
+    let frames = 0;
+    const poll = () => {
+      frames += 1;
+      check();
+      if (frames < 30 && !fired) requestAnimationFrame(poll);
+    };
+    requestAnimationFrame(poll);
+    return () => window.removeEventListener("scroll", check);
   }, [ref, anchorId]);
   return near;
 }
@@ -478,6 +668,28 @@ function HeroSection({ cap }) {
           },
         );
       }
+
+      /* Pointer parallax (desktop fine pointers only): three depth layers —
+         the background scrims move 1x, the floating cards 2x, and the cap
+         4x (handled inside the 3D scene). Small, slow, and damped. */
+      if (!window.matchMedia("(pointer: fine)").matches) return undefined;
+      const bgWrap = select("[data-parallax='bg']")[0];
+      const uiWrap = select("[data-parallax='ui']")[0];
+      if (!bgWrap || !uiWrap) return undefined;
+      const bgX = gsap.quickTo(bgWrap, "x", { duration: 1.6, ease: "power2.out" });
+      const bgY = gsap.quickTo(bgWrap, "y", { duration: 1.6, ease: "power2.out" });
+      const uiX = gsap.quickTo(uiWrap, "x", { duration: 1.1, ease: "power2.out" });
+      const uiY = gsap.quickTo(uiWrap, "y", { duration: 1.1, ease: "power2.out" });
+      const onMove = (event) => {
+        const nx = event.clientX / window.innerWidth - 0.5;
+        const ny = event.clientY / window.innerHeight - 0.5;
+        bgX(nx * -8);
+        bgY(ny * -5);
+        uiX(nx * -18);
+        uiY(ny * -12);
+      };
+      window.addEventListener("pointermove", onMove, { passive: true });
+      return () => window.removeEventListener("pointermove", onMove);
     },
     [reduced],
     rootRef,
@@ -505,6 +717,7 @@ function HeroSection({ cap }) {
 
       {/* Readability scrims above the cap, below the copy */}
       <div
+        data-parallax="bg"
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 z-10"
       >
@@ -536,6 +749,7 @@ function HeroSection({ cap }) {
         {/* Floating achievement cards */}
         <div
           data-hero="floating"
+          data-parallax="ui"
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 hidden lg:block"
         >
@@ -590,6 +804,8 @@ function ProblemSection() {
         label="The problem"
         title="The world's best classroom. Also its most distracting one."
         lead="Great teachers are everywhere. Great learning environments are not. The raw material for any skill exists — what's missing is a workspace built around finishing."
+        anchorId="what-is"
+        variant="scatter"
         aside={
           <div>
             <p className={T.overline}>The answer in one screen</p>
@@ -637,6 +853,8 @@ function LoopSection() {
         label="The forge loop"
         title="People don't fail for lack of material. They fail because they lose the loop."
         lead="Focus → Practice → Feedback → Momentum. Repeat. The loop is the product — every feature exists to keep it turning."
+        anchorId="how-it-works"
+        variant="activate"
         aside={
           <div>
             <p className={T.overline}>The loop, continued</p>
@@ -713,6 +931,7 @@ function WorkspaceSection() {
         label="The workspace"
         title="A workspace built around finishing"
         lead="Every surface exists for one job: keep the learner in flow. Search is instant, navigation is keyboard-first, and your library is yours."
+        anchorId="workspace"
         aside={
           <div>
             <p className={T.overline}>The budget</p>
@@ -778,6 +997,8 @@ function AiSection() {
         label="The AI"
         title="Practice, forged on demand"
         lead="Not a chatbot bolted on — a guarded, validated, observable pipeline that turns any topic into active recall."
+        anchorId="architecture"
+        variant="forge"
         aside={
           <div>
             <p className={T.overline}>The engineering</p>
@@ -851,6 +1072,8 @@ function RoadmapSection() {
         label="The roadmap"
         title="Twelve weeks from starting to proven"
         lead="Instead of 'learn React someday', a week-by-week path with goals, resources, and quizzes — auto-completed when you finish, and it knows when you have."
+        anchorId="experience"
+        variant="activate"
         aside={
           <div>
             <p className={T.overline}>The momentum layer</p>
@@ -919,6 +1142,7 @@ function KnowledgeSection() {
           label="The knowledge map"
           title="The catalog, alive"
           lead="Every topic in the library — live from the platform. Follow any node to the resources, quizzes, and paths built around it."
+          anchorId="knowledge"
           aside={
             <div>
               <p className={T.overline}>One platform, three roles</p>
@@ -983,6 +1207,7 @@ function FaqSection() {
         label="Questions & voices"
         title="Questions, answered"
         lead="Everything you might want to know before you forge your first skill."
+        anchorId="faq"
         aside={
           <div>
             <p className={T.overline}>Voices from the forge</p>
@@ -1039,29 +1264,33 @@ function FaqSection() {
 function FinalSection() {
   const primaryCtaRef = useRef(null);
   useMagnetic(primaryCtaRef);
+  const rootRef = useSectionEntrance("final", "clip");
 
   return (
     <Section id="final">
-      <div className="flex min-h-[70svh] flex-col items-center justify-center text-center">
-        <p className={`${T.overline} ${T.ember}`}>The final chapter</p>
-        <h2 className={`${T.h2} mt-4 max-w-[18ch]`}>
+      <div
+        ref={rootRef}
+        className="flex min-h-[70svh] flex-col items-center justify-center text-center"
+      >
+        <p data-entrance="label" className={`${T.overline} ${T.ember}`}>The final chapter</p>
+        <h2 data-entrance="head" className={`${T.h2} mt-4 max-w-[18ch]`}>
           Your next chapter{" "}
           <span className="text-gradient-ember">starts here.</span>
         </h2>
-        <p className={`${T.body} mt-5 max-w-[48ch]`}>
+        <p data-entrance="lead" className={`${T.body} mt-5 max-w-[48ch]`}>
           Stop collecting tutorials. Start forging skills. Your first quiz is
           one minute away — your first badge is closer than you think.
         </p>
-        <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row">
+        <div data-entrance="content" className="mt-8 flex flex-col items-center gap-3 sm:flex-row">
           <div ref={primaryCtaRef}>
             <Button
               asChild
               size="lg"
-              className="h-12 w-full rounded-full px-7 text-base shadow-lg shadow-ember/25 sm:w-auto"
+              className="group h-12 w-full rounded-full px-7 text-base shadow-lg shadow-ember/25 sm:w-auto"
             >
               <Link to={ROUTES.REGISTER}>
                 Forge your first skill
-                <ArrowRight className="ml-2 size-4" />
+                <ArrowRight className="ml-2 size-4 transition-transform duration-300 group-hover:translate-x-0.5" />
               </Link>
             </Button>
           </div>

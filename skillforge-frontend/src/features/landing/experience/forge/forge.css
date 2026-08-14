@@ -62,8 +62,22 @@
     /* Opaque surface: every sheet is a solid page. Only the current page
        (and the next page while it swings away) is ever painted, so no
        content can leak through the stack — the viewport always shows
-       exactly one section. */
-    background: var(--background);
+       exactly one section. A whisper of atmospheric tint sits on top of
+       the solid base: an ember warmth in the top corner and an aurora
+       coolness at the bottom, both ~5% at most so the paper never reads
+       as colored. */
+    background:
+        radial-gradient(
+            ellipse 90% 65% at 85% -5%,
+            color-mix(in oklch, var(--ember) 5%, transparent) 0%,
+            transparent 60%
+        ),
+        radial-gradient(
+            ellipse 70% 55% at 8% 105%,
+            color-mix(in oklch, var(--aurora) 4%, transparent) 0%,
+            transparent 55%
+        ),
+        var(--background);
     transform-origin: 100% 50%;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
