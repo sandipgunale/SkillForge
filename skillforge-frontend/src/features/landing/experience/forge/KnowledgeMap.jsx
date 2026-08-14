@@ -1,7 +1,19 @@
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Atom, Briefcase, Circle, Cloud, Coffee, Database, Leaf, Network, Server } from "lucide-react";
+import {
+  Atom,
+  Briefcase,
+  Circle,
+  Cloud,
+  Coffee,
+  Database,
+  Leaf,
+  Network,
+  Server,
+} from "lucide-react";
 
 import { useTopics } from "@/features/resources/hooks/useTopics";
+import { useReducedMotion } from "@/lib/motion-gsap";
 import { ROUTES } from "@/constants/routes";
 
 /* -------------------------------------------------------------------------- */
@@ -11,6 +23,12 @@ import { ROUTES } from "@/constants/routes";
 /*  migration (V9), so the map is always the project's own data — never       */
 /*  invented. Each node links to the live resource library filtered by        */
 /*  topic.                                                                    */
+/*                                                                             */
+/*  Choreography (all scroll-scrubbed, all direct DOM writes, no state per    */
+/*  frame): as the knowledge chapter's window opens, the edges draw in and    */
+/*  the nodes emerge one by one — the map builds itself while you scroll.     */
+/*  Hovering (or tapping) a node grows it, brightens its connections,         */
+/*  nudges its ring neighbours, and shows what it covers in the readout.      */
 /* -------------------------------------------------------------------------- */
 
 const TOPIC_ICONS = {
@@ -85,6 +103,10 @@ const FALLBACK_TOPICS = [
 
 const RADIUS = 33;
 
+/* The window in which the map builds itself: the first ~28% of the
+   chapter's scroll window (mirrors the fold's marker geometry). */
+const BUILD_WINDOW = 0.28;
+
 /** Deterministic radial layout in percentage coordinates. */
 function nodePosition(index, count) {
   const angle = (index / count) * Math.PI * 2 - Math.PI / 2;
@@ -94,37 +116,138 @@ function nodePosition(index, count) {
   };
 }
 
-function TopicNode({ topic, index, count }) {
+/* Scroll-scrubbed build: edges draw, nodes emerge. Ground truth is the
+   anchor marker geometry (same source as the fold and the entrances), read
+   fresh every apply so re-measures can never drift it. */
+function useScrubBuild(anchorId) {
+  const reduced = useReducedMotion();
+  useEffect(() => {
+    if (reduced) return undefined;
+    const apply = () => {
+      const tops = [...document.querySelectorAll("[data-anchor]")]
+        .map((m) => ({ id: m.dataset.anchor, top: parseFloat(m.style.top) || 0 }))
+        .sort((a, b) => a.top - b.top);
+      const idx = tops.findIndex((t) => t.id === anchorId);
+      const top = idx >= 0 ? tops[idx].top : -1;
+      if (top < 0) return;
+      const nextTop = idx + 1 < tops.length ? tops[idx + 1].top : -1;
+      const stage = document.querySelector(".forge-fold");
+      const pageH = nextTop > top ? nextTop - top : stage.offsetHeight - top;
+      const windowPx = Math.max(200, pageH * BUILD_WINDOW);
+      const p = Math.min(1, Math.max(0, (window.scrollY - top) / windowPx));
+
+      const lines = [...document.querySelectorAll(`section[id="${anchorId}"] [data-scrub-draw]`)];
+      const offset = (1 - p).toFixed(3);
+      lines.forEach((line) => {
+        if (line.style.strokeDashoffset !== offset) line.style.strokeDashoffset = offset;
+      });
+
+      const nodes = [...document.querySelectorAll(`section[id="${anchorId}"] [data-map-node]`)];
+      const count = Math.max(1, nodes.length);
+      nodes.forEach((node, i) => {
+        const active = p > i / count;
+        if (node.style.opacity !== active) node.style.opacity = active ? "1" : "0";
+        node.style.transform = active ? "translate3d(0,0,0)" : "translate3d(0,10px,0)";
+      });
+    };
+
+    apply();
+    let raf = 0;
+    const onScroll = () => {
+      if (!raf) {
+        raf = requestAnimationFrame(() => {
+          raf = 0;
+          apply();
+        });
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    let frames = 0;
+    const poll = () => {
+      frames += 1;
+      apply();
+      if (frames < 30) requestAnimationFrame(poll);
+    };
+    requestAnimationFrame(poll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [reduced, anchorId]);
+}
+
+function TopicNode({ topic, index, count, hoveredIndex, onHover }) {
   const Icon = TOPIC_ICONS[topic.icon] ?? Circle;
   const { x, y } = nodePosition(index, count);
+  const isHovered = hoveredIndex === index;
+  const isNeighbor =
+    hoveredIndex >= 0 &&
+    (index === (hoveredIndex + 1) % count || index === (hoveredIndex - 1 + count) % count);
 
   return (
-    <Link
-      to={`${ROUTES.RESOURCES}?topicId=${topic.id}`}
-      aria-label={`Explore resources for ${topic.name}`}
-      className="group absolute -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-card/85 p-2 text-center shadow-sm backdrop-blur-sm transition-all duration-300 hover:z-10 hover:scale-110 hover:border-ember/50 hover:shadow-md focus-visible:scale-110"
+    /* Position wrapper: layout centering lives here (translate classes).
+       Hover scale lives on the Link. The scrub owns ONLY the inner
+       [data-map-node] (opacity + emerge translate) — one controller per
+       element, never mixed. */
+    <div
+      className="absolute -translate-x-1/2 -translate-y-1/2"
       style={{ left: `${x}%`, top: `${y}%` }}
     >
-      <span className="mx-auto flex size-8 items-center justify-center rounded-lg bg-ember/12 text-ember transition-colors group-hover:bg-ember/20 sm:size-9">
-        <Icon className="size-4 sm:size-4.5" />
-      </span>
-      <span className="mt-1 block max-w-[7.5rem] text-xs font-semibold leading-tight">
-        {topic.name}
-      </span>
-      <span className="hidden text-[0.55rem] leading-snug text-muted-foreground sm:block">
-        {topic.description}
-      </span>
-    </Link>
+      <Link
+        to={`${ROUTES.RESOURCES}?topicId=${topic.id}`}
+        aria-label={`Explore resources for ${topic.name}`}
+        onMouseEnter={() => onHover(topic.id)}
+        onMouseLeave={() => onHover(null)}
+        onFocus={() => onHover(topic.id)}
+        onBlur={() => onHover(null)}
+        className={`block rounded-xl border bg-card/85 p-2 text-center shadow-sm backdrop-blur-sm transition-all duration-300 motion-reduce:transition-none ${
+          isHovered
+            ? "z-10 scale-110 border-ember/60 shadow-md"
+            : isNeighbor
+              ? "z-10 scale-105 border-ember/30"
+              : "border-border hover:z-10 hover:scale-110 hover:border-ember/50 hover:shadow-md focus-visible:scale-110"
+        }`}
+      >
+        <div
+          data-map-node
+          className="transition-opacity duration-500 motion-reduce:transition-none"
+        >
+          <span
+            className={`mx-auto flex size-8 items-center justify-center rounded-lg transition-colors sm:size-9 ${
+              isHovered || isNeighbor ? "bg-ember/20 text-ember" : "bg-ember/12 text-ember"
+            }`}
+          >
+            <Icon className="size-4 sm:size-4.5" />
+          </span>
+          <span className="mt-1 block max-w-[7.5rem] text-xs font-semibold leading-tight">
+            {topic.name}
+          </span>
+          <span className="hidden text-[0.55rem] leading-snug text-muted-foreground sm:block">
+            {topic.description}
+          </span>
+        </div>
+      </Link>
+    </div>
   );
 }
 
 export default function KnowledgeMap({ className = "" }) {
   const { data, isLoading } = useTopics();
   const topics = data?.length ? data : FALLBACK_TOPICS;
+  const [hoveredId, setHoveredId] = useState(null);
+  const rootRef = useRef(null);
+  const reduced = useReducedMotion();
+
+  useScrubBuild("knowledge");
+
+  const hovered = topics.find((t) => t.id === hoveredId) ?? null;
+  const hoveredIndex = hoveredId ? topics.findIndex((t) => t.id === hoveredId) : -1;
 
   return (
-    <div className={`relative h-full w-full ${className}`}>
-      {/* Edge web — center hub to each node, plus the perimeter ring */}
+    <div ref={rootRef} className={`relative h-full w-full ${className}`}>
+      {/* Edge web — center hub to each node, plus the perimeter ring. The
+          edges DRAW IN on scroll (pathLength normalises the dash); under
+          reduced motion they render fully drawn. */}
       <svg
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 h-full w-full"
@@ -142,13 +265,23 @@ export default function KnowledgeMap({ className = "" }) {
           return (
             <line
               key={`${topic.id}-hub`}
+              data-scrub-draw
               x1="50"
               y1="50"
               x2={x}
               y2={y}
+              pathLength="1"
+              strokeDasharray="1"
+              strokeDashoffset={reduced ? 0 : 1}
               stroke="url(#map-edge)"
               strokeWidth="0.35"
               vectorEffect="non-scaling-stroke"
+              style={{
+                strokeOpacity: hoveredIndex >= 0
+                  ? (index === hoveredIndex ? 1 : 0.18)
+                  : 0.55,
+                transition: "stroke-opacity 0.3s",
+              }}
             />
           );
         })}
@@ -158,14 +291,26 @@ export default function KnowledgeMap({ className = "" }) {
           return (
             <line
               key={`${topic.id}-ring`}
+              data-scrub-draw
               x1={a.x}
               y1={a.y}
               x2={b.x}
               y2={b.y}
+              pathLength="1"
+              strokeDasharray="1"
+              strokeDashoffset={reduced ? 0 : 1}
               stroke="url(#map-edge)"
               strokeWidth="0.25"
               vectorEffect="non-scaling-stroke"
-              strokeDasharray="1.5 1.5"
+              style={{
+                strokeOpacity:
+                  hoveredIndex >= 0
+                    ? (index === hoveredIndex || (index + 1) % topics.length === hoveredIndex
+                        ? 1
+                        : 0.18)
+                    : 0.55,
+                transition: "stroke-opacity 0.3s",
+              }}
             />
           );
         })}
@@ -187,8 +332,32 @@ export default function KnowledgeMap({ className = "" }) {
           topic={topic}
           index={index}
           count={topics.length}
+          hoveredIndex={hoveredIndex}
+          onHover={setHoveredId}
         />
       ))}
+
+      {/* Hover readout — the quiet metadata line that answers "what is
+          this node?" without a popup. */}
+      <div
+        aria-live="polite"
+        className="pointer-events-none absolute inset-x-0 bottom-0 flex h-9 items-center justify-center gap-2 text-xs"
+      >
+        {hovered ? (
+          <>
+            <span className="size-1.5 rounded-full bg-ember" />
+            <span className="font-semibold text-foreground">{hovered.name}</span>
+            <span className="hidden text-muted-foreground sm:inline">
+              — {hovered.description}
+            </span>
+            <span className="text-muted-foreground/60">→ explore resources</span>
+          </>
+        ) : (
+          <span className="text-muted-foreground/60">
+            Hover a node to see what it covers
+          </span>
+        )}
+      </div>
     </div>
   );
 }

@@ -5,7 +5,6 @@ import {
   Award,
   BookOpen,
   Bookmark,
-  CalendarDays,
   CircleDot,
   Command,
   Flame,
@@ -425,16 +424,19 @@ const PRINCIPLES = [
 
 const PATH_STEPS = [
   {
+    num: "01",
     weeks: "01–04",
     title: "Pick a skill and a level",
     body: "The AI drafts a 12-week roadmap: week-by-week goals, topics, and resources for exactly the level you chose.",
   },
   {
+    num: "02",
     weeks: "05–08",
     title: "Work the weeks",
     body: "Mark weeks complete, take week quizzes, and let the path re-shape itself around what you've proven.",
   },
   {
+    num: "03",
     weeks: "09–12",
     title: "Finish, and prove it",
     body: "When the final week is complete the path auto-completes — and the Pathfinder badge is yours.",
@@ -582,6 +584,7 @@ function useScrubReveal(anchorId) {
     if (!section || !stage) return undefined;
     const steps = [...section.querySelectorAll("[data-scrub-step]")];
     const rail = section.querySelector("[data-scrub-rail] > span");
+    const nums = [...section.querySelectorAll("[data-scrub-num]")];
     if (!steps.length) return undefined;
 
     const apply = () => {
@@ -599,6 +602,15 @@ function useScrubReveal(anchorId) {
         const active = p > i / steps.length;
         if (step.style.opacity !== active) step.style.opacity = active ? "1" : "0.32";
         step.style.transform = active ? "translate3d(0,0,0)" : "translate3d(-12px,0,0)";
+      });
+      nums.forEach((el) => {
+        const to = Number(el.dataset.to || 0);
+        const value = Math.round(to * p);
+        const base = el.dataset.pad
+          ? String(value).padStart(Number(el.dataset.pad), "0")
+          : String(value);
+        const text = base + (el.dataset.suffix || "");
+        if (el.textContent !== text) el.textContent = text;
       });
       if (rail) rail.style.transform = `scaleX(${p.toFixed(3)})`;
     };
@@ -629,6 +641,52 @@ function useScrubReveal(anchorId) {
 }
 
 /* ---- 1 · Hero -------------------------------------------------------------- */
+
+/* The noise — the infinite internet rendered as typographic fragments.
+   Art-directed positions (deterministic, not random): a loose drift of
+   content-kind labels around the statement. On hero scroll they scatter
+   outward and dissolve — the noise falls away as the problem chapter
+   arrives. Pure decoration: aria-hidden, pointer-events none, no motion
+   at rest (motion silence), hidden below lg (the mobile hero recomposes). */
+const NOISE_FRAGMENTS = [
+  { label: "tutorial", x: 6, y: 12, dx: -80, dy: -55 },
+  { label: "video", x: 18, y: 24, dx: 65, dy: -45 },
+  { label: "article", x: 8, y: 40, dx: -60, dy: 65 },
+  { label: "course", x: 15, y: 52, dx: 70, dy: 45 },
+  { label: "docs", x: 42, y: 10, dx: -50, dy: -60 },
+  { label: "slides", x: 30, y: 14, dx: -65, dy: -40 },
+  { label: "forum", x: 58, y: 9, dx: 45, dy: -50 },
+  { label: "repo", x: 72, y: 18, dx: 60, dy: 55 },
+  { label: "notes", x: 86, y: 13, dx: 65, dy: -55 },
+  { label: "podcast", x: 93, y: 32, dx: 55, dy: 50 },
+  { label: "thread", x: 80, y: 44, dx: -60, dy: 60 },
+  { label: "book", x: 64, y: 36, dx: -45, dy: -65 },
+  { label: "cheatsheet", x: 50, y: 28, dx: -65, dy: 50 },
+  { label: "workshop", x: 36, y: 44, dx: 50, dy: -55 },
+];
+
+function NoiseField() {
+  return (
+    <div
+      data-noise-field
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 z-10 hidden overflow-hidden lg:block"
+    >
+      {NOISE_FRAGMENTS.map(({ label, x, y, dx, dy }) => (
+        <span
+          key={label}
+          data-noise-frag
+          data-dx={dx}
+          data-dy={dy}
+          className="absolute rounded-full border border-border/60 bg-card/40 px-3 py-1 text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70 backdrop-blur-sm"
+          style={{ left: `${x}%`, top: `${y}%` }}
+        >
+          {label}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 function useNearViewport(ref, anchorId) {
   const [near, setNear] = useState(false);
@@ -739,6 +797,29 @@ function HeroSection({ cap }) {
         );
       }
 
+      /* The noise dissolves first: fragments scatter outward along their
+         art-directed vectors and fade as the hero gives way — the scroll
+         position IS the dissolve. */
+      const frags = select("[data-noise-frag]");
+      if (frags.length) {
+        gsap.fromTo(
+          frags,
+          { x: 0, y: 0, opacity: 1 },
+          {
+            x: (_i, el) => Number(el.dataset.dx),
+            y: (_i, el) => Number(el.dataset.dy),
+            opacity: 0,
+            ease: "none",
+            scrollTrigger: {
+              trigger: rootRef.current,
+              start: "top top",
+              end: "bottom 55%",
+              scrub: 0.4,
+            },
+          },
+        );
+      }
+
       /* Pointer parallax (desktop fine pointers only): two depth layers —
          the background scrims move 1x and the cap 4x (handled inside the
          3D scene). Small, slow, and damped. */
@@ -791,6 +872,10 @@ function HeroSection({ cap }) {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_52%_46%_at_60%_55%,color-mix(in_oklch,var(--background)_78%,transparent)_0%,transparent_72%)]" />
         <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-background to-transparent" />
       </div>
+
+      {/* The noise — typographic fragments around the statement, dissolving
+          on scroll before the fold turns. */}
+      <NoiseField />
 
       <div className="relative z-20 flex min-h-svh flex-col items-center justify-center px-6 py-24 lg:items-start lg:px-16 lg:py-16">
         <div data-hero-copy className="flex w-full justify-center lg:justify-start">
@@ -1070,11 +1155,40 @@ function AiSection() {
       >
         {/* The practice cycle — question, attempt, evaluation, feedback,
             improvement. Each step lights as the page's window opens (the
-            scroll position IS the progress). */}
+            scroll position IS the progress), and the session readout above
+            ticks with it: score, questions, mastery — progress you can see
+            forming. */}
+        <div className="mt-8 flex items-center justify-between border-b border-border pb-3">
+          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            One session
+          </p>
+          <div className="flex items-center gap-4 text-xs font-semibold tabular-nums sm:gap-6">
+            <span className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Score</span>
+              <span data-scrub-num data-to="100" data-suffix="%" className="text-ember">
+                0%
+              </span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Questions</span>
+              <span className="text-ember">
+                <span data-scrub-num data-to="5" className="text-ember">0</span>
+                <span className="text-muted-foreground">/5</span>
+              </span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Mastery</span>
+              <span className="text-ember">
+                <span aria-hidden="true">+</span>
+                <span data-scrub-num data-to="12" data-pad="2">00</span>
+              </span>
+            </span>
+          </div>
+        </div>
         <div
           data-scrub-rail
           aria-hidden="true"
-          className="mt-8 h-px w-full overflow-hidden bg-border"
+          className="mt-6 h-px w-full overflow-hidden bg-border"
         >
           <span className="block h-full w-full origin-left bg-ember" style={{ transform: "scaleX(0)" }} />
         </div>
@@ -1145,7 +1259,8 @@ function RoadmapSection() {
         }
       >
         {/* The path — a line that grows as the page's window opens, then the
-            milestones light one by one. */}
+            milestones light one by one. A horizontal path with large
+            numbers: the twelve weeks read as one forward motion. */}
         <div
           data-scrub-rail
           aria-hidden="true"
@@ -1153,21 +1268,25 @@ function RoadmapSection() {
         >
           <span className="block h-full w-full origin-left bg-ember" style={{ transform: "scaleX(0)" }} />
         </div>
-        <ul className="mt-6 space-y-3">
-          {PATH_STEPS.map(({ weeks, title, body }) => (
-            <li key={title} data-scrub-step className={`${T.card} flex items-start gap-4 p-4`}>
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-aurora/15 text-aurora">
-                <CalendarDays className="size-4" />
+        <ol className="mt-6 grid gap-3 md:grid-cols-3">
+          {PATH_STEPS.map(({ num, weeks, title, body }) => (
+            <li key={num} data-scrub-step className={`${T.card} relative overflow-hidden p-5`}>
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute -right-1 -top-3 select-none text-[4.5rem] font-bold leading-none tracking-tight text-foreground/[0.06]"
+              >
+                {num}
               </span>
-              <span>
-                <span className={`${T.small} block font-semibold text-foreground`}>
-                  Week {weeks} — {title}
+              <div className="relative">
+                <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-aurora">
+                  Weeks {weeks}
                 </span>
-                <span className={`${T.small} ${T.body} mt-1 block`}>{body}</span>
-              </span>
+                <p className="mt-2 text-lg font-bold tracking-tight">{title}</p>
+                <p className={`${T.small} ${T.body} mt-1.5`}>{body}</p>
+              </div>
             </li>
           ))}
-        </ul>
+        </ol>
 
         <div className="mt-4 flex items-center gap-3 rounded-2xl border border-border bg-ember/8 px-5 py-4">
           <Award className="size-5 shrink-0 text-ember" />
