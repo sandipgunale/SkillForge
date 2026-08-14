@@ -1,15 +1,21 @@
 import { useEffect, useRef } from "react";
 
+import { measureSlots, resolveState } from "../experience/forge/geometry";
+import { SECTIONS } from "../experience/forge/registry";
+
 /* -------------------------------------------------------------------------- */
 /*  ScrollProgress — minimal editorial progress chrome (right edge).           */
 /*  Shows the current section as 01/09 with a thin ember progress line.       */
 /*  One rAF-queued scroll listener writes straight to the DOM — never         */
 /*  React state per frame. Works in both the Forge Fold stage and the static  */
 /*  reduced-motion layout (each exposes its own scrollable stage root).       */
+/*  The current section comes from the SAME measured slot geometry as the     */
+/*  fold controller (./geometry) — one source of truth, so the readout can    */
+/*  never disagree with what is actually on screen.                           */
 /*  Purely decorative: pointer-events none, aria-hidden.                       */
 /* -------------------------------------------------------------------------- */
 
-const SECTION_COUNT = 9;
+const SECTION_COUNT = SECTIONS.length;
 
 function stageRoot() {
   return (
@@ -25,21 +31,17 @@ export default function ScrollProgress() {
   useEffect(() => {
     const stage = stageRoot();
     if (!stage) return undefined;
-    const total = stage.offsetHeight - window.innerHeight;
     let raf = 0;
 
     const update = () => {
       raf = 0;
-      const progress = total > 0 ? Math.min(1, Math.max(0, window.scrollY / total)) : 0;
-      const current = Math.min(
-        SECTION_COUNT,
-        Math.max(1, Math.ceil(progress * SECTION_COUNT)),
-      );
+      const { slots } = measureSlots(stage);
+      const { current, global } = resolveState(slots, window.scrollY);
       if (numRef.current) {
-        numRef.current.textContent = String(current).padStart(2, "0");
+        numRef.current.textContent = String(current + 1).padStart(2, "0");
       }
       if (barRef.current) {
-        barRef.current.style.transform = `scaleY(${Math.max(0.001, progress)})`;
+        barRef.current.style.transform = `scaleY(${Math.max(0.001, global)})`;
       }
     };
 
@@ -64,7 +66,7 @@ export default function ScrollProgress() {
       aria-hidden="true"
       className="pointer-events-none fixed bottom-6 right-5 z-40 hidden select-none flex-col items-end gap-2 md:flex"
     >
-      <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+      <span className="font-mono text-3xs uppercase tracking-[0.18em] text-muted-foreground">
         <span ref={numRef}>01</span> / {String(SECTION_COUNT).padStart(2, "0")}
       </span>
       <span className="h-16 w-px overflow-hidden bg-border">

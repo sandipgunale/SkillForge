@@ -26,6 +26,11 @@
     z-index: 1;
     perspective: 1800px;
     perspective-origin: 50% 32%;
+    /* The fold establishes the 3D rendering context: perspective reaches the
+       rotating sheets through the non-stacking page wrappers, so the page
+       turn reads as a physical swing (foreshortening at 90°) instead of an
+       orthographic slide. */
+    transform-style: preserve-3d;
 }
 
 /* Anchor markers: the navbar's hash links must keep working while the
@@ -47,11 +52,14 @@
     left: 0;
     top: 0;
     width: 100%;
-    /* The wrapper is a full-viewport, z-indexed box; it must never compete
-       in the hit-test — only the sheet (and inside it, real content) does.
-       Turned sheets are visibility:hidden, so nothing above the current
-       page can ever intercept a click. */
+    /* Plain non-stacking wrapper: it must never compete in the hit-test —
+       only the sheet (and inside it, real content) does. No z-index and no
+       grouping properties here, so the wrapper cannot flatten the sheet's
+       3D transform: the sheet joins the fold's perspective context and
+       renders with real foreshortening. Turned sheets are visibility:hidden,
+       so nothing above the current page can ever intercept a click. */
     pointer-events: none;
+    transform-style: preserve-3d;
 }
 
 /* ---- Sheet (the flipping surface) ---------------------------------------- */
@@ -59,7 +67,9 @@
    hides the sheet once it passes 90° (its back faces the viewer), so the
    turned page is never painted; the controller also sets visibility:hidden
    at 180° so nothing is focusable after the turn. Only the sheet hit-tests
-   (pages are flat at rest — plain translate3d, so hit-testing is reliable). */
+   (pages are flat at rest — plain translate3d, so hit-testing is reliable).
+   The sheet carries the deterministic z-index (N - i) — the wrapper stays
+   stacking-free so this box renders inside the fold's 3D perspective. */
 .forge-page-sheet {
     position: relative;
     width: 100%;

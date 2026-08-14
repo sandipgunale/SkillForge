@@ -16,7 +16,8 @@ const HOT_TARGETS =
 
 function canMount() {
   if (typeof window === "undefined") return false;
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+    return false;
   if (!window.matchMedia("(pointer: fine)").matches) return false;
   if (!window.matchMedia("(min-width: 1024px)").matches) return false;
   return true;
@@ -42,7 +43,8 @@ export default function Cursor() {
       pos.x = e.clientX;
       pos.y = e.clientY;
       dot.style.transform = `translate3d(${pos.x - 3}px, ${pos.y - 3}px, 0)`;
-      const hovered = e.target.closest(HOT_TARGETS);
+      const target = e.target instanceof Element ? e.target : null;
+      const hovered = target?.closest(HOT_TARGETS);
       scale.target = hovered ? 2.1 : 1;
     };
 
@@ -73,14 +75,14 @@ export default function Cursor() {
         ref={dotRef}
         data-cursor-dot
         aria-hidden="true"
-        className="pointer-events-none fixed left-0 top-0 z-[90] size-1.5 rounded-full bg-ember"
+        className="pointer-events-none fixed left-0 top-0 z-90 size-1.5 rounded-full bg-ember"
         style={{ transform: "translate3d(-100px, -100px, 0)" }}
       />
       <div
         ref={ringRef}
         data-cursor-ring
         aria-hidden="true"
-        className="pointer-events-none fixed left-0 top-0 z-[90] size-9 rounded-full border border-ember/60"
+        className="pointer-events-none fixed left-0 top-0 z-90 size-9 rounded-full border border-ember/60"
         style={{ transform: "translate3d(-100px, -100px, 0)" }}
       />
     </>

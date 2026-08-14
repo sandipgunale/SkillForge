@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 
+import { measureSlots, rawProgress, resolveState } from "./geometry";
+
 /* -------------------------------------------------------------------------- */
 /*  useForgeFold — the single authoritative scroll controller for the         */
 /*  Forge Fold landing.                                                        */
@@ -8,10 +10,9 @@ import { useEffect, useRef } from "react";
 /*  directly on refs (no per-frame React state, no GSAP pinning, no           */
 /*  ScrollTriggers — the fold owns the transforms, so nothing conflicts).     */
 /*                                                                             */
-/*  Geometry is measured dynamically: slot[i] = [slotTop, height] accumulated  */
-/*  from each section's own offsetHeight, and the stage's height is set to    */
-/*  the total. Nothing is hardcoded, so fonts, viewport changes, and content   */
-/*  edits cannot desync the physics.                                           */
+/*  Geometry comes from ./geometry — the shared slot model (measured, never   */
+/*  hardcoded) also consumed by ScrollProgress, so the readout and the        */
+/*  physics can never disagree about the active section.                      */
 /*                                                                             */
 /*  Every sheet rests at the stage top (absolute, top 0), so the pin IS the   */
 /*  translate: translate = scrollY glues every page to the viewport top —     */
@@ -32,7 +33,14 @@ import { useEffect, useRef } from "react";
 /*    cast opacity  = sin(sPrev·π) · CAST_MAX (shadow the turning page casts   */
 /*                   on the next page)                                          */
 /*                                                                             */
-/*  Reduced motion: the hook does nothing — the static layout replaces the     */
+/*  Robustness: the visibility pair is established SYNCHRONOUSLY inside        */
+/*  measure() (before the first paint — no stacked-page flash, even on        */
+/*  mid-page refresh), sheets are re-measured on resize, font readiness,      */
+/*  AND content size changes (ResizeObserver), and a bounded retry waits      */
+/*  for refs that mount late. Dev builds expose the live state on             */
+/*  window.__FORGE_DEBUG__ for diagnostics.                                    */
+/*                                                                             */
+/*  Reduced motion: the hook does nothing — the static layout replaces the    */
 /*  stage entirely.                                                             */
 /* -------------------------------------------------------------------------- */
 
@@ -43,10 +51,6 @@ const EDGE_MAX = 0.55; /* peak ember hairline opacity at 90° */
 
 function damp(delta, rate) {
   return 1 - Math.exp(-delta * rate);
-}
-
-function clamp01(value) {
-  return value < 0 ? 0 : value > 1 ? 1 : value;
 }
 
 export default function useForgeFold({ stageRef, pagesRef, reduced }) {
@@ -63,22 +67,28 @@ export default function useForgeFold({ stageRef, pagesRef, reduced }) {
     let rafId = 0;
     let lastTime = performance.now();
     let applied = [];
+    let retries = 0;
+    let ro = null;
+    const observedSheets = new Set();
 
     const measure = () => {
       const pages = pagesRef.current ?? [];
-      if (!pages.length) return;
-      let total = 0;
-      slots = pages.map((page) => {
-        const height = Math.max(
-          page.sheet?.offsetHeight ?? 0,
-          window.innerHeight,
-        );
-        const top = total;
-        total += height;
-        return { top, height };
-      });
+      const { slots: nextSlots, total } = measureSlots(stage);
+      if (!nextSlots.length) {
+        /* Refs can mount late (concurrent rendering, deferred children):
+           retry for a bounded number of frames instead of leaving the
+           stage height unset. */
+        if (retries < 240) {
+          retries += 1;
+          requestAnimationFrame(measure);
+        }
+        return;
+      }
+      retries = 0;
+      slots = nextSlots;
       stageHeight = total;
       stage.style.height = `${total}px`;
+
       /* Anchor markers: keep the navbar's hash links accurate while the
          sections are scroll-pinned. Each marker carries the id of the page
          that follows it in the DOM, so the browser's native hash scroll
@@ -86,24 +96,53 @@ export default function useForgeFold({ stageRef, pagesRef, reduced }) {
       pages.forEach((page, index) => {
         if (page.id) {
           const marker = stage.querySelector(`[data-anchor="${page.id}"]`);
-          if (marker) {
-            marker.style.top = `${slots[index].top}px`;
-          }
+          if (marker) marker.style.top = `${slots[index].top}px`;
         }
       });
+
+      /* Re-measure on content-driven sheet size changes (accordions, image
+         loads, anything that reflows a page after mount). */
+      if (!ro) {
+        ro = new ResizeObserver(() => {
+          measure();
+          stateRef.current.dirty = true;
+        });
+      }
+      pages.forEach((page) => {
+        if (page.sheet && !observedSheets.has(page.sheet)) {
+          observedSheets.add(page.sheet);
+          ro.observe(page.sheet);
+        }
+      });
+
       /* Reset every page to the viewport-pin pose — safe after
-         resize/remount. */
-      applied = pages.map((page) => {
+         resize/remount — AND establish the visibility pair synchronously
+         from the current scroll position, so the very first painted frame
+         (and any mid-page refresh) already shows exactly the right page:
+         no stacked-page flash, ever. */
+      const state = resolveState(slots, window.scrollY);
+      const turning = state.progress > 0.005;
+      applied = pages.map((page, index) => {
         const sheet = page.sheet;
         const cast = page.cast;
         const edge = page.edge;
+        const visible =
+          index === state.current || (index === state.next && turning);
         if (sheet) {
           sheet.style.transform = "translate3d(0, 0, 0)";
-          sheet.style.visibility = "visible";
+          sheet.style.visibility = visible ? "visible" : "hidden";
         }
         if (cast) cast.style.opacity = "0";
         if (edge) edge.style.opacity = "0";
-        return { translate: 0, rotate: 0, lift: 0, cast: 0, edge: 0, s: 0, visible: true };
+        return {
+          translate: 0,
+          rotate: 0,
+          lift: 0,
+          cast: 0,
+          edge: 0,
+          s: 0,
+          visible,
+        };
       });
     };
 
@@ -119,7 +158,7 @@ export default function useForgeFold({ stageRef, pagesRef, reduced }) {
         return;
       }
 
-const f = damp(delta, SMOOTH_RATE);
+      const f = damp(delta, SMOOTH_RATE);
       let changed = false;
 
       /* Pass 1 — raw + smoothed progress through every page's scroll window.
@@ -128,25 +167,23 @@ const f = damp(delta, SMOOTH_RATE);
          a smoothed "fully turned" test would leave the wrong page visible
          for ~1s after any fast scroll (the entrance would play under a
          hidden sheet and the arrival would be missed). */
-      const rList = [];
       const sList = pages.map((page, index) => {
-        const slot = slots[index];
         const prev = applied[index] ?? { s: 0 };
         const isLast = index === count - 1;
-        const raw = clamp01((scrollY - slot.top) / slot.height);
-        rList[index] = raw;
+        const raw = rawProgress(slots, scrollY, index);
         const s = isLast ? 0 : prev.s + (raw - prev.s) * f;
         return s;
       });
 
-      /* The active surface: the first page that hasn't fully turned (raw —
-         not smoothed — so visibility is exact the instant scroll lands). Only
-         it — and the page beneath it while it is actually swinging — is
-         ever visible; every other sheet stays hidden, so stacked pages can
-         never leak through one another. */
-      let current = 0;
-      while (current < count - 1 && rList[current] > 0.999) current += 1;
-      const turning = rList[current] > 0.005;
+      /* The active surface comes from the shared decision function: the
+         first page that hasn't fully turned (raw — not smoothed — so
+         visibility is exact the instant scroll lands). Only it — and the
+         page beneath it while it is actually swinging — is ever visible;
+         every other sheet stays hidden, so stacked pages can never leak
+         through one another. */
+      const state = resolveState(slots, scrollY);
+      const current = state.current;
+      const turning = state.progress > 0.005;
 
       for (let index = 0; index < count; index += 1) {
         const page = pages[index];
@@ -154,10 +191,8 @@ const f = damp(delta, SMOOTH_RATE);
         const isLast = index === count - 1;
         const s = sList[index];
 
-        const visible =
-          index === current || (index === current + 1 && turning);
+        const visible = index === current || (index === current + 1 && turning);
 
-        /* Raw progress through this page's window. */
         /* The pin: every sheet rests at the stage top, so tracking the
            viewport keeps the current page flat at the top of the screen. */
         const translate = scrollY;
@@ -219,6 +254,24 @@ const f = damp(delta, SMOOTH_RATE);
         };
       }
 
+      if (import.meta.env.DEV) {
+        const dbg = window.__FORGE_DEBUG__ ?? (window.__FORGE_DEBUG__ = {});
+        dbg.stageHeight = stageHeight;
+        dbg.viewportHeight = window.innerHeight;
+        dbg.sectionCount = count;
+        dbg.sectionHeights = slots.map((s) => s.height);
+        dbg.scrollY = scrollY;
+        dbg.currentIndex = current;
+        dbg.nextIndex = state.next;
+        dbg.progress = Number(state.progress.toFixed(4));
+        dbg.direction =
+          scrollY > stateRef.current.scrollY
+            ? 1
+            : scrollY < stateRef.current.scrollY
+              ? -1
+              : dbg.direction ?? 0;
+      }
+
       stateRef.current.dirty = changed;
     };
 
@@ -238,8 +291,7 @@ const f = damp(delta, SMOOTH_RATE);
 
     measure();
     /* Force one apply on the very first frame (before the first paint)
-       so the visibility pair is established immediately — no flash of
-       stacked pages. */
+       so the pin pose is established immediately. */
     stateRef.current.dirty = true;
     stateRef.current.scrollY = window.scrollY;
     rafId = requestAnimationFrame(loop);
@@ -258,6 +310,11 @@ const f = damp(delta, SMOOTH_RATE);
       cancelAnimationFrame(rafId);
       rafId = 0;
       window.removeEventListener("resize", onResize);
+      if (ro) {
+        ro.disconnect();
+        ro = null;
+      }
+      observedSheets.clear();
     };
   }, [reduced, stageRef, pagesRef]);
 }

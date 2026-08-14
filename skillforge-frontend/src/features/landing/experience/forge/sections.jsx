@@ -515,7 +515,7 @@ const TESTIMONIALS = [
 
 function Section({ id, children, className = "" }) {
   return (
-    <section id={id} className={`forge-section ${className}`}>
+    <section id={id} data-forge-section={id} className={`forge-section ${className}`}>
       <div className="forge-container">{children}</div>
     </section>
   );
@@ -1255,7 +1255,7 @@ function KnowledgeSection() {
   const near = useNearViewport(sectionRef, "knowledge");
 
   return (
-    <section ref={sectionRef} id="knowledge" className="forge-section">
+    <section ref={sectionRef} id="knowledge" data-forge-section="knowledge" className="forge-section">
       <div className="forge-container">
         <Chapter
           num="06"
