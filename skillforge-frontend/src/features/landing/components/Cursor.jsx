@@ -38,6 +38,9 @@ export default function Cursor() {
     const ringPos = { x: -100, y: -100 };
     const scale = { value: 1, target: 1 };
     let raf = 0;
+    let lastX = -100;
+    let lastY = -100;
+    let lastScale = 1;
 
     const onMove = (e) => {
       pos.x = e.clientX;
@@ -52,7 +55,18 @@ export default function Cursor() {
       ringPos.x += (pos.x - ringPos.x) * 0.22;
       ringPos.y += (pos.y - ringPos.y) * 0.22;
       scale.value += (scale.target - scale.value) * 0.22;
-      ring.style.transform = `translate3d(${ringPos.x - 18}px, ${ringPos.y - 18}px, 0) scale(${scale.value})`;
+      /* Dirty-guard: skip the style write when nothing moved (the ring has
+         settled) — no wasted style churn on a static page. */
+      if (
+        Math.abs(ringPos.x - lastX) > 0.05 ||
+        Math.abs(ringPos.y - lastY) > 0.05 ||
+        Math.abs(scale.value - lastScale) > 0.005
+      ) {
+        lastX = ringPos.x;
+        lastY = ringPos.y;
+        lastScale = scale.value;
+        ring.style.transform = `translate3d(${ringPos.x - 18}px, ${ringPos.y - 18}px, 0) scale(${scale.value})`;
+      }
       raf = requestAnimationFrame(tick);
     };
 

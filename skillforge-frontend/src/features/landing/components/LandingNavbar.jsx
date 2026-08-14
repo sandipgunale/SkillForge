@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu } from "lucide-react";
 
@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/s
 import AppLogo from "@/components/layout/AppLogo";
 import ThemeToggle from "@/components/common/ThemeToggle";
 import { ROUTES } from "@/constants/routes";
+import { slotVersion } from "../experience/forge/geometry";
 
 const NAV_LINKS = [
   { label: "Problem", href: "#what-is" },
@@ -22,39 +23,86 @@ const SHOWCASE_LINK = { label: "For recruiters", to: ROUTES.SHOWCASE };
 export default function LandingNavbar() {
   const [scrolled, setScrolled] = useState(false);
   const [activeId, setActiveId] = useState(null);
+  const rafRef = useRef(0);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+    /* One rAF-throttled scroll listener drives both states — no React
+       render per scroll event, and marker positions are cached (the fold
+       re-publishes geometry; we refresh on resize/fonts, never per event).
+       In the Forge Fold every sheet is pinned to the viewport top, so the
+       current section is the one whose STATIC slot has been scrolled past —
+       the cached slot model carries those positions (untouched by the pin
+       transforms). In the static reduced-motion layout there are no markers,
+       so fall back to the sections' document positions, measured once. */
+    const topsRef = { values: null, version: -1 };
 
-  /* Track the current section: in the Forge Fold every sheet is pinned to
-     the viewport top, so the current section is the one whose STATIC slot
-     has been scrolled past — the anchor markers carry those slot positions
-     (offsetTop is layout position, untouched by the pin transforms). In
-     the static reduced-motion layout there are no markers, so fall back to
-     the sections' document positions. */
-  useEffect(() => {
-    const docY = (id) => {
-      const marker = document.querySelector(`[data-anchor="${id}"]`);
-      if (marker) return marker.offsetTop;
-      const section = document.querySelector(`section#${id}`);
-      return section ? section.getBoundingClientRect().top + window.scrollY : Infinity;
-    };
-    const onScroll = () => {
-      const y = window.scrollY + 1;
-      let current = null;
+    const readTops = () => {
+      const fold = document.querySelector(".forge-fold");
+      if (fold) {
+        /* Fold mode: the fold controller itself positions the anchor markers
+           (style.top — a string read, zero layout). Track the slot-cache
+           version so we refresh when the fold re-measures (resize, accordion
+           growth, fonts). */
+        const tops = {};
+        for (const link of NAV_LINKS) {
+          const id = link.href.slice(1);
+          const marker = document.querySelector(`[data-anchor="${id}"]`);
+          tops[id] = marker ? parseFloat(marker.style.top) || 0 : Infinity;
+        }
+        topsRef.values = tops;
+        topsRef.version = slotVersion();
+        return;
+      }
+      topsRef.values = {};
       for (const link of NAV_LINKS) {
         const id = link.href.slice(1);
-        if (docY(id) <= y) current = id;
+        const section = document.querySelector(`section#${id}`);
+        topsRef.values[id] = section
+          ? section.getBoundingClientRect().top + window.scrollY
+          : Infinity;
       }
-      setActiveId(current);
+      topsRef.version = slotVersion();
     };
+
+    const onScroll = () => {
+      if (rafRef.current) return;
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = 0;
+        const y = window.scrollY;
+        setScrolled(y > 12);
+        if (!topsRef.values || topsRef.version !== slotVersion()) readTops();
+        let current = null;
+        for (const link of NAV_LINKS) {
+          const id = link.href.slice(1);
+          if (topsRef.values[id] <= y + 1) current = id;
+        }
+        setActiveId(current);
+      });
+    };
+    const onResize = () => {
+      topsRef.values = null;
+      onScroll();
+    };
+
     onScroll();
+    readTops();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    window.addEventListener("resize", onResize, { passive: true });
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(() => {
+        topsRef.values = null;
+        onScroll();
+      });
+    }
+		return () => {
+			window.removeEventListener("scroll", onScroll);
+			window.removeEventListener("resize", onResize);
+			if (rafRef.current) cancelAnimationFrame(rafRef.current);
+			/* Zero the id: the ref survives StrictMode's double mount, and a
+			   stale non-zero id would make the next mount's guard block the
+			   rAF forever. */
+			rafRef.current = 0;
+		};
   }, []);
 
   const linkClass = (active) =>

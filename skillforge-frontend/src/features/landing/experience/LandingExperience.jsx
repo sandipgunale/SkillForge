@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useRef } from "react";
+import { lazy, Suspense, useCallback, useLayoutEffect, useRef } from "react";
 
 import CapEmblem from "./cap/CapEmblem";
 import useDeferredScene from "./useDeferredScene";
@@ -6,10 +6,12 @@ import { useReducedMotion } from "@/lib/motion-gsap";
 
 import Cursor from "../components/Cursor";
 import ScrollProgress from "../components/ScrollProgress";
+import LandingFooter from "../components/LandingFooter";
 
 import ForgePage from "./forge/ForgePage";
 import useForgeFold from "./forge/useForgeFold";
 import { ANCHORS, SECTIONS } from "./forge/registry";
+import { measureSlots, publishSlots } from "./forge/geometry";
 import StaticSections from "./forge/StaticSections";
 
 import "./forge/forge.css";
@@ -48,12 +50,33 @@ export default function LandingExperience() {
 
   useForgeFold({ stageRef, pagesRef, reduced });
 
+  /* Reduced-motion branch: no fold, but the shared slot model still needs a
+     publish (mount/resize/fonts) so consumers that cached geometry earlier —
+     the navbar's marker tops — detect the change and re-read. */
+  const staticRootRef = useRef(null);
+  useLayoutEffect(() => {
+    if (!reduced) return undefined;
+    const root = staticRootRef.current;
+    if (!root) return undefined;
+    const publish = () => {
+      const { slots, total } = measureSlots(root);
+      if (slots.length) publishSlots(root, slots, total);
+    };
+    publish();
+    window.addEventListener("resize", publish);
+    document.fonts?.ready.then(publish).catch(() => {});
+    return () => window.removeEventListener("resize", publish);
+  }, [reduced]);
+
   if (reduced) {
     return (
       <>
         <Cursor />
         <ScrollProgress />
-        <StaticSections />
+        <div ref={staticRootRef}>
+          <StaticSections />
+        </div>
+        <LandingFooter />
       </>
     );
   }
@@ -86,6 +109,11 @@ export default function LandingExperience() {
           </ForgePage>
         ))}
       </div>
+      {/* The footer lives INSIDE the lazy landing chunk: painted in its final
+          position in the same commit as the fold, it can never be pushed down
+          when the route mounts — that old shell-frame shift was the page's
+          one big CLS event. */}
+      <LandingFooter />
     </>
   );
 }

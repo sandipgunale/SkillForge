@@ -365,6 +365,21 @@
 }
 
 /* ==========================================================================
+   Landing shell height reservation
+   ========================================================================== */
+/* The landing is a lazy route: before its chunk mounts, the shell alone is
+   only one viewport tall, so the browser's refresh scroll-restoration (which
+   runs at first layout) clamps to ~0 and never re-restores when the fold
+   grows the page. Reserve the fold's minimum height (SECTIONS.length x
+   100svh — keep in sync with forge/registry.js) so restoration lands where
+   the user was. Purely a min-height: the fold's own measured height wins
+   once it mounts, and no visible element moves (the sheets are
+   transform-pinned), so this never shifts anything. */
+.landing-shell {
+    min-height: calc(9 * 100svh);
+}
+
+/* ==========================================================================
    Scrollbar
    ========================================================================== */
 @layer base {

@@ -1,6 +1,10 @@
 import { useEffect, useRef } from "react";
 
-import { measureSlots, resolveState } from "../experience/forge/geometry";
+import {
+  cachedSlots,
+  invalidateSlots,
+  resolveState,
+} from "../experience/forge/geometry";
 import { SECTIONS } from "../experience/forge/registry";
 
 /* -------------------------------------------------------------------------- */
@@ -33,15 +37,31 @@ export default function ScrollProgress() {
     if (!stage) return undefined;
     let raf = 0;
 
+    /* Layout discipline: the slot model comes from the shared cache — the
+       fold publishes measured geometry and only REAL changes (resize, font
+       readiness) invalidate it here. A scroll frame never measures layout:
+       the cache is either fresh or this frame is dropped for one invalidation
+       pass. */
+    const refresh = () => {
+      invalidateSlots();
+      update();
+    };
+
     const update = () => {
       raf = 0;
-      const { slots } = measureSlots(stage);
+      const { slots } = cachedSlots(stage);
       const { current, global } = resolveState(slots, window.scrollY);
       if (numRef.current) {
-        numRef.current.textContent = String(current + 1).padStart(2, "0");
+        const text = String(current + 1).padStart(2, "0");
+        if (numRef.current.textContent !== text) {
+          numRef.current.textContent = text;
+        }
       }
       if (barRef.current) {
-        barRef.current.style.transform = `scaleY(${Math.max(0.001, global)})`;
+        const scale = `scaleY(${Math.max(0.001, global)})`;
+        if (barRef.current.style.transform !== scale) {
+          barRef.current.style.transform = scale;
+        }
       }
     };
 
@@ -50,12 +70,19 @@ export default function ScrollProgress() {
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
+    window.addEventListener("resize", refresh, { passive: true });
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(() => {
+        if (raf) cancelAnimationFrame(raf);
+        raf = 0;
+        refresh();
+      });
+    }
     update();
 
     return () => {
       window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
+      window.removeEventListener("resize", refresh);
       if (raf) cancelAnimationFrame(raf);
     };
   }, []);

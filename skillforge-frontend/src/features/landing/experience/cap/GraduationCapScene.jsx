@@ -385,7 +385,7 @@ function CapCanvas({ reduced, hidden }) {
   return (
     <Canvas
       dpr={dpr}
-      frameloop={reduced ? "demand" : "always"}
+      frameloop={reduced || hidden ? "demand" : "always"}
       camera={{ position: [0, 1.05, 4.2], fov: 38 }}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       style={{ background: "transparent" }}

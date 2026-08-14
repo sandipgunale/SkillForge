@@ -36,6 +36,8 @@ import HeroContent from "../components/HeroContent";
 import KnowledgeMap from "./KnowledgeMap";
 import KnowledgeConstellation from "../../components/three/KnowledgeConstellation";
 import Marquee from "./Marquee";
+import { cachedSlots } from "./geometry";
+import { SECTIONS } from "./registry";
 
 /* -------------------------------------------------------------------------- */
 /*  Forge Fold sections — the landing as a normal full-screen website.        */
@@ -87,85 +89,100 @@ function useSectionEntrance(anchorId, variant = "rise") {
          is added — that would fire every entrance on page load). The
          from-states apply the instant the trigger calls play(), one
          invisible frame, so StrictMode remounts and reverted contexts can
-         never leave content stuck hidden. */
+         never leave content stuck hidden. Empty selectors are skipped —
+         a fromTo against [] would log a GSAP warning. */
       const tl = gsap.timeline({
         paused: true,
         defaults: { ease: "expo.out", immediateRender: false, clearProps: "opacity,transform" },
       });
 
-      if (variant === "clip") {
+      if (label.length) {
         tl.fromTo(
-          head,
-          { opacity: 0, y: 44, clipPath: "inset(100% 0% 0% 0%)" },
-          { opacity: 1, y: 0, clipPath: "inset(0% 0% 0% 0%)", duration: 0.9, ease: "expo.out" },
-          0,
-        );
-      } else {
-        tl.fromTo(
-          head,
-          { opacity: 0, y: 40 },
-          { opacity: 1, y: 0, duration: 0.8, ease: "expo.out" },
-          0,
+          label,
+          { opacity: 0, y: 16 },
+          { opacity: 1, y: 0, duration: 0.55, ease: "expo.out" },
+          0.05,
         );
       }
-      tl.fromTo(
-        label,
-        { opacity: 0, y: 16 },
-        { opacity: 1, y: 0, duration: 0.55, ease: "expo.out" },
-        0.05,
-      )
-        .fromTo(
+      if (head.length) {
+        if (variant === "clip") {
+          tl.fromTo(
+            head,
+            { opacity: 0, y: 44, clipPath: "inset(100% 0% 0% 0%)" },
+            { opacity: 1, y: 0, clipPath: "inset(0% 0% 0% 0%)", duration: 0.9, ease: "expo.out" },
+            0,
+          );
+        } else {
+          tl.fromTo(
+            head,
+            { opacity: 0, y: 40 },
+            { opacity: 1, y: 0, duration: 0.8, ease: "expo.out" },
+            0,
+          );
+        }
+      }
+      if (lead.length) {
+        tl.fromTo(
           lead,
           { opacity: 0, y: 24 },
           { opacity: 1, y: 0, duration: 0.7, ease: "expo.out" },
           0.12,
-        )
-        .fromTo(
+        );
+      }
+      if (aside.length) {
+        tl.fromTo(
           aside,
           { opacity: 0, y: 30 },
           { opacity: 1, y: 0, duration: 0.8, ease: "expo.out" },
           0.18,
         );
+      }
 
       if (variant === "scatter") {
         const units = [
           ...select("[data-entrance='content'] > *"),
           ...select("[data-entrance='aside'] > *"),
         ];
-        tl.fromTo(
-          units,
-          {
-            opacity: 0.45,
-            x: () => gsap.utils.random(-16, 16),
-            y: () => gsap.utils.random(-12, 12),
-            rotation: () => gsap.utils.random(-1.6, 1.6),
-          },
-          { opacity: 1, x: 0, y: 0, rotation: 0, duration: 0.7, stagger: 0.09, ease: "power3.out" },
-          0.18,
-        );
+        if (units.length) {
+          tl.fromTo(
+            units,
+            {
+              opacity: 0.45,
+              x: () => gsap.utils.random(-16, 16),
+              y: () => gsap.utils.random(-12, 12),
+              rotation: () => gsap.utils.random(-1.6, 1.6),
+            },
+            { opacity: 1, x: 0, y: 0, rotation: 0, duration: 0.7, stagger: 0.09, ease: "power3.out" },
+            0.18,
+          );
+        }
       } else if (variant === "activate") {
         const units = [
           ...select("[data-entrance='content'] > *"),
           ...select("[data-entrance='aside'] > *"),
         ];
-        tl.fromTo(
-          units,
-          { opacity: 0, y: 26 },
-          { opacity: 1, y: 0, duration: 0.6, stagger: 0.13 },
-          0.2,
-        );
+        if (units.length) {
+          tl.fromTo(
+            units,
+            { opacity: 0, y: 26 },
+            { opacity: 1, y: 0, duration: 0.6, stagger: 0.13 },
+            0.2,
+          );
+        }
       } else if (variant === "forge") {
         const units = [
           ...select("[data-entrance='content'] > *"),
           ...select("[data-entrance='aside'] > *"),
         ];
-        tl.fromTo(
-          units,
-          { opacity: 0, scale: 0.96 },
-          { opacity: 1, scale: 1, duration: 0.8, stagger: 0.09 },
-          0.16,
-        );
-      } else {
+        if (units.length) {
+          tl.fromTo(
+            units,
+            { opacity: 0, scale: 0.96 },
+            { opacity: 1, scale: 1, duration: 0.8, stagger: 0.09 },
+            0.16,
+          );
+        }
+      } else if (content.length) {
         tl.fromTo(
           content,
           { opacity: 0, y: 28 },
@@ -174,27 +191,25 @@ function useSectionEntrance(anchorId, variant = "rise") {
         );
       }
 
-      const marker = document.querySelector(`[data-anchor="${anchorId}"]`);
       const stage = document.querySelector(".forge-fold");
       let played = false;
 
-      /* Slot top for the trigger: the anchor marker (placed by the fold's
-         measure) when it exists; for the last page there is no marker, so
-         derive it from the stage — the fold's own geometry. */
+      /* Slot top for the trigger comes from the shared cached slot model
+         (the fold's own measurement, published on every re-measure) — the
+         entrance fires on the exact handover position and can never drift
+         from the fold's geometry. No layout reads in the scroll path. */
+      const slotIndex = SECTIONS.findIndex((s) => s.id === anchorId);
       const slotTop = () => {
-        if (marker && marker.style.top) return parseFloat(marker.style.top);
-        if (!stage) return -1;
-        const sheets = stage.querySelectorAll(".forge-page-sheet");
-        const last = sheets[sheets.length - 1];
-        if (!last) return -1;
-        return stage.offsetHeight - last.offsetHeight;
+        if (!stage || slotIndex < 0) return -1;
+        const slot = cachedSlots(stage).slots[slotIndex];
+        return slot ? slot.top : -1;
       };
 
       /* Scroll-based trigger: the entrance fires as the page arrives (the
          marker crosses the viewport top, i.e. scrollY reaches its slot).
          Ground truth is the fold's own geometry, so it always matches the
-         handover — and it re-reads the marker each time, so re-measures
-         (resize/fonts) can never desync it. */
+         handover — and the cache is re-published on every re-measure, so
+         resize/font changes can never desync it. */
       const check = () => {
         if (played) return;
         const top = slotTop();
@@ -515,7 +530,7 @@ const TESTIMONIALS = [
 
 function Section({ id, children, className = "" }) {
   return (
-    <section id={id} data-forge-section={id} className={`forge-section ${className}`}>
+    <section id={id} data-forge-section={id} data-landing-section={id} className={`forge-section ${className}`}>
       <div className="forge-container">{children}</div>
     </section>
   );
@@ -540,14 +555,12 @@ function useScrubReveal(anchorId) {
     if (!steps.length) return undefined;
 
     const apply = () => {
-      const tops = [...document.querySelectorAll("[data-anchor]")]
-        .map((m) => ({ id: m.dataset.anchor, top: parseFloat(m.style.top) || 0 }))
-        .sort((a, b) => a.top - b.top);
-      const idx = tops.findIndex((t) => t.id === anchorId);
-      const top = idx >= 0 ? tops[idx].top : -1;
-      if (top < 0) return;
-      const nextTop = idx + 1 < tops.length ? tops[idx + 1].top : -1;
-      const pageHeight = nextTop > top ? nextTop - top : stage.offsetHeight - top;
+      if (!stage) return;
+      const slotIndex = SECTIONS.findIndex((s) => s.id === anchorId);
+      const slot = cachedSlots(stage).slots[slotIndex];
+      if (!slot) return;
+      const top = slot.top;
+      const pageHeight = slot.height;
       const windowPx = Math.max(200, pageHeight * 0.22);
       const p = Math.min(1, Math.max(0, (window.scrollY - top) / windowPx));
       steps.forEach((step, i) => {
@@ -656,16 +669,14 @@ function useNearViewport(ref, anchorId) {
     }
     const stage = document.querySelector(".forge-fold");
 
-    /* Fire when the marker is within ~500px below the viewport bottom —
-       the classic "about to arrive" moment. Mirrors useSectionEntrance's
-       geometry (marker style.top or derived last-page slot). */
+    /* Fire when the slot top crosses ~500px above the viewport bottom — the
+       classic "about to arrive" moment. Reads the shared cached slot model
+       (the fold's own measurement) — no per-event layout. */
+    const slotIndex = SECTIONS.findIndex((s) => s.id === anchorId);
     const slotTop = () => {
-      if (marker && marker.style.top) return parseFloat(marker.style.top);
-      if (!stage) return -1;
-      const sheets = stage.querySelectorAll(".forge-page-sheet");
-      const last = sheets[sheets.length - 1];
-      if (!last) return -1;
-      return stage.offsetHeight - last.offsetHeight;
+      if (!stage || slotIndex < 0) return -1;
+      const slot = cachedSlots(stage).slots[slotIndex];
+      return slot ? slot.top : -1;
     };
     const vh = () => window.innerHeight || 800;
     let fired = false;
@@ -771,7 +782,7 @@ function HeroSection({ cap }) {
   );
 
   return (
-    <section ref={rootRef} id="top" className="relative min-h-svh overflow-hidden">
+    <section ref={rootRef} id="top" data-landing-section="top" className="relative min-h-svh overflow-hidden">
       {/* The giant graduation cap — only here, only on the hero. Decorative,
           never blocks input. On desktop it anchors to the right edge BELOW
           the statement (the statement block ends at ~59-67svh as the display
@@ -813,7 +824,7 @@ function HeroSection({ cap }) {
           aria-label="Scroll to learn more"
           className="absolute bottom-6 right-8 hidden flex-col items-center gap-2 text-muted-foreground transition-colors hover:text-foreground md:flex"
         >
-          <span className="text-[0.6875rem] font-medium uppercase tracking-[0.18em]">
+          <span className="text-xs font-semibold uppercase tracking-[0.18em]">
             Scroll
           </span>
           <span className="flex h-9 w-6 items-start justify-center rounded-full border border-muted-foreground/30 p-1.5">
@@ -875,14 +886,12 @@ function useScrubFragments(anchorId) {
     if (!frags.length) return undefined;
 
     const apply = () => {
-      const tops = [...document.querySelectorAll("[data-anchor]")]
-        .map((m) => ({ id: m.dataset.anchor, top: parseFloat(m.style.top) || 0 }))
-        .sort((a, b) => a.top - b.top);
-      const idx = tops.findIndex((t) => t.id === anchorId);
-      const top = idx >= 0 ? tops[idx].top : -1;
-      if (top < 0) return;
-      const nextTop = idx + 1 < tops.length ? tops[idx + 1].top : -1;
-      const pageHeight = nextTop > top ? nextTop - top : stage.offsetHeight - top;
+      if (!stage) return;
+      const slotIndex = SECTIONS.findIndex((s) => s.id === anchorId);
+      const slot = cachedSlots(stage).slots[slotIndex];
+      if (!slot) return;
+      const top = slot.top;
+      const pageHeight = slot.height;
       const windowPx = Math.max(200, pageHeight * 0.55);
       const p = Math.min(1, Math.max(0, (window.scrollY - top) / windowPx));
       frags.forEach((el, i) => {
@@ -1032,7 +1041,7 @@ function LoopSection() {
                 <Icon className="size-4" />
               </span>
               <span className="min-w-0">
-                <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-ember">
+                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-ember">
                   {String(index + 1).padStart(2, "0")} — {title}
                 </span>
                 <span className={`${T.small} ${T.body} mt-1 block`}>{body}</span>
@@ -1107,7 +1116,7 @@ function AiSection() {
             ticks with it: score, questions, mastery — progress you can see
             forming. */}
         <div className="mt-8 flex items-center justify-between border-b border-border pb-3">
-          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             One session
           </p>
           <div className="flex items-center gap-4 text-xs font-semibold tabular-nums sm:gap-6">
@@ -1151,7 +1160,7 @@ function AiSection() {
                 {String(index + 1).padStart(2, "0")}
               </span>
               <span className="min-w-0">
-                <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-ember">
+                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-ember">
                   {mark}
                 </span>
                 <span className={`${T.small} block font-semibold text-foreground`}>
@@ -1226,7 +1235,7 @@ function RoadmapSection() {
                 {num}
               </span>
               <div className="relative">
-                <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-aurora">
+                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-aurora">
                   Weeks {weeks}
                 </span>
                 <p className="mt-2 text-lg font-bold tracking-tight">{title}</p>
@@ -1276,7 +1285,7 @@ function KnowledgeSection() {
                       <Icon className="size-4" />
                     </span>
                     <span className="min-w-0">
-                      <span className={`${T.small} block font-semibold uppercase tracking-[0.14em] text-muted-foreground`}>
+                      <span className={`${T.small} block font-semibold uppercase tracking-[0.18em] text-muted-foreground`}>
                         {role}
                       </span>
                       <span className="mt-0.5 block text-base font-bold">{headline}</span>
@@ -1304,7 +1313,11 @@ function KnowledgeSection() {
               <KnowledgeConstellation className="absolute inset-0 h-full w-full opacity-50" />
             )}
             <div className="absolute inset-0">
-              <KnowledgeMap />
+              {/* The map is the section's live catalog — deferred with the
+                  constellation so its heavy render never runs while the
+                  section is still hidden. The container is fixed-height, so
+                  the fold's slot geometry is identical either way. */}
+              {near && <KnowledgeMap />}
             </div>
           </div>
           <p className={`${T.small} ${T.body} mt-3 text-center`}>

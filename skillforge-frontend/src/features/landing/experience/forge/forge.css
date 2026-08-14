@@ -96,7 +96,8 @@
     transform-origin: 100% 50%;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
-    will-change: transform;
+    /* will-change is managed dynamically by useForgeFold: the compositing
+       hint exists only on the visible pair, never on all nine sheets. */
     overflow: hidden;
     pointer-events: auto;
 }

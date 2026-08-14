@@ -9,6 +9,7 @@ import {
   useReducedMotion,
   useSceneBudget,
   useScenePalette,
+  useTabHidden,
 } from "@/lib/three-engine";
 
 /* -------------------------------------------------------------------------- */
@@ -40,6 +41,12 @@ function ConstellationField({ reducedMotion, nodeCount, palette, containerRef })
 
   const pointerRef = useRef({ x: 0, y: 0, active: false });
   const hoverPos = useRef(new THREE.Vector3());
+  /* Canvas rect in canvas-space for the pointer mapping. Read on pointer
+     events and viewport changes only — NEVER inside the frame loop (a
+     layout read every frame is exactly the kind of scroll jitter this
+     scene must not add). */
+  const canvasRectRef = useRef(null);
+  const hidden = useTabHidden();
 
   /* The section's slot top (where the knowledge page comes to rest) drives
      the camera: a slow orbital + dolly that sweeps across the section's
@@ -49,6 +56,9 @@ function ConstellationField({ reducedMotion, nodeCount, palette, containerRef })
     const measureSlot = () => {
       const marker = document.querySelector('[data-anchor="knowledge"]');
       slotTopRef.current = marker ? marker.offsetTop : 0;
+      /* The canvas rect changes with the viewport — drop the cached rect so
+         the next pointer frame re-measures once (never per frame). */
+      canvasRectRef.current = null;
     };
     measureSlot();
     window.addEventListener("resize", measureSlot);
@@ -91,6 +101,7 @@ function ConstellationField({ reducedMotion, nodeCount, palette, containerRef })
         pointerRef.current.active = false;
         return;
       }
+      canvasRectRef.current = rect;
       pointerRef.current.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       pointerRef.current.y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
       pointerRef.current.active = true;
@@ -102,6 +113,7 @@ function ConstellationField({ reducedMotion, nodeCount, palette, containerRef })
   useFrame((state, delta) => {
     const group = groupRef.current;
     if (!group) return;
+    if (hidden) return;
 
     if (!reducedMotion) {
       const t = state.clock.elapsedTime;
@@ -128,7 +140,7 @@ function ConstellationField({ reducedMotion, nodeCount, palette, containerRef })
     const hoverSprite = hoverSpriteRef.current;
     if (!p.active || !hoverSprite) return;
 
-    const rect = state.gl.domElement.getBoundingClientRect();
+    const rect = canvasRectRef.current ?? state.gl.domElement.getBoundingClientRect();
     if (rect.width < 2 || rect.height < 2) {
       hoverSprite.material.opacity = 0;
       return;

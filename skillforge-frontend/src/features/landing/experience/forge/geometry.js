@@ -7,7 +7,48 @@
 /*  own offsetHeight (accumulated), so fonts, viewport changes, and content   */
 /*  edits cannot desync the model. The static (reduced-motion) root measures  */
 /*  its section blocks the same way — one model for both layouts.             */
+/*                                                                             */
+/*  Measurement discipline: the fold controller is the ONLY measurer (mount,  */
+/*  resize, font load, content change). Everyone else reads the cached slot   */
+/*  model through cachedSlots() — zero layout reads inside scroll loops.      */
 /* -------------------------------------------------------------------------- */
+
+/* Module-level slot cache. The fold publishes fresh measurements here; all
+   consumers (progress readout, entrances, scrubs, nav) read the cache, so a
+   scroll frame never triggers layout. Version bumps force a re-measure. */
+let cache = null;
+let version = 0;
+
+export function invalidateSlots() {
+  version += 1;
+}
+
+/** The current slot-cache version — lets consumers detect when the fold
+    has re-published geometry (resize, fonts, content change) without
+    reading any layout themselves. */
+export function slotVersion() {
+  return version;
+}
+
+export function publishSlots(root, slots, total) {
+  /* Every publish bumps the version: consumers that cached geometry before
+     the fold mounted (e.g. the navbar at shell mount) detect the change and
+     re-read — no layout reads, just a version compare. */
+  version += 1;
+  cache = { root, slots, total, version };
+}
+
+/**
+ * The cached slot model for a landing root. Measures once per (root,
+ * version) pair — after that it is pure memory reads until the fold
+ * publishes new geometry or a consumer invalidates the cache.
+ */
+export function cachedSlots(root) {
+  if (cache && cache.root === root && cache.version === version) return cache;
+  const { slots, total } = measureSlots(root);
+  cache = { root, slots, total, version };
+  return cache;
+}
 
 function clamp01(value) {
   return value < 0 ? 0 : value > 1 ? 1 : value;

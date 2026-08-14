@@ -1,6 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 
-import { measureSlots, rawProgress, resolveState } from "./geometry";
+import { measureSlots, publishSlots, rawProgress, resolveState } from "./geometry";
 
 /* -------------------------------------------------------------------------- */
 /*  useForgeFold — the single authoritative scroll controller for the         */
@@ -56,7 +56,12 @@ function damp(delta, rate) {
 export default function useForgeFold({ stageRef, pagesRef, reduced }) {
   const stateRef = useRef({ scrollY: 0, dirty: false });
 
-  useEffect(() => {
+  /* useLayoutEffect: the stage height is written before the first paint —
+     otherwise the document grows by the whole fold height after paint and
+     the footer jumps, scoring a massive layout shift (CLS). The measure
+     reads layout but runs exactly once at mount (plus resize/font/content
+     events), never inside a scroll frame. */
+  useLayoutEffect(() => {
     if (reduced) return undefined;
 
     const stage = stageRef.current;
@@ -88,6 +93,9 @@ export default function useForgeFold({ stageRef, pagesRef, reduced }) {
       slots = nextSlots;
       stageHeight = total;
       stage.style.height = `${total}px`;
+      /* Publish to the shared slot cache — every consumer (progress readout,
+         entrances, scrubs, navbar) reads this instead of measuring layout. */
+      publishSlots(stage, nextSlots, total);
 
       /* Anchor markers: keep the navbar's hash links accurate while the
          sections are scroll-pinned. Each marker carries the id of the page
@@ -131,6 +139,10 @@ export default function useForgeFold({ stageRef, pagesRef, reduced }) {
         if (sheet) {
           sheet.style.transform = "translate3d(0, 0, 0)";
           sheet.style.visibility = visible ? "visible" : "hidden";
+          /* Compositing hint only where it is actually painted: the visible
+             pair. Hidden sheets release their layer (never 9 persistent
+             full-viewport layers). */
+          sheet.style.willChange = visible ? "transform" : "auto";
         }
         if (cast) cast.style.opacity = "0";
         if (edge) edge.style.opacity = "0";
@@ -229,6 +241,9 @@ export default function useForgeFold({ stageRef, pagesRef, reduced }) {
            rest only the hero (and nothing else) is ever painted. */
         if (sheet && prev.visible !== visible) {
           sheet.style.visibility = visible ? "visible" : "hidden";
+          /* Same discipline as measure(): the compositing hint follows
+             visibility, so only the painted pair keeps a layer. */
+          sheet.style.willChange = visible ? "transform" : "auto";
         }
 
         if (page.edge && edge !== prev.edge) {

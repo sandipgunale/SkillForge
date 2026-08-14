@@ -15,6 +15,8 @@ import {
 import { useTopics } from "@/features/resources/hooks/useTopics";
 import { useReducedMotion } from "@/lib/motion-gsap";
 import { ROUTES } from "@/constants/routes";
+import { cachedSlots } from "./geometry";
+import { SECTIONS } from "./registry";
 
 /* -------------------------------------------------------------------------- */
 /*  KnowledgeMap — the real topic catalog rendered as a constellation.        */
@@ -124,15 +126,13 @@ function useScrubBuild(anchorId) {
   useEffect(() => {
     if (reduced) return undefined;
     const apply = () => {
-      const tops = [...document.querySelectorAll("[data-anchor]")]
-        .map((m) => ({ id: m.dataset.anchor, top: parseFloat(m.style.top) || 0 }))
-        .sort((a, b) => a.top - b.top);
-      const idx = tops.findIndex((t) => t.id === anchorId);
-      const top = idx >= 0 ? tops[idx].top : -1;
-      if (top < 0) return;
-      const nextTop = idx + 1 < tops.length ? tops[idx + 1].top : -1;
       const stage = document.querySelector(".forge-fold");
-      const pageH = nextTop > top ? nextTop - top : stage.offsetHeight - top;
+      if (!stage) return;
+      const slotIndex = SECTIONS.findIndex((s) => s.id === anchorId);
+      const slot = cachedSlots(stage).slots[slotIndex];
+      if (!slot) return;
+      const top = slot.top;
+      const pageH = slot.height;
       const windowPx = Math.max(200, pageH * BUILD_WINDOW);
       const p = Math.min(1, Math.max(0, (window.scrollY - top) / windowPx));
 
@@ -208,10 +208,10 @@ function TopicNode({ topic, index, count, hoveredIndex, onHover }) {
               : "border-border hover:z-10 hover:scale-110 hover:border-ember/50 hover:shadow-md focus-visible:scale-110"
         }`}
       >
-        <div
-          data-map-node
-          className="transition-opacity duration-500 motion-reduce:transition-none"
-        >
+        {/* The scrub owns this box's opacity/transform per frame — no CSS
+            transition on it (a transition would fight the scrub on fast
+            scroll). Hover scale lives on the Link above. */}
+        <div data-map-node>
           <span
             className={`mx-auto flex size-8 items-center justify-center rounded-lg transition-colors sm:size-9 ${
               isHovered || isNeighbor ? "bg-ember/20 text-ember" : "bg-ember/12 text-ember"
