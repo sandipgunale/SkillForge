@@ -119,25 +119,34 @@ export default function useForgeFold({ stageRef, pagesRef, reduced }) {
         return;
       }
 
-      const f = damp(delta, SMOOTH_RATE);
+const f = damp(delta, SMOOTH_RATE);
       let changed = false;
 
-      /* Pass 1 — smooth progress through every page's scroll window. */
+      /* Pass 1 — raw + smoothed progress through every page's scroll window.
+         Raw is the geometric truth; smoothing only shapes the turn visuals
+         (rotation/lift/edge/cast). The page-selection below MUST use raw —
+         a smoothed "fully turned" test would leave the wrong page visible
+         for ~1s after any fast scroll (the entrance would play under a
+         hidden sheet and the arrival would be missed). */
+      const rList = [];
       const sList = pages.map((page, index) => {
         const slot = slots[index];
         const prev = applied[index] ?? { s: 0 };
         const isLast = index === count - 1;
         const raw = clamp01((scrollY - slot.top) / slot.height);
-        return isLast ? 0 : prev.s + (raw - prev.s) * f;
+        rList[index] = raw;
+        const s = isLast ? 0 : prev.s + (raw - prev.s) * f;
+        return s;
       });
 
-      /* The active surface: the first page that hasn't fully turned. Only
+      /* The active surface: the first page that hasn't fully turned (raw —
+         not smoothed — so visibility is exact the instant scroll lands). Only
          it — and the page beneath it while it is actually swinging — is
          ever visible; every other sheet stays hidden, so stacked pages can
          never leak through one another. */
       let current = 0;
-      while (current < count - 1 && sList[current] > 0.999) current += 1;
-      const turning = sList[current] > 0.005;
+      while (current < count - 1 && rList[current] > 0.999) current += 1;
+      const turning = rList[current] > 0.005;
 
       for (let index = 0; index < count; index += 1) {
         const page = pages[index];

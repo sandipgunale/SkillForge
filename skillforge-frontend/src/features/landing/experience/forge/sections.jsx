@@ -22,12 +22,10 @@ import {
   Search,
   ShieldCheck,
   Sparkles,
-  Target,
   Timer,
   TimerOff,
   Trophy,
   Workflow,
-  Zap,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -46,6 +44,7 @@ import HeroContent from "../components/HeroContent";
 import DashboardMock from "../components/DashboardMock";
 import KnowledgeMap from "./KnowledgeMap";
 import KnowledgeConstellation from "../../components/three/KnowledgeConstellation";
+import Marquee from "./Marquee";
 
 /* -------------------------------------------------------------------------- */
 /*  Forge Fold sections — the landing as a normal full-screen website.        */
@@ -58,7 +57,7 @@ import KnowledgeConstellation from "../../components/three/KnowledgeConstellatio
 
 const T = {
   overline: "text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground",
-  h2: "text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-[2.75rem]",
+  h2: "text-[clamp(2.5rem,5.2vw,4.75rem)] font-bold leading-[1.02] tracking-tight",
   h3: "text-lg font-bold tracking-tight sm:text-xl",
   body: "text-base leading-relaxed text-muted-foreground",
   small: "text-sm leading-relaxed",
@@ -238,16 +237,23 @@ function useSectionEntrance(anchorId, variant = "rise") {
 function Chapter({ num, label, title, lead, children, aside, anchorId, variant = "rise" }) {
   const rootRef = useSectionEntrance(anchorId, variant);
   return (
-    <div ref={rootRef} className="grid gap-10 lg:grid-cols-2 lg:gap-14">
-      <div>
+    <div ref={rootRef} className="grid gap-12 lg:gap-16">
+      {/* Statement-first: the headline owns the chapter — a display statement
+          running ~80% of the viewport width, above the detail. Micro-label
+          above, support + content + aside below. */}
+      <div className="max-w-[92vw] lg:max-w-[80%]">
         <p data-entrance="label" className={T.overline}>
           {num} — {label}
         </p>
-        <h2 data-entrance="head" className={`${T.h2} mt-4 max-w-[22ch]`}>{title}</h2>
-        <p data-entrance="lead" className={`${T.body} mt-5 max-w-[52ch]`}>{lead}</p>
-        <div data-entrance="content">{children}</div>
+        <h2 data-entrance="head" className={`${T.h2} mt-5`}>{title}</h2>
       </div>
-      {aside ? <div data-entrance="aside" className="flex flex-col">{aside}</div> : null}
+      <div className="grid gap-12 lg:grid-cols-[1.3fr_1fr] lg:gap-16">
+        <div>
+          <p data-entrance="lead" className={T.body}>{lead}</p>
+          <div data-entrance="content">{children}</div>
+        </div>
+        {aside ? <div data-entrance="aside" className="flex flex-col">{aside}</div> : null}
+      </div>
     </div>
   );
 }
@@ -358,20 +364,29 @@ const METRICS = [
   },
 ];
 
-const AI_STEPS = [
+const PRACTICE_CYCLE = [
   {
+    mark: "Question",
     title: "Set the forge",
     body: "Pick a topic (or a week of your path), difficulty, question types, and count.",
   },
   {
-    title: "Generate to a strict schema",
+    mark: "Attempt",
+    title: "Generated to a strict schema",
     body: "Gemini writes the quiz against a validated schema — malformed output is retried automatically.",
   },
   {
-    title: "Feedback that teaches",
+    mark: "Evaluation",
+    title: "Every answer judged, with reasons",
     body: "Your submission is evaluated per question: not just right or wrong, but why — with personalized explanation.",
   },
   {
+    mark: "Feedback",
+    title: "The why follows the wrong",
+    body: "Feedback becomes the next lesson — the same gaps keep surfacing until they close.",
+  },
+  {
+    mark: "Improvement",
     title: "Fair, bounded, resumable",
     body: "A per-user daily quota keeps the experience predictable. Quizzes resume mid-session and expire cleanly server-side.",
   },
@@ -552,6 +567,67 @@ function Section({ id, children, className = "" }) {
   );
 }
 
+/* ---- Scroll-scrubbed step sequence ---------------------------------------- */
+/* As a section's page window opens (scrollY inside the first ~22% of the
+   page), its steps light in sequence — scroll position IS the progress,
+   so the sequence is reversible and fast-scroll safe. Ground truth is the
+   fold's marker geometry (same as the entrances), so it always matches the
+   handover. Direct style writes on refs only — no React state per frame. */
+function useScrubReveal(anchorId) {
+  const reduced = useReducedMotion();
+  useEffect(() => {
+    if (reduced) return undefined;
+    const section = document.querySelector(`section[id="${anchorId}"]`);
+    const stage = document.querySelector(".forge-fold");
+    if (!section || !stage) return undefined;
+    const steps = [...section.querySelectorAll("[data-scrub-step]")];
+    const rail = section.querySelector("[data-scrub-rail] > span");
+    if (!steps.length) return undefined;
+
+    const apply = () => {
+      const tops = [...document.querySelectorAll("[data-anchor]")]
+        .map((m) => ({ id: m.dataset.anchor, top: parseFloat(m.style.top) || 0 }))
+        .sort((a, b) => a.top - b.top);
+      const idx = tops.findIndex((t) => t.id === anchorId);
+      const top = idx >= 0 ? tops[idx].top : -1;
+      if (top < 0) return;
+      const nextTop = idx + 1 < tops.length ? tops[idx + 1].top : -1;
+      const pageHeight = nextTop > top ? nextTop - top : stage.offsetHeight - top;
+      const windowPx = Math.max(200, pageHeight * 0.22);
+      const p = Math.min(1, Math.max(0, (window.scrollY - top) / windowPx));
+      steps.forEach((step, i) => {
+        const active = p > i / steps.length;
+        if (step.style.opacity !== active) step.style.opacity = active ? "1" : "0.32";
+        step.style.transform = active ? "translate3d(0,0,0)" : "translate3d(-12px,0,0)";
+      });
+      if (rail) rail.style.transform = `scaleX(${p.toFixed(3)})`;
+    };
+
+    apply();
+    let raf = 0;
+    const onScroll = () => {
+      if (!raf) {
+        raf = requestAnimationFrame(() => {
+          raf = 0;
+          apply();
+        });
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    let frames = 0;
+    const poll = () => {
+      frames += 1;
+      apply();
+      if (frames < 30) requestAnimationFrame(poll);
+    };
+    requestAnimationFrame(poll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [reduced, anchorId]);
+}
+
 /* ---- 1 · Hero -------------------------------------------------------------- */
 
 function useNearViewport(ref, anchorId) {
@@ -618,13 +694,7 @@ function HeroSection({ cap }) {
         .from(select("[data-hero='title']"), { opacity: 0, y: 28, duration: 0.7 }, 0.08)
         .from(select("[data-hero='subtitle']"), { opacity: 0, y: 24, duration: 0.7 }, 0.18)
         .from(select("[data-hero='cta']"), { opacity: 0, y: 20, duration: 0.6 }, 0.28)
-        .from(select("[data-hero='stats']"), { opacity: 0, y: 20, duration: 0.7 }, 0.45)
-        .from(select("[data-hero='scroll']"), { opacity: 0, duration: 0.6 }, 1)
-        .from(
-          select("[data-hero='floating'] > *"),
-          { opacity: 0, scale: 0.9, duration: 0.6, stagger: 0.12 },
-          0.55,
-        );
+        .from(select("[data-hero='scroll']"), { opacity: 0, duration: 0.6 }, 1);
 
       /* Hero-scroll response: as the hero gives way to the fold, the cap
          recedes — it scales slightly down, sinks, and fades, so the
@@ -669,24 +739,19 @@ function HeroSection({ cap }) {
         );
       }
 
-      /* Pointer parallax (desktop fine pointers only): three depth layers —
-         the background scrims move 1x, the floating cards 2x, and the cap
-         4x (handled inside the 3D scene). Small, slow, and damped. */
+      /* Pointer parallax (desktop fine pointers only): two depth layers —
+         the background scrims move 1x and the cap 4x (handled inside the
+         3D scene). Small, slow, and damped. */
       if (!window.matchMedia("(pointer: fine)").matches) return undefined;
       const bgWrap = select("[data-parallax='bg']")[0];
-      const uiWrap = select("[data-parallax='ui']")[0];
-      if (!bgWrap || !uiWrap) return undefined;
+      if (!bgWrap) return undefined;
       const bgX = gsap.quickTo(bgWrap, "x", { duration: 1.6, ease: "power2.out" });
       const bgY = gsap.quickTo(bgWrap, "y", { duration: 1.6, ease: "power2.out" });
-      const uiX = gsap.quickTo(uiWrap, "x", { duration: 1.1, ease: "power2.out" });
-      const uiY = gsap.quickTo(uiWrap, "y", { duration: 1.1, ease: "power2.out" });
       const onMove = (event) => {
         const nx = event.clientX / window.innerWidth - 0.5;
         const ny = event.clientY / window.innerHeight - 0.5;
         bgX(nx * -8);
         bgY(ny * -5);
-        uiX(nx * -18);
-        uiY(ny * -12);
       };
       window.addEventListener("pointermove", onMove, { passive: true });
       return () => window.removeEventListener("pointermove", onMove);
@@ -699,14 +764,14 @@ function HeroSection({ cap }) {
     <section ref={rootRef} id="top" className="relative min-h-svh overflow-hidden">
       {/* The giant graduation cap — only here, only on the hero. Decorative,
           never blocks input. On desktop it anchors to the right edge BELOW
-          the statement (the statement block ends at ~52svh), so the cap's
-          mass never covers the H1, the CTAs, the stats, or the navbar.
-          On mobile it stays centered behind the copy so the statement
-          always stays readable. */}
+          the statement (the statement block ends at ~59-67svh as the display
+          type wraps wider), so the cap's mass never covers the H1, the CTAs,
+          or the navbar. On mobile it stays centered behind the copy so the
+          statement always stays readable. */}
       <div
         data-cap-slot
         aria-hidden="true"
-        className="pointer-events-none absolute right-0 top-[52svh] z-0"
+        className="pointer-events-none absolute right-0 top-[68svh] z-0"
       >
         <div data-cap-scrub>
           <div className="aspect-square w-[98vw] sm:w-[82vw] lg:w-[56vw] 2xl:w-[64vw]">
@@ -745,50 +810,6 @@ function HeroSection({ cap }) {
             <span className="size-1.5 animate-scroll-dot rounded-full bg-current" />
           </span>
         </a>
-
-        {/* Floating achievement cards */}
-        <div
-          data-hero="floating"
-          data-parallax="ui"
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 hidden lg:block"
-        >
-          <div className="glass absolute right-[6%] top-[13%] animate-float rounded-2xl border p-4 shadow-xl">
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-xl bg-ember/15 text-ember">
-                <Zap className="size-5" />
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-semibold">Quiz Master</p>
-                <p className="text-xs text-muted-foreground">10 quizzes completed</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="glass absolute right-[18%] top-[29%] animate-float rounded-2xl border p-4 shadow-xl [animation-delay:1.4s]">
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-xl bg-aurora/15 text-aurora">
-                <Target className="size-5" />
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-semibold">Learning health</p>
-                <p className="text-xs text-muted-foreground">+12% this week</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="glass absolute bottom-6 left-6 animate-float rounded-2xl border p-4 shadow-xl [animation-delay:2.2s]">
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-xl bg-success/15 text-success">
-                <Sparkles className="size-5" />
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-semibold">Perfect score</p>
-                <p className="text-xs text-muted-foreground">AI evaluation complete</p>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </section>
   );
@@ -839,6 +860,10 @@ function ProblemSection() {
           ))}
         </ul>
       </Chapter>
+
+      {/* Signature motif — the repeated typography that stitches the chapters
+          together. Bleeds to the sheet edges, ghosted, never interactive. */}
+      <Marquee className="absolute inset-x-0 bottom-2" />
     </Section>
   );
 }
@@ -990,6 +1015,7 @@ function WorkspaceSection() {
 /* ---- 5 · The AI ------------------------------------------------------------- */
 
 function AiSection() {
+  useScrubReveal("architecture");
   return (
     <Section id="architecture">
       <Chapter
@@ -1042,13 +1068,30 @@ function AiSection() {
           </div>
         }
       >
-        <ol className="mt-8 space-y-3">
-          {AI_STEPS.map(({ title, body }, index) => (
-            <li key={title} className={`${T.card} flex items-start gap-4 p-4`}>
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-ember/12 text-sm font-bold text-ember">
-                {index + 1}
+        {/* The practice cycle — question, attempt, evaluation, feedback,
+            improvement. Each step lights as the page's window opens (the
+            scroll position IS the progress). */}
+        <div
+          data-scrub-rail
+          aria-hidden="true"
+          className="mt-8 h-px w-full overflow-hidden bg-border"
+        >
+          <span className="block h-full w-full origin-left bg-ember" style={{ transform: "scaleX(0)" }} />
+        </div>
+        <ol className="mt-6 space-y-3">
+          {PRACTICE_CYCLE.map(({ mark, title, body }, index) => (
+            <li
+              key={title}
+              data-scrub-step
+              className={`${T.card} flex items-start gap-4 p-4`}
+            >
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-ember/12 text-sm font-bold text-ember">
+                {String(index + 1).padStart(2, "0")}
               </span>
-              <span>
+              <span className="min-w-0">
+                <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-ember">
+                  {mark}
+                </span>
                 <span className={`${T.small} block font-semibold text-foreground`}>
                   {title}
                 </span>
@@ -1065,6 +1108,7 @@ function AiSection() {
 /* ---- 6 · Roadmap + momentum ------------------------------------------------- */
 
 function RoadmapSection() {
+  useScrubReveal("experience");
   return (
     <Section id="experience">
       <Chapter
@@ -1100,9 +1144,18 @@ function RoadmapSection() {
           </div>
         }
       >
-        <ul className="mt-8 space-y-3">
+        {/* The path — a line that grows as the page's window opens, then the
+            milestones light one by one. */}
+        <div
+          data-scrub-rail
+          aria-hidden="true"
+          className="mt-8 h-px w-full overflow-hidden bg-border"
+        >
+          <span className="block h-full w-full origin-left bg-ember" style={{ transform: "scaleX(0)" }} />
+        </div>
+        <ul className="mt-6 space-y-3">
           {PATH_STEPS.map(({ weeks, title, body }) => (
-            <li key={title} className={`${T.card} flex items-start gap-4 p-4`}>
+            <li key={title} data-scrub-step className={`${T.card} flex items-start gap-4 p-4`}>
               <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-aurora/15 text-aurora">
                 <CalendarDays className="size-4" />
               </span>
@@ -1273,7 +1326,7 @@ function FinalSection() {
         className="flex min-h-[70svh] flex-col items-center justify-center text-center"
       >
         <p data-entrance="label" className={`${T.overline} ${T.ember}`}>The final chapter</p>
-        <h2 data-entrance="head" className={`${T.h2} mt-4 max-w-[18ch]`}>
+        <h2 data-entrance="head" className={`${T.h2} mt-5 max-w-[24ch]`}>
           Your next chapter{" "}
           <span className="text-gradient-ember">starts here.</span>
         </h2>

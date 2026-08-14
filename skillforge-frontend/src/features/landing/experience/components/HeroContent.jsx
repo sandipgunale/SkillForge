@@ -3,28 +3,23 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Flame } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import CountUp from "@/components/common/CountUp";
 import { ROUTES } from "@/constants/routes";
 import { useMagnetic } from "@/lib/motion-gsap";
 
 /* -------------------------------------------------------------------------- */
-/*  HeroContent — the hero promise (badge, title, subtitle, CTAs, stats).     */
+/*  HeroContent — the hero promise (badge, title, subtitle, CTAs).            */
+/*  One dominant idea only: headline, cap, statement, action. No stats, no    */
+/*  floating objects — the detail lives in the chapters, not the hero.        */
 /*  Shared by the fixed 3D stage (HeroLayer) and the static reduced-motion    */
 /*  layout, so the copy never drifts between the two modes.                   */
 /* -------------------------------------------------------------------------- */
-
-const HERO_STATS = [
-  { count: 100, suffix: "%", value: "100%", label: "Your attention, protected" },
-  { value: "AI", label: "Practice forged for you, on demand" },
-  { count: 0, suffix: "", value: "0", label: "Distractions, by design" },
-];
 
 export default function HeroContent() {
   const primaryCtaRef = useRef(null);
   useMagnetic(primaryCtaRef);
 
   return (
-    <div className="flex max-w-[56rem] flex-col items-center text-center lg:items-start lg:text-left">
+    <div className="flex max-w-[62rem] flex-col items-center text-center lg:items-start lg:text-left">
       <div
         data-hero="badge"
         className="inline-flex items-center gap-2 rounded-full border bg-card/60 px-4 py-1.5 text-sm text-muted-foreground backdrop-blur"
@@ -35,7 +30,7 @@ export default function HeroContent() {
 
       <h1
         data-hero="title"
-        className="mt-7 text-5xl font-bold leading-[1.02] tracking-tight sm:text-6xl lg:text-[5.75rem] lg:leading-[0.98]"
+        className="mt-7 text-[clamp(2.75rem,7.2vw,7rem)] font-bold leading-[0.98] tracking-tight"
       >
         The internet is infinite.
         <br />
@@ -76,26 +71,6 @@ export default function HeroContent() {
           <Link to={ROUTES.LOGIN}>Explore the dashboard</Link>
         </Button>
       </div>
-
-      <dl
-        data-hero="stats"
-        className="mt-16 grid w-full max-w-3xl grid-cols-1 gap-6 sm:grid-cols-3"
-      >
-        {HERO_STATS.map((stat) => (
-          <div key={stat.label} className="flex flex-col items-center gap-1">
-            <dt className="text-2xl font-bold text-gradient-ember">
-              {stat.count != null ? (
-                <CountUp to={stat.count} suffix={stat.suffix ?? ""} />
-              ) : (
-                stat.value
-              )}
-            </dt>
-            <dd className="max-w-[13rem] text-sm text-muted-foreground">
-              {stat.label}
-            </dd>
-          </div>
-        ))}
-      </dl>
     </div>
   );
 }
