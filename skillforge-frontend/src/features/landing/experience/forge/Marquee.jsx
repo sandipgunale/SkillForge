@@ -35,6 +35,8 @@ export default function Marquee({ className = "" }) {
       let velocity = 0;
       let lastTime = performance.now();
       let raf = 0;
+      let running = false;
+      let speed = BASE_TIMESCALE;
 
       const tick = (now) => {
         raf = 0;
@@ -43,31 +45,68 @@ export default function Marquee({ className = "" }) {
         const y = window.scrollY;
         velocity += ((y - lastY) / delta - velocity) * Math.min(1, delta * 2.4);
         lastY = y;
-        const target = Math.max(
+        speed = Math.max(
           MIN_TIMESCALE,
           Math.min(MAX_TIMESCALE, BASE_TIMESCALE + velocity * 2.2),
         );
-        tl.timeScale(target);
+        tl.timeScale(speed);
         raf = requestAnimationFrame(tick);
       };
 
-      lastTime = performance.now();
-      raf = requestAnimationFrame(tick);
-      return () => {
+      const start = () => {
+        if (running) return;
+        running = true;
+        lastTime = performance.now();
+        tl.timeScale(speed);
+        raf = requestAnimationFrame(tick);
+      };
+      const stop = () => {
+        running = false;
         if (raf) cancelAnimationFrame(raf);
+        raf = 0;
+        tl.timeScale(0);
+      };
+
+      /* Pause when the marquee is off-screen or the tab is hidden — the
+         fold's frame budget must never be eaten by decorative motion that
+         nobody can see. The velocity damping survives the pause because
+         the timeScale is restored on resume. */
+      const io = new IntersectionObserver(([entry]) => {
+        if (entry.isIntersecting) start();
+        else stop();
+      });
+      io.observe(track);
+
+      const onVisibility = () => {
+        if (document.hidden) stop();
+        else if (io) start();
+      };
+      document.addEventListener("visibilitychange", onVisibility);
+
+      start();
+      return () => {
+        stop();
+        io.disconnect();
+        document.removeEventListener("visibilitychange", onVisibility);
         tl.revert();
       };
     };
 
     let cleanup = null;
+    let alive = true;
     if (reduced) {
       track.style.transform = "none";
       return undefined;
     }
     build().then((fn) => {
+      if (!alive) {
+        fn();
+        return;
+      }
       cleanup = fn;
     });
     return () => {
+      alive = false;
       if (cleanup) cleanup();
     };
   }, [reduced]);
