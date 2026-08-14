@@ -16,10 +16,10 @@ const FOOTER_COLUMNS = [
     heading: "Navigate",
     links: [
       { label: "Problem", href: "#what-is" },
-      { label: "The forge loop", href: "#how-it-works" },
-      { label: "The AI", href: "#architecture" },
-      { label: "The roadmap", href: "#experience" },
-      { label: "Questions", href: "#faq" },
+      { label: "The forge", href: "#how-it-works" },
+      { label: "Practice", href: "#architecture" },
+      { label: "Your path", href: "#experience" },
+      { label: "Focus", href: "#faq" },
     ],
   },
   {

@@ -19,6 +19,11 @@
 /* ---- Stage -------------------------------------------------------------- */
 .forge-fold {
     position: relative;
+    /* Raise the whole stage above any normal-flow siblings that follow it
+       (the footer slides up under the last pinned page at max scroll).
+       perspective alone would confine every page's z-index inside a z-auto
+       stacking context, letting the footer paint over the final CTA. */
+    z-index: 1;
     perspective: 1800px;
     perspective-origin: 50% 32%;
 }

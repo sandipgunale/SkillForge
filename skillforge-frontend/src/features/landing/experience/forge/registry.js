@@ -1,8 +1,8 @@
 import {
   HeroSectionComponent,
   ProblemSectionComponent,
+  DirectionSectionComponent,
   LoopSectionComponent,
-  WorkspaceSectionComponent,
   AiSectionComponent,
   RoadmapSectionComponent,
   KnowledgeSectionComponent,
@@ -19,8 +19,8 @@ import {
 export const SECTIONS = [
   { id: "top", Component: HeroSectionComponent },
   { id: "what-is", Component: ProblemSectionComponent },
+  { id: "direction", Component: DirectionSectionComponent },
   { id: "how-it-works", Component: LoopSectionComponent },
-  { id: "workspace", Component: WorkspaceSectionComponent },
   { id: "architecture", Component: AiSectionComponent },
   { id: "experience", Component: RoadmapSectionComponent },
   { id: "knowledge", Component: KnowledgeSectionComponent },
@@ -33,4 +33,4 @@ export const SECTIONS = [
    section). "top" is excluded — the hero section keeps its own id and is
    never hash-linked. "knowledge" is included so scroll-deferred content
    (the 3D constellation) can observe its static slot. */
-export const ANCHORS = ["what-is", "how-it-works", "architecture", "experience", "knowledge", "faq"];
+export const ANCHORS = ["what-is", "direction", "how-it-works", "architecture", "experience", "knowledge", "faq"];

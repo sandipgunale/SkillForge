@@ -8,27 +8,20 @@ import {
   CircleDot,
   Command,
   Flame,
-  Gauge,
   Hammer,
   HeartPulse,
   Library,
-  Lightbulb,
   Mail,
-  MonitorPlay,
-  MousePointerClick,
   Quote,
   RefreshCw,
   Search,
   ShieldCheck,
   Sparkles,
-  Timer,
-  TimerOff,
   Trophy,
   Workflow,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import CountUp from "@/components/common/CountUp";
 import { ROUTES } from "@/constants/routes";
 import {
   Accordion,
@@ -40,7 +33,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useMotionScope, useMagnetic, useReducedMotion } from "@/lib/motion-gsap";
 
 import HeroContent from "../components/HeroContent";
-import DashboardMock from "../components/DashboardMock";
 import KnowledgeMap from "./KnowledgeMap";
 import KnowledgeConstellation from "../../components/three/KnowledgeConstellation";
 import Marquee from "./Marquee";
@@ -246,7 +238,11 @@ function Chapter({ num, label, title, lead, children, aside, anchorId, variant =
         </p>
         <h2 data-entrance="head" className={`${T.h2} mt-5`}>{title}</h2>
       </div>
-      <div className="grid gap-12 lg:grid-cols-[1.3fr_1fr] lg:gap-16">
+      <div
+        className={`grid gap-12 lg:gap-16 ${
+          aside ? "lg:grid-cols-[1.3fr_1fr]" : "max-w-[72ch]"
+        }`}
+      >
         <div>
           <p data-entrance="lead" className={T.body}>{lead}</p>
           <div data-entrance="content">{children}</div>
@@ -259,52 +255,40 @@ function Chapter({ num, label, title, lead, children, aside, anchorId, variant =
 
 /* ---- Content data (real product copy, previously the book pages) ---------- */
 
-const PROBLEMS = [
+/* The forge assembly — the system's spine, demonstrated unit by unit as the
+   chapter's window opens: resource → roadmap → practice → quiz → feedback →
+   progress. Scroll position IS the assembly; it reads like a machine putting
+   itself together. */
+const FORGE_ASSEMBLY = [
   {
-    icon: MonitorPlay,
-    title: "The biggest classroom ever",
-    body: "Every video ends with a recommendation that isn't yours — and five minutes later you're somewhere else.",
+    icon: Library,
+    title: "Resource",
+    body: "A living library of real topics and resources — searchable, rated, and kept clean.",
   },
   {
-    icon: MousePointerClick,
-    title: "Learning is fragmented",
-    body: "A tutorial here, a blog post there, an outdated doc. No structure, no sequence, no idea where the next step is.",
-  },
-  {
-    icon: TimerOff,
-    title: "Completion is the exception",
-    body: "Without feedback and visible progress, momentum dies. Most learners abandon long before the finish line.",
-  },
-];
-
-const STEPS = [
-  {
-    icon: CircleDot,
-    step: "01",
-    title: "Focus",
-    tagline: "The path is set — distractions fall away.",
-    body: "A structured path built from the best existing resources: sequenced, filtered, and stripped of every distraction.",
+    icon: Workflow,
+    title: "Roadmap",
+    body: "The AI drafts a 12-week path: week-by-week goals, topics, and resources for exactly your level.",
   },
   {
     icon: Hammer,
-    step: "02",
     title: "Practice",
-    tagline: "Active recall, on demand.",
-    body: "AI-generated quizzes adapted to your topic, difficulty, and schedule. Active recall beats passive watching, every time.",
+    body: "Active recall on demand — AI quizzes adapted to your topic, difficulty, and schedule.",
+  },
+  {
+    icon: CircleDot,
+    title: "Quiz",
+    body: "Generated to a strict schema, validated and retried automatically — every answer judged with reasons.",
   },
   {
     icon: RefreshCw,
-    step: "03",
     title: "Feedback",
-    tagline: "Right or wrong is only half the story.",
-    body: "Instant AI evaluation of every answer — not just right or wrong, but why, with personalized feedback per question.",
+    body: "Not just right or wrong, but why — feedback becomes the next lesson until the gaps close.",
   },
   {
     icon: Flame,
-    step: "04",
-    title: "Momentum",
-    tagline: "Progress you can see, and keep.",
-    body: "Badges, streaks, weekly digests, and a learning-health score that make progress visible and keep you coming back.",
+    title: "Progress",
+    body: "Badges, streaks, health score, weekly digests — progress you can see, and keep.",
   },
 ];
 
@@ -328,38 +312,6 @@ const FEATURES = [
     icon: Search,
     title: "Progress-aware pages",
     body: "Every resource remembers where you are — visited, reading, or mastered. Pick up exactly where you left off.",
-  },
-];
-
-const METRICS = [
-  {
-    icon: Gauge,
-    value: 98,
-    suffix: "+",
-    label: "Lighthouse performance",
-    note: "Targeted on every release",
-  },
-  {
-    icon: Timer,
-    value: 1.5,
-    decimals: 1,
-    suffix: "s",
-    label: "First Contentful Paint",
-    note: "Route-level code splitting",
-  },
-  {
-    icon: ShieldCheck,
-    value: 240,
-    suffix: "+",
-    label: "Automated tests",
-    note: "Unit, integration, and contract",
-  },
-  {
-    icon: Lightbulb,
-    value: 0,
-    suffix: "",
-    label: "Lint warnings shipped",
-    note: "Zero-warning gate in CI",
   },
 ];
 
@@ -644,10 +596,10 @@ function useScrubReveal(anchorId) {
 
 /* The noise — the infinite internet rendered as typographic fragments.
    Art-directed positions (deterministic, not random): a loose drift of
-   content-kind labels around the statement. On hero scroll they scatter
-   outward and dissolve — the noise falls away as the problem chapter
-   arrives. Pure decoration: aria-hidden, pointer-events none, no motion
-   at rest (motion silence), hidden below lg (the mobile hero recomposes). */
+   content-kind labels. It lives ONLY in the Direction chapter, where the
+   chapter's scrub drives it from sparse whisper → full chaos → abrupt
+   silence (only the word DIRECTION remains). Pure decoration: aria-hidden,
+   pointer-events none, hidden below lg. */
 const NOISE_FRAGMENTS = [
   { label: "tutorial", x: 6, y: 12, dx: -80, dy: -55 },
   { label: "video", x: 18, y: 24, dx: 65, dy: -45 },
@@ -797,29 +749,6 @@ function HeroSection({ cap }) {
         );
       }
 
-      /* The noise dissolves first: fragments scatter outward along their
-         art-directed vectors and fade as the hero gives way — the scroll
-         position IS the dissolve. */
-      const frags = select("[data-noise-frag]");
-      if (frags.length) {
-        gsap.fromTo(
-          frags,
-          { x: 0, y: 0, opacity: 1 },
-          {
-            x: (_i, el) => Number(el.dataset.dx),
-            y: (_i, el) => Number(el.dataset.dy),
-            opacity: 0,
-            ease: "none",
-            scrollTrigger: {
-              trigger: rootRef.current,
-              start: "top top",
-              end: "bottom 55%",
-              scrub: 0.4,
-            },
-          },
-        );
-      }
-
       /* Pointer parallax (desktop fine pointers only): two depth layers —
          the background scrims move 1x and the cap 4x (handled inside the
          3D scene). Small, slow, and damped. */
@@ -873,10 +802,6 @@ function HeroSection({ cap }) {
         <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-background to-transparent" />
       </div>
 
-      {/* The noise — typographic fragments around the statement, dissolving
-          on scroll before the fold turns. */}
-      <NoiseField />
-
       <div className="relative z-20 flex min-h-svh flex-col items-center justify-center px-6 py-24 lg:items-start lg:px-16 lg:py-16">
         <div data-hero-copy className="flex w-full justify-center lg:justify-start">
           <HeroContent />
@@ -900,87 +825,166 @@ function HeroSection({ cap }) {
   );
 }
 
-/* ---- 2 · Problem ----------------------------------------------------------- */
+/* ---- 2 · Information --------------------------------------------------------- */
+/* Visual silence: one statement, one quiet line, nothing else. The chapter
+   after the hero is the moment of emptiness — almost an empty viewport, so
+   the next chapter's noise lands harder. */
 
 function ProblemSection() {
   return (
     <Section id="what-is">
       <Chapter
         num="01"
-        label="The problem"
-        title="The world's best classroom. Also its most distracting one."
-        lead="Great teachers are everywhere. Great learning environments are not. The raw material for any skill exists — what's missing is a workspace built around finishing."
+        label="Information"
+        title="More information doesn't create more skill."
+        lead="The world's best classroom. Also its most distracting one."
         anchorId="what-is"
-        variant="scatter"
-        aside={
-          <div>
-            <p className={T.overline}>The answer in one screen</p>
-            <h3 className={`${T.h3} mt-2`}>One focused workspace, zero tab soup</h3>
-            <div className="mt-5">
-              <DashboardMock />
-            </div>
-            <p className={`${T.body} mt-5`}>
-              Paths, quizzes, health score, and proof of progress — everything
-              a learner needs to actually finish lives in one place.
-            </p>
-            <p className={`${T.small} ${T.ember} mt-4 font-semibold`}>
-              The forge exists so completion stops being the exception.
-            </p>
-          </div>
-        }
       >
-        <ul className="mt-8 space-y-3">
-          {PROBLEMS.map(({ icon: Icon, title, body }) => (
-            <li key={title} className={`${T.card} flex items-start gap-4 p-4`}>
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
-                <Icon className="size-4" />
-              </span>
-              <span>
-                <span className={`${T.small} block font-semibold text-foreground`}>
-                  {title}
-                </span>
-                <span className={`${T.small} ${T.body} mt-1 block`}>{body}</span>
-              </span>
-            </li>
-          ))}
-        </ul>
+        <p className={`${T.small} ${T.body} mt-8`}>
+          The raw material for any skill already exists. What's missing is
+          direction.
+        </p>
       </Chapter>
-
-      {/* Signature motif — the repeated typography that stitches the chapters
-          together. Bleeds to the sheet edges, ghosted, never interactive. */}
-      <Marquee className="absolute inset-x-0 bottom-2" />
     </Section>
   );
 }
 
-/* ---- 3 · Forge loop -------------------------------------------------------- */
+/* ---- 3 · Direction ------------------------------------------------------------ */
+/* The problem, dramatized. A single monumental word, DIRECTION — and around
+   it, typographic fragments of the infinite internet. As the chapter's
+   window opens the chaos builds: fragments drift in from off-axis, jitter,
+   and cluster — then everything abruptly simplifies, scattering outward and
+   dissolving until only the word remains. Silence → chaos → silence. The
+   word never moves; the chaos does. Direct style writes on the fold's own
+   marker geometry (same as useScrubReveal) — no ScrollTrigger, so the
+   choreography always matches the page handover. */
+
+/* Fragment scatter choreography: p (0→1 across the chapter's window) maps
+   to two phases. Phase 1 — the chaos builds (sparse whisper → full field).
+   Phase 2 — the abrupt simplification (everything scatters outward and
+   dissolves). Deterministic per-fragment targets, index-staggered so the
+   field feels alive rather than mechanical. */
+function useScrubFragments(anchorId) {
+  const reduced = useReducedMotion();
+  useEffect(() => {
+    if (reduced) return undefined;
+    const section = document.querySelector(`section[id="${anchorId}"]`);
+    const stage = document.querySelector(".forge-fold");
+    if (!section || !stage) return undefined;
+    const frags = [...section.querySelectorAll("[data-noise-frag]")];
+    if (!frags.length) return undefined;
+
+    const apply = () => {
+      const tops = [...document.querySelectorAll("[data-anchor]")]
+        .map((m) => ({ id: m.dataset.anchor, top: parseFloat(m.style.top) || 0 }))
+        .sort((a, b) => a.top - b.top);
+      const idx = tops.findIndex((t) => t.id === anchorId);
+      const top = idx >= 0 ? tops[idx].top : -1;
+      if (top < 0) return;
+      const nextTop = idx + 1 < tops.length ? tops[idx + 1].top : -1;
+      const pageHeight = nextTop > top ? nextTop - top : stage.offsetHeight - top;
+      const windowPx = Math.max(200, pageHeight * 0.55);
+      const p = Math.min(1, Math.max(0, (window.scrollY - top) / windowPx));
+      frags.forEach((el, i) => {
+        const pi = Math.min(1, Math.max(0, p - i * 0.02));
+        const dx = Number(el.dataset.dx);
+        const dy = Number(el.dataset.dy);
+        const spin = ((i % 3) - 1) * 9;
+        const opacity = pi < 0.5 ? 0.12 + (0.88 * pi) / 0.5 : 1 - (pi - 0.5) / 0.5;
+        const q = pi < 0.5 ? pi / 0.5 : (pi - 0.5) / 0.5;
+        const x = pi < 0.5 ? dx * 0.6 * (1 - q) : dx * q;
+        const y = pi < 0.5 ? dy * 0.6 * (1 - q) : dy * q;
+        const rotation = pi < 0.5 ? -12 + 19 * q : 7 + (spin - 7) * q;
+        const transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) rotate(${rotation.toFixed(1)}deg)`;
+        if (el.style.opacity !== String(opacity)) el.style.opacity = String(opacity);
+        if (el.style.transform !== transform) el.style.transform = transform;
+      });
+    };
+
+    apply();
+    let raf = 0;
+    const onScroll = () => {
+      if (!raf) {
+        raf = requestAnimationFrame(() => {
+          raf = 0;
+          apply();
+        });
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    let frames = 0;
+    const poll = () => {
+      frames += 1;
+      apply();
+      if (frames < 30) requestAnimationFrame(poll);
+    };
+    requestAnimationFrame(poll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [reduced, anchorId]);
+}
+
+function DirectionSection() {
+  const rootRef = useSectionEntrance("direction", "rise");
+  useScrubFragments("direction");
+
+  return (
+    <Section id="direction">
+      <div
+        ref={rootRef}
+        className="relative flex min-h-svh flex-col items-center justify-center text-center lg:items-start lg:text-left"
+      >
+        <p data-entrance="label" className={T.overline}>
+          02 — Direction
+        </p>
+        <h2
+          data-entrance="head"
+          className="mt-6 max-w-[92vw] text-[clamp(3.5rem,10vw,9rem)] font-bold leading-[0.92] tracking-tight lg:max-w-[80%]"
+        >
+          Direction<span className="text-ember">.</span>
+        </h2>
+        <p
+          data-entrance="lead"
+          className={`${T.body} mt-7 max-w-[52ch] text-lg sm:text-xl`}
+        >
+          Videos are everywhere. Articles are everywhere. Courses are
+          everywhere.
+        </p>
+        <p data-entrance="content" className={`${T.small} ${T.ember} mt-3 font-semibold`}>
+          But the learner still doesn't know: WHAT NEXT?
+        </p>
+        <NoiseField />
+      </div>
+    </Section>
+  );
+}
+
+/* ---- 4 · The forge ----------------------------------------------------------- */
 
 function LoopSection() {
+  useScrubReveal("how-it-works");
   return (
     <Section id="how-it-works">
       <Chapter
-        num="02"
-        label="The forge loop"
-        title="People don't fail for lack of material. They fail because they lose the loop."
-        lead="Focus → Practice → Feedback → Momentum. Repeat. The loop is the product — every feature exists to keep it turning."
+        num="03"
+        label="The forge"
+        title="SkillForge forges the path."
+        lead="The loop is the product: resource → roadmap → practice → quiz → feedback → progress. Every feature exists to keep it turning."
         anchorId="how-it-works"
         variant="activate"
         aside={
           <div>
-            <p className={T.overline}>The loop, continued</p>
-            <div className="mt-8 grid gap-3 sm:grid-cols-2">
-              {STEPS.slice(2).map(({ icon: Icon, step, title, tagline, body }) => (
-                <div key={step} className={`${T.card} p-4`}>
-                  <div className="flex items-center justify-between">
-                    <span className="flex size-9 items-center justify-center rounded-xl bg-ember/12 text-ember">
-                      <Icon className="size-4" />
-                    </span>
-                    <span className="flex size-6 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                      {step}
-                    </span>
-                  </div>
+            <p className={T.overline}>The surfaces</p>
+            <h3 className={`${T.h3} mt-2`}>One focused workspace, zero tab soup</h3>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              {FEATURES.map(({ icon: Icon, title, body }) => (
+                <div key={title} className={`${T.card} p-4`}>
+                  <span className="flex size-8 items-center justify-center rounded-lg bg-ember/12 text-ember">
+                    <Icon className="size-4" />
+                  </span>
                   <p className="mt-3 text-base font-bold">{title}</p>
-                  <p className={`${T.small} ${T.ember} mt-0.5 font-semibold`}>{tagline}</p>
                   <p className={`${T.small} ${T.body} mt-1`}>{body}</p>
                 </div>
               ))}
@@ -1007,97 +1011,41 @@ function LoopSection() {
           </div>
         }
       >
-        <ul className="mt-8 space-y-3">
-          {STEPS.slice(0, 2).map(({ icon: Icon, step, title, tagline, body }) => (
-            <li key={step} className={`${T.card} flex items-start gap-4 p-4`}>
-              <div className="relative shrink-0">
-                <span className="flex size-10 items-center justify-center rounded-xl bg-ember/12 text-ember">
-                  <Icon className="size-4" />
-                </span>
-                <span className="absolute -right-2 -top-2 flex size-6 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                  {step}
-                </span>
-              </div>
-              <div>
-                <p className="text-base font-bold">{title}</p>
-                <p className={`${T.small} ${T.ember} mt-0.5 font-semibold`}>{tagline}</p>
-                <p className={`${T.small} ${T.body} mt-1`}>{body}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </Chapter>
-    </Section>
-  );
-}
-
-/* ---- 4 · Workspace ---------------------------------------------------------- */
-
-function WorkspaceSection() {
-  return (
-    <Section id="workspace">
-      <Chapter
-        num="03"
-        label="The workspace"
-        title="A workspace built around finishing"
-        lead="Every surface exists for one job: keep the learner in flow. Search is instant, navigation is keyboard-first, and your library is yours."
-        anchorId="workspace"
-        aside={
-          <div>
-            <p className={T.overline}>The budget</p>
-            <h3 className={`${T.h3} mt-2`}>
-              Fast is a feature.{" "}
-              <span className="text-gradient-ember">Here's the budget.</span>
-            </h3>
-            <p className={`${T.body} mt-2`}>
-              Targets, not slogans — every release is measured against them.
-            </p>
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              {METRICS.map(({ icon: Icon, value, suffix, decimals = 0, label, note }) => (
-                <div key={label} className={`${T.card} p-4`}>
-                  <div className="flex items-center justify-between">
-                    <span className="flex size-8 items-center justify-center rounded-lg bg-ember/12 text-ember">
-                      <Icon className="size-4" />
-                    </span>
-                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                      Target
-                    </span>
-                  </div>
-                  <p className="mt-4 text-3xl font-bold tabular-nums tracking-tight">
-                    <CountUp to={value} decimals={decimals} suffix={suffix} />
-                  </p>
-                  <p className="mt-0.5 text-base font-semibold">{label}</p>
-                  <p className={`${T.small} ${T.body} mt-0.5`}>{note}</p>
-                </div>
-              ))}
-            </div>
-            <p className={`${T.small} ${T.ember} mt-4 font-semibold`}>
-              Respect for the learner's hardware is part of the product.
-            </p>
-          </div>
-        }
-      >
-        <ul className="mt-8 grid gap-3 sm:grid-cols-2">
-          {FEATURES.map(({ icon: Icon, title, body }) => (
-            <li key={title} className={`${T.card} flex flex-col gap-3 p-4`}>
-              <span className="flex size-9 items-center justify-center rounded-xl bg-ember/12 text-ember">
+        {/* The machine assembles itself: the loop's six units light one by
+            one as the page's window opens — scroll position IS the assembly,
+            reversible and fast-scroll safe. */}
+        <div
+          data-scrub-rail
+          aria-hidden="true"
+          className="mt-8 h-px w-full overflow-hidden bg-border"
+        >
+          <span className="block h-full w-full origin-left bg-ember" style={{ transform: "scaleX(0)" }} />
+        </div>
+        <ol className="mt-6 space-y-3">
+          {FORGE_ASSEMBLY.map(({ icon: Icon, title, body }, index) => (
+            <li
+              key={title}
+              data-scrub-step
+              className={`${T.card} flex items-start gap-4 p-4`}
+            >
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-ember/12 text-ember">
                 <Icon className="size-4" />
               </span>
-              <span>
-                <span className={`${T.small} block font-semibold text-foreground`}>
-                  {title}
+              <span className="min-w-0">
+                <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-ember">
+                  {String(index + 1).padStart(2, "0")} — {title}
                 </span>
                 <span className={`${T.small} ${T.body} mt-1 block`}>{body}</span>
               </span>
             </li>
           ))}
-        </ul>
+        </ol>
       </Chapter>
     </Section>
   );
 }
 
-/* ---- 5 · The AI ------------------------------------------------------------- */
+/* ---- 5 · Practice ------------------------------------------------------------ */
 
 function AiSection() {
   useScrubReveal("architecture");
@@ -1105,9 +1053,9 @@ function AiSection() {
     <Section id="architecture">
       <Chapter
         num="04"
-        label="The AI"
-        title="Practice, forged on demand"
-        lead="Not a chatbot bolted on — a guarded, validated, observable pipeline that turns any topic into active recall."
+        label="Practice"
+        title="Watching is not practice."
+        lead="You try. You get feedback. You try again. Practice is the only thing that changes skill — the AI exists to make it honest, fast, and fair."
         anchorId="architecture"
         variant="forge"
         aside={
@@ -1219,7 +1167,7 @@ function AiSection() {
   );
 }
 
-/* ---- 6 · Roadmap + momentum ------------------------------------------------- */
+/* ---- 6 · Your path ------------------------------------------------------------ */
 
 function RoadmapSection() {
   useScrubReveal("experience");
@@ -1227,8 +1175,8 @@ function RoadmapSection() {
     <Section id="experience">
       <Chapter
         num="05"
-        label="The roadmap"
-        title="Twelve weeks from starting to proven"
+        label="Your path"
+        title="Build your path."
         lead="Instead of 'learn React someday', a week-by-week path with goals, resources, and quizzes — auto-completed when you finish, and it knows when you have."
         anchorId="experience"
         variant="activate"
@@ -1300,7 +1248,7 @@ function RoadmapSection() {
   );
 }
 
-/* ---- 7 · Knowledge map ------------------------------------------------------- */
+/* ---- 7 · Knowledge ------------------------------------------------------------- */
 
 function KnowledgeSection() {
   const sectionRef = useRef(null);
@@ -1311,8 +1259,8 @@ function KnowledgeSection() {
       <div className="forge-container">
         <Chapter
           num="06"
-          label="The knowledge map"
-          title="The catalog, alive"
+          label="Knowledge map"
+          title="Connect your knowledge."
           lead="Every topic in the library — live from the platform. Follow any node to the resources, quizzes, and paths built around it."
           anchorId="knowledge"
           aside={
@@ -1369,64 +1317,94 @@ function KnowledgeSection() {
   );
 }
 
-/* ---- 8 · FAQ + voices --------------------------------------------------------- */
+/* ---- 8 · Focus ---------------------------------------------------------------- */
+/* The visual reset: a quiet statement, then four monumental words that light
+   in sequence as the window opens — FOCUS. PRACTICE. BUILD. MASTER. — with
+   the signature marquee marching beneath as the chapter's major motif. The
+   FAQ stays below, functional and quiet. */
 
 function FaqSection() {
+  useScrubReveal("faq");
   return (
     <Section id="faq">
-      <Chapter
-        num="07"
-        label="Questions & voices"
-        title="Questions, answered"
-        lead="Everything you might want to know before you forge your first skill."
-        anchorId="faq"
-        aside={
-          <div>
-            <p className={T.overline}>Voices from the forge</p>
-            <h3 className={`${T.h3} mt-2`}>
-              What happens when learners keep the loop
-            </h3>
-            <ul className="mt-5 flex flex-col justify-center gap-3">
-              {TESTIMONIALS.map(({ quote, name, title, initials }) => (
-                <li key={name} className={`${T.card} p-4`}>
-                  <Quote className="size-4 text-ember" aria-hidden="true" />
-                  <blockquote className={`${T.small} mt-1.5 leading-relaxed`}>
-                    {quote}
-                  </blockquote>
-                  <figcaption className="mt-3 flex items-center gap-2.5">
-                    <Avatar className="size-8 border">
-                      <AvatarFallback className="bg-ember/15 text-[10px] font-semibold text-ember">
-                        {initials}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span>
-                      <span className={`${T.small} block font-semibold`}>{name}</span>
-                      <span className={`${T.small} ${T.body}`}>{title}</span>
-                    </span>
-                  </figcaption>
-                </li>
-              ))}
-            </ul>
+      <div className="pb-32">
+        <Chapter
+          num="07"
+          label="Focus"
+          title="Forge your focus."
+          lead="Four words. One loop. Everything else is noise."
+          anchorId="faq"
+          aside={
+            <div>
+              <p className={T.overline}>Voices from the forge</p>
+              <h3 className={`${T.h3} mt-2`}>
+                What happens when learners keep the loop
+              </h3>
+              <ul className="mt-5 flex flex-col justify-center gap-3">
+                {TESTIMONIALS.map(({ quote, name, title, initials }) => (
+                  <li key={name} className={`${T.card} p-4`}>
+                    <Quote className="size-4 text-ember" aria-hidden="true" />
+                    <blockquote className={`${T.small} mt-1.5 leading-relaxed`}>
+                      {quote}
+                    </blockquote>
+                    <figcaption className="mt-3 flex items-center gap-2.5">
+                      <Avatar className="size-8 border">
+                        <AvatarFallback className="bg-ember/15 text-[10px] font-semibold text-ember">
+                          {initials}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span>
+                        <span className={`${T.small} block font-semibold`}>{name}</span>
+                        <span className={`${T.small} ${T.body}`}>{title}</span>
+                      </span>
+                    </figcaption>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          }
+        >
+          <div
+            data-scrub-rail
+            aria-hidden="true"
+            className="mt-8 h-px w-full overflow-hidden bg-border"
+          >
+            <span className="block h-full w-full origin-left bg-ember" style={{ transform: "scaleX(0)" }} />
           </div>
-        }
-      >
-        <Accordion type="multiple" className="mt-8 space-y-2">
-          {FAQS.map(({ question, answer }) => (
-            <AccordionItem
-              key={question}
-              value={question}
-              className="rounded-xl border border-border bg-card/60 px-4 backdrop-blur-sm"
-            >
-              <AccordionTrigger className="py-3 text-left text-sm font-semibold">
-                {question}
-              </AccordionTrigger>
-              <AccordionContent className={`${T.small} ${T.body}`}>
-                {answer}
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
-      </Chapter>
+          <ol className="mt-6 space-y-4">
+            {["Focus", "Practice", "Build", "Master"].map((word) => (
+              <li
+                key={word}
+                data-scrub-step
+                className="text-[clamp(2.25rem,6vw,4.5rem)] font-bold uppercase leading-[0.95] tracking-tight"
+              >
+                {word}
+                <span className="text-ember">.</span>
+              </li>
+            ))}
+          </ol>
+          <Accordion type="multiple" className="mt-10 space-y-2">
+            {FAQS.map(({ question, answer }) => (
+              <AccordionItem
+                key={question}
+                value={question}
+                className="rounded-xl border border-border bg-card/60 px-4 backdrop-blur-sm"
+              >
+                <AccordionTrigger className="py-3 text-left text-sm font-semibold">
+                  {question}
+                </AccordionTrigger>
+                <AccordionContent className={`${T.small} ${T.body}`}>
+                  {answer}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </Chapter>
+      </div>
+
+      {/* Signature motif — the repeated typography that closes the story.
+          Bleeds to the sheet edges, ghosted, never interactive. */}
+      <Marquee className="absolute inset-x-0 bottom-2" />
     </Section>
   );
 }
@@ -1444,10 +1422,10 @@ function FinalSection() {
         ref={rootRef}
         className="flex min-h-[70svh] flex-col items-center justify-center text-center"
       >
-        <p data-entrance="label" className={`${T.overline} ${T.ember}`}>The final chapter</p>
+        <p data-entrance="label" className={`${T.overline} ${T.ember}`}>09 — The final chapter</p>
         <h2 data-entrance="head" className={`${T.h2} mt-5 max-w-[24ch]`}>
-          Your next chapter{" "}
-          <span className="text-gradient-ember">starts here.</span>
+          Your focus is{" "}
+          <span className="text-gradient-ember">forged.</span>
         </h2>
         <p data-entrance="lead" className={`${T.body} mt-5 max-w-[48ch]`}>
           Stop collecting tutorials. Start forging skills. Your first quiz is
@@ -1461,7 +1439,7 @@ function FinalSection() {
               className="group h-12 w-full rounded-full px-7 text-base shadow-lg shadow-ember/25 sm:w-auto"
             >
               <Link to={ROUTES.REGISTER}>
-                Forge your first skill
+                Start forging
                 <ArrowRight className="ml-2 size-4 transition-transform duration-300 group-hover:translate-x-0.5" />
               </Link>
             </Button>
@@ -1482,8 +1460,8 @@ function FinalSection() {
 
 export const HeroSectionComponent = HeroSection;
 export const ProblemSectionComponent = ProblemSection;
+export const DirectionSectionComponent = DirectionSection;
 export const LoopSectionComponent = LoopSection;
-export const WorkspaceSectionComponent = WorkspaceSection;
 export const AiSectionComponent = AiSection;
 export const RoadmapSectionComponent = RoadmapSection;
 export const KnowledgeSectionComponent = KnowledgeSection;
