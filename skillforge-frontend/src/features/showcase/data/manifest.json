@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-08-14T13:34:30.763Z",
+  "generatedAt": "2026-08-14T14:31:30.759Z",
   "version": "0.2.0.0",
   "git": {
     "branch": "main",
-    "commits": 66,
+    "commits": 68,
     "authors": 1,
     "tags": [
       "sprint-4-complete",
@@ -19,7 +19,7 @@
   "code": {
     "javaMainFiles": 227,
     "javaTestFiles": 39,
-    "frontendFiles": 322,
+    "frontendFiles": 323,
     "migrations": 20,
     "controllers": 18
   },
