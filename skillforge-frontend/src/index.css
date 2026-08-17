@@ -377,6 +377,16 @@
    transform-pinned), so this never shifts anything. */
 .landing-shell {
     min-height: calc(9 * 100svh);
+    /* The fold's turning sheets project beyond the viewport width at angles
+       near ±180 deg, which would grow the document's scrollable width to
+       2x and toggle a horizontal scrollbar/pan during every turn. Clip at
+       the shell — the landing's own box — so the document never scrolls
+       horizontally. Deliberately NOT on .forge-fold: the stage must never
+       clip its content, because the last sheet legitimately translates
+       below the stage's bottom edge, and any overflow on the stage itself
+       raster-clips that sheet (breaking its paint and hit-testing). The
+       shell encloses the whole document, so nothing legitimate is cut. */
+    overflow-x: clip;
 }
 
 /* ==========================================================================

@@ -23,15 +23,19 @@ import { measureSlots, publishSlots, rawProgress, resolveState } from "./geometr
 /*  nothing beneath it to reveal.                                              */
 /*                                                                             */
 /*  Each page i:                                                                */
-/*    raw  = clamp01((scrollY - slotTop[i]) / height[i])                       */
-/*    s    = smoothed(raw)  — the single smoothing mechanism (reversible,      */
-/*           fast-scroll safe)                                                  */
+/*    raw    = clamp01((scrollY - slotTop[i]) / height[i]) — the ONE value.    */
 /*    translate = scrollY     (the pin — every page tracks the viewport)       */
-/*    rotateY   = -180·E(s) deg, E = easeInOutSine  (around the right edge)    */
-/*    lift      = sin(s·π) · FLIP_LIFT   (3D depth, no margins)                */
-/*    edge opacity  = sin(s·π) · EDGE_MAX (ember hairline on the hinge)        */
-/*    cast opacity  = sin(sPrev·π) · CAST_MAX (shadow the turning page casts   */
+/*    rotateY   = -180·E(raw) deg, E = easeInOutSine (around the right edge)   */
+/*    lift      = sin(raw·π) · FLIP_LIFT   (3D depth, no margins)              */
+/*    edge opacity  = sin(raw·π) · EDGE_MAX (ember hairline on the hinge)      */
+/*    cast opacity  = sin(raw·π) · CAST_MAX (shadow the turning page casts     */
 /*                   on the next page)                                          */
+/*                                                                             */
+/*  No smoothing, ever: the pin (translate) is raw, so the turn MUST be raw    */
+/*  too. A damped swing against an instant pin lags up to ~44° per wheel       */
+/*  notch and settles over ~600ms — the page visibly wobbles on every scroll   */
+/*  event. Driving every visual from raw makes the turn track the pin 1:1:     */
+/*  one rigid, deterministic, fully reversible motion, exact at rest.          */
 /*                                                                             */
 /*  Robustness: the visibility pair is established SYNCHRONOUSLY inside        */
 /*  measure() (before the first paint — no stacked-page flash, even on        */
@@ -44,13 +48,12 @@ import { measureSlots, publishSlots, rawProgress, resolveState } from "./geometr
 /*  stage entirely.                                                             */
 /* -------------------------------------------------------------------------- */
 
-const SMOOTH_RATE = 10; /* convergence per second for scroll progress */
 const FLIP_LIFT = 26; /* translateZ while swinging, px */
 const CAST_MAX = 0.5; /* peak shadow opacity at 90° */
 const EDGE_MAX = 0.55; /* peak ember hairline opacity at 90° */
 
-function damp(delta, rate) {
-  return 1 - Math.exp(-delta * rate);
+function easeInOutSine(t) {
+  return 0.5 - 0.5 * Math.cos(Math.PI * t);
 }
 
 export default function useForgeFold({ stageRef, pagesRef, reduced }) {
@@ -70,7 +73,6 @@ export default function useForgeFold({ stageRef, pagesRef, reduced }) {
     let slots = [];
     let stageHeight = 0;
     let rafId = 0;
-    let lastTime = performance.now();
     let applied = [];
     let retries = 0;
     let ro = null;
@@ -152,13 +154,13 @@ export default function useForgeFold({ stageRef, pagesRef, reduced }) {
           lift: 0,
           cast: 0,
           edge: 0,
-          s: 0,
+          raw: 0,
           visible,
         };
       });
     };
 
-    const apply = (delta) => {
+    const apply = () => {
       const pages = pagesRef.current ?? [];
       const scrollY = window.scrollY;
       const count = pages.length;
@@ -170,38 +172,26 @@ export default function useForgeFold({ stageRef, pagesRef, reduced }) {
         return;
       }
 
-      const f = damp(delta, SMOOTH_RATE);
       let changed = false;
 
-      /* Pass 1 — raw + smoothed progress through every page's scroll window.
-         Raw is the geometric truth; smoothing only shapes the turn visuals
-         (rotation/lift/edge/cast). The page-selection below MUST use raw —
-         a smoothed "fully turned" test would leave the wrong page visible
-         for ~1s after any fast scroll (the entrance would play under a
-         hidden sheet and the arrival would be missed). */
-      const sList = pages.map((page, index) => {
-        const prev = applied[index] ?? { s: 0 };
-        const isLast = index === count - 1;
-        const raw = rawProgress(slots, scrollY, index);
-        const s = isLast ? 0 : prev.s + (raw - prev.s) * f;
-        return s;
-      });
-
       /* The active surface comes from the shared decision function: the
-         first page that hasn't fully turned (raw — not smoothed — so
-         visibility is exact the instant scroll lands). Only it — and the
-         page beneath it while it is actually swinging — is ever visible;
-         every other sheet stays hidden, so stacked pages can never leak
-         through one another. */
+         first page that hasn't fully turned (raw — the same value that
+         drives the turn — so visibility is exact the instant scroll lands).
+         Only it — and the page beneath it while it is actually swinging —
+         is ever visible; every other sheet stays hidden, so stacked pages
+         can never leak through one another. */
       const state = resolveState(slots, scrollY);
       const current = state.current;
       const turning = state.progress > 0.005;
 
       for (let index = 0; index < count; index += 1) {
         const page = pages[index];
-        const prev = applied[index] ?? { s: 0 };
+        const prev = applied[index] ?? { raw: 0 };
         const isLast = index === count - 1;
-        const s = sList[index];
+        /* The ONE value: raw progress through this page's scroll window.
+           translate, rotate, lift, edge, cast all derive from it, so the
+           turn can never fight the pin. */
+        const raw = rawProgress(slots, scrollY, index);
 
         const visible = index === current || (index === current + 1 && turning);
 
@@ -209,21 +199,21 @@ export default function useForgeFold({ stageRef, pagesRef, reduced }) {
            viewport keeps the current page flat at the top of the screen. */
         const translate = scrollY;
 
-        const sin = Math.sin(s * Math.PI);
+        const sin = Math.sin(raw * Math.PI);
         /* The rotation is eased (ease-in-out-sine) so the page breaks away
            gently, sweeps decisively through the edge-on 90° moment, then
            settles softly onto the page beneath. Lift, edge, and cast stay
-           tied to sin(s·π), so they still peak exactly at the edge-on
+           tied to sin(raw·π), so they still peak exactly at the edge-on
            instant. Deterministic and reversible — same path both ways. */
         const rotate = isLast
           ? 0
-          : -180 * (0.5 - 0.5 * Math.cos(Math.PI * s));
-        const lift = !isLast && s > 0 && s < 1 ? sin * FLIP_LIFT : 0;
+          : -180 * easeInOutSine(raw);
+        const lift = !isLast && raw > 0 && raw < 1 ? sin * FLIP_LIFT : 0;
         const edge = isLast ? 0 : sin * EDGE_MAX;
         const cast = sin * CAST_MAX;
 
         const tChanged =
-          prev.s !== s || prev.translate !== translate || prev.lift !== lift;
+          prev.raw !== raw || prev.translate !== translate || prev.lift !== lift;
         if (tChanged) changed = true;
 
         const sheet = page.sheet;
@@ -231,7 +221,7 @@ export default function useForgeFold({ stageRef, pagesRef, reduced }) {
           /* The translate IS the pin (pages rest at the stage top); the
              rotate/lift only appear while the page swings. */
           const transform =
-            s > 0.0005
+            raw > 0.0005
               ? `translate3d(0, ${translate}px, ${lift}px) rotateY(${rotate}deg)`
               : `translate3d(0, ${translate}px, 0)`;
           sheet.style.transform = transform;
@@ -259,7 +249,7 @@ export default function useForgeFold({ stageRef, pagesRef, reduced }) {
         }
 
         applied[index] = {
-          s,
+          raw,
           translate,
           rotate,
           lift,
@@ -290,13 +280,11 @@ export default function useForgeFold({ stageRef, pagesRef, reduced }) {
       stateRef.current.dirty = changed;
     };
 
-    const loop = (now) => {
+    const loop = () => {
       rafId = requestAnimationFrame(loop);
-      const delta = Math.min(0.05, (now - lastTime) / 1000);
-      lastTime = now;
       const scrolled = window.scrollY !== stateRef.current.scrollY;
       stateRef.current.scrollY = window.scrollY;
-      if (scrolled || stateRef.current.dirty) apply(delta);
+      if (scrolled || stateRef.current.dirty) apply();
     };
 
     const onResize = () => {
