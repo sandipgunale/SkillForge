@@ -18,8 +18,21 @@ Format: priority — title — (owner) — note.
 - **P3** — Gate Swagger UI / `/v3/api-docs` in prod profile (m3, v0.1.0.0).
 - **P3** — Derive `expiresIn` in `AuthResponse` from `jwt.access-token-expiry` instead of hardcoding 900 (m2, v0.1.0.0).
 - **P3** — Run backend Docker runtime as non-root user (USER directive) in multi-stage image (m1, v0.2.0.0).
+- **P3** — Landing mono typography tracking sweep: audit mono letter-spacing in landing labels/counters vs brand system; deferred 2026-08-18 during landing review (review finding, landing rebuild).
+- **P2** — Landing live dashboard demo embed (E2): an embedded live-dashboard section on the landing; deferred from landing rebuild (needs auth + running backend; heavy) (T17, v0.3.0.0).
+- **P3** — Landing "performance theater" (E3): live metrics strip on the landing; deferred (fake-feel risk; Lighthouse gates already prove quality) (T17, v0.3.0.0).
+- **P2** — Landing/showcase shared token core (E9): unify Ember Forge (showcase) and Foundry Precision (landing) design tokens into one core; deferred to avoid coupling the rebuild (T17, v0.3.0.0).
+- **P3** — KnowledgeConstellation graph in the dashboard: reuse the landing graph scene as a dashboard surface (T17, v0.3.0.0).
 
 ## Completed
+
+**Completed:** v0.3.0.0 (2026-08-18)
+
+- Landing rebuild (`/landing`): 14-section Foundry Precision narrative; GSAP entrance choreography with deterministic pre-rendered from-states (no trigger flash); scrub-reveal steps/rails/counters; Three.js scenes with memoized geometry and adaptive budgets.
+- Landing review fixes (adversarial pass): entrance flash (direct style writes pre-hide, `clearProps` removed), mastery copy `autoAlpha` (invisible CTAs not clickable), scroll restoration `min-height` restored, constellation OOB hover read (`nodeCount`), halo rect-cache invalidation on measure, scrub opacity guards (string compare vs `opacity-30`).
+- Fix-first pass: shared section-registry helpers (`probeUntilSectionsReady`, `resolveActiveSection`), `lp:contentchange` refresh signal, navbar 44px hit areas, focus-visible ring no longer mutates radius, cursor settle-stop, deferred-scene cleanup, footer scene numeral derived from section count.
+- QA verification: lint clean, build clean (landing chunk 2.85 kB gz), Playwright QA 12/12, FCP 280 / LCP 644 / CLS 0.
+- Prior completed: v0.1.0.0 (2026-08-08)
 
 **Completed:** v0.1.0.0 (2026-08-08)
 

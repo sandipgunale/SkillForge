@@ -5,6 +5,58 @@ All notable changes to SkillForge are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to four-part versions (MAJOR.MINOR.PATCH.MICRO).
 
+## [0.3.0.0] - 2026-08-18
+
+Foundry Precision: the landing page rebuilt from scratch as a 14-section
+editorial narrative, with a new design system, GSAP choreography, and
+Three.js scenes — the full product story from "the pile grows" to "forged".
+
+### Added
+
+- Landing page rebuild (`/landing`): editorial narrative in 14 sections
+  (problem, shift, engine, product chapters, proof, roadmap, FAQ, mastery
+  finale) with mono labels, display type, and the Foundry Precision design
+  tokens (`src/styles/tokens.css`, `DESIGN.md`).
+- Entrance choreography: deterministic GSAP from-states pre-rendered with
+  direct style writes (no flash at the trigger point), once-only
+  scroll-triggered timelines, fully skipped under `prefers-reduced-motion`.
+- Scrub-reveal sections: light-up steps, progress rails, and counters driven
+  by scroll position with direct style writes (reversible, fast-scroll safe).
+- Three.js scenes (KnowledgeConstellation, GraduationCapScene,
+  LivingCoreScene) with memoized geometry/palette/edge construction —
+  theme changes re-tint instead of rebuilding geometry — plus adaptive
+  resolution budgets and tab-visibility pausing.
+- Navbar scroll-spy with shared section-registry helpers and a
+  `lp:contentchange` refresh signal (FAQ toggles, image loads); scroll
+  progress bar; keyboard-accessible FAQ; mobile sheet without horizontal
+  overflow; 44px invisible hit areas on nav links and CTAs.
+- AppLogo amber accent documented as an intentional brand exception.
+
+### Changed
+
+- `focus-visible` ring no longer mutates `border-radius` on keyboard nav.
+- Landing cursor settles (stops after clean frames) instead of looping.
+- Deferred 3D scene hooks now tear down observers and idle timers on unmount.
+
+### Removed
+
+- Legacy forge pages and static sections (`ForgePage`, `KnowledgeMap`,
+  `Marquee`, `StaticSections`, `forge.css`, `forge/registry.js`,
+  `useForgeFold.js`) and `HeroContent.jsx` — superseded by the rebuild.
+
+### Fixed
+
+- Entrance flash: ScrollTrigger defers timeline from-states and `clearProps`
+  cleared pre-rendered from-values at creation — from-states are now applied
+  as direct style writes matching the tween start values.
+- Mastery finale copy uses `autoAlpha` so invisible CTAs are not clickable.
+- KnowledgeConstellation hover loop iterated `positions.length` (1950)
+  instead of `nodeCount` (650) — out-of-bounds read on the last hover.
+- Scroll restoration on lazy-route refresh — `.landing-shell` keeps its
+  `min-height` so the restored scroll position resolves.
+- Halo freeze after resize/font-load until the next pointer move — the rect
+  cache is invalidated on measure.
+
 ## [0.2.0.0] - 2026-08-09
 
 Recruiter Mode: a dedicated engineering showcase page that tells the
