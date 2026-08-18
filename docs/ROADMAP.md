@@ -59,7 +59,7 @@ Waves completed against the "world-class learning workspace" vision (focus · pr
 
 ## Wave 1 — Landing experience (done)
 - Landing page (index route, replaces dashboard redirect): Hero (3D `KnowledgeConstellation`, floating achievement cards), Problem, Method (Forge Loop), Features, AI (evaluation mock), Roles, Testimonials, FAQ, CTA.
-- `KnowledgeConstellation` (650 nodes, near-neighbor edges, additive glow) lazy-loaded → three.js split into own chunk; LandingPage ≈ 29 kB gzip.
+- `KnowledgeConstellation` (near-neighbor edges, additive glow) lazy-loaded → three.js split into own chunk; LandingPage ≈ 2.9 kB gzip (2026-08-18 rebuild: 40-node graph, 15-section narrative, "Foundry Precision" system per DESIGN.md, all budgets passing).
 - LandingNavbar (glass on scroll, anchors, Sheet mobile menu) + LandingFooter; skip link.
 
 ## Wave 2 — Auth / password reset (done)
