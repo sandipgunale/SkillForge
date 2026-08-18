@@ -15,23 +15,26 @@ export default function useDeferredScene() {
       return () => clearTimeout(t);
     }
     const root = document.getElementById("top");
+    let idle = 0;
+    let idleTimer = 0;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry.isIntersecting) return;
         observer.disconnect();
-        const idle =
-          "requestIdleCallback" in window
-            ? requestIdleCallback(() => setReady(true), { timeout: 2000 })
-            : setTimeout(() => setReady(true), 1200);
-        return () => {
-          if (typeof idle === "number") clearTimeout(idle);
-          else cancelIdleCallback(idle);
-        };
+        if ("requestIdleCallback" in window) {
+          idle = requestIdleCallback(() => setReady(true), { timeout: 2000 });
+        } else {
+          idleTimer = setTimeout(() => setReady(true), 1200);
+        }
       },
       { rootMargin: "200px" },
     );
     observer.observe(root ?? document.body);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if ("requestIdleCallback" in window) cancelIdleCallback(idle);
+      else clearTimeout(idleTimer);
+    };
   }, []);
 
   return ready;

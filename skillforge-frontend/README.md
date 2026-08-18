@@ -15,7 +15,8 @@ at `http://localhost:8080/swagger-ui.html`, with the full endpoint reference in
 - Tailwind 4 (`@tailwindcss/vite`), Base UI (shadcn-style), GSAP motion system,
   Three.js/R3F (lazy-loaded premium scenes), recharts
 - react-hook-form + zod, sonner
-- Design tokens live in `src/lib/design-system.js`; ALL animation is centralized
+- Design tokens live in `src/lib/design-system.js` (app-wide) and
+  `src/styles/tokens.css` (landing scope); ALL animation is centralized
   in `src/lib/motion-gsap.js` (see AGENTS.md — GSAP Motion System, Three.js System).
 
 ## Setup

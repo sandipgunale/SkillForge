@@ -4,25 +4,28 @@ import * as THREE from "three";
 
 import {
   buildEdges,
-  buildNodeField,
+  buildFieldPositions,
+  colorizeField,
   softGlowTexture,
+  useOffscreen,
   useReducedMotion,
   useSceneBudget,
-  useScenePalette,
+  useScenePaletteLive,
   useTabHidden,
 } from "@/lib/three-engine";
 
 /* -------------------------------------------------------------------------- */
-/*  Knowledge Constellation — ambient 3D graph for the landing hero.           */
+/*  Knowledge Constellation — ambient 3D graph for the ENGINE section.         */
 /*  A drifting field of skill-nodes connected by near-neighbor edges.          */
 /*  Composes the shared three-engine (tokens, field builders, adaptive         */
 /*  budget). Static geometry + motion-safe frame loop.                         */
 /*                                                                             */
 /*  Pointer response: hovering the section highlights the nearest node with   */
 /*  a pulsing ember halo (screen-space nearest-node search — cheap, and it    */
-/*  works through the fold's transforms because the canvas rect is measured   */
-/*  live). Ambient rotation pauses under prefers-reduced-motion; the halo     */
-/*  still responds to the pointer (input response, not ambient motion).        */
+/*  works through the section's transforms because the canvas rect is         */
+/*  measured live). Ambient rotation pauses under prefers-reduced-motion;     */
+/*  the halo still responds to the pointer (input response, not ambient       */
+/*  motion).                                                                  */
 /* -------------------------------------------------------------------------- */
 
 const EDGE_DISTANCE = 2.6;
@@ -33,51 +36,55 @@ function clamp01(value) {
 
 const scratch = new THREE.Vector3();
 
-function ConstellationField({ reducedMotion, nodeCount, palette, containerRef }) {
+function ConstellationField({ reducedMotion, nodeCount, palette, containerRef, paused }) {
   const groupRef = useRef(null);
   const hoverSpriteRef = useRef(null);
   const [rotationSpeed] = useState(() => 0.018 + Math.random() * 0.012);
   const slotTopRef = useRef(0);
 
-  const pointerRef = useRef({ x: 0, y: 0, active: false });
+  const pointerRef = useRef({ x: 0, y: 0, active: false, dirty: false });
   const hoverPos = useRef(new THREE.Vector3());
-  /* Canvas rect in canvas-space for the pointer mapping. Read on pointer
-     events and viewport changes only — NEVER inside the frame loop (a
-     layout read every frame is exactly the kind of scroll jitter this
-     scene must not add). */
+  /* Canvas rect in canvas-space for the pointer mapping. Re-measured at
+     most once per frame while the pointer is active (dirty flag) and on
+     viewport changes only — never per pointer event, never when idle. */
   const canvasRectRef = useRef(null);
-  const hidden = useTabHidden();
 
-  /* The section's slot top (where the knowledge page comes to rest) drives
-     the camera: a slow orbital + dolly that sweeps across the section's
-     window, so the tree glides as the user scrolls — and holds at rest.
-     Re-measured on resize and font load (the fold may shift the markers). */
+  /* The element's own document position drives the camera: a slow orbital +
+     dolly that sweeps across the element's window as the user scrolls — and
+     holds at rest. Re-measured on resize and font load only (the frame loop
+     reads the cached top + scrollY — no per-frame layout). */
   useEffect(() => {
-    const measureSlot = () => {
-      const marker = document.querySelector('[data-anchor="knowledge"]');
-      slotTopRef.current = marker ? marker.offsetTop : 0;
-      /* The canvas rect changes with the viewport — drop the cached rect so
-         the next pointer frame re-measures once (never per frame). */
+    const measureTop = () => {
+      const el = containerRef.current;
+      slotTopRef.current = el ? el.getBoundingClientRect().top + window.scrollY : 0;
       canvasRectRef.current = null;
+      /* The pointer mapping needs the fresh rect: mark it dirty so the next
+         frame re-measures instead of freezing the halo at its last spot. */
+      pointerRef.current.dirty = true;
     };
-    measureSlot();
-    window.addEventListener("resize", measureSlot);
-    document.fonts?.ready.then(measureSlot).catch(() => {});
-    return () => window.removeEventListener("resize", measureSlot);
-  }, []);
+    measureTop();
+    window.addEventListener("resize", measureTop);
+    document.fonts?.ready.then(measureTop).catch(() => {});
+    return () => window.removeEventListener("resize", measureTop);
+  }, [containerRef]);
 
-  const { home: positions, colors } = useMemo(
+  /* Geometry is memoized on nodeCount alone — theme toggles re-tint the
+     field instead of re-randomizing 650 node positions and rebuilding the
+     O(n²) edge scan. Only the vertex colors re-derive on palette changes. */
+  const positions = useMemo(
     () =>
-      buildNodeField({
+      buildFieldPositions({
         nodeCount,
         radius: 6.5,
-        palette: [palette.ember, palette.aurora, palette.dim],
-        weights: [0.45, 0.75],
         flatten: [1, 0.8, 0.7],
         outlierChance: 0.85,
         outlierScale: 1.35,
       }),
-    [nodeCount, palette],
+    [nodeCount],
+  );
+  const colors = useMemo(
+    () => colorizeField(positions, [palette.ember, palette.aurora, palette.dim], [0.45, 0.75]),
+    [positions, palette],
   );
   const { edgePositions, edgeColors } = useMemo(
     () => buildEdges(positions, nodeCount, EDGE_DISTANCE, 9000),
@@ -88,32 +95,31 @@ function ConstellationField({ reducedMotion, nodeCount, palette, containerRef })
 
   /* Document-level pointer tracking: the constellation is a backdrop that
      must never intercept input, so we listen on document and convert into
-     the canvas's own coordinate space using its live rect. */
+     the canvas's own coordinate space. The event only records the raw
+     coordinates; the rect conversion happens in the frame loop (dirty
+     flag), so a burst of pointer events costs zero layout reads. */
   useEffect(() => {
     const onMove = (e) => {
-      const canvas = containerRef.current?.querySelector("canvas");
-      if (!canvas) {
-        pointerRef.current.active = false;
-        return;
-      }
-      const rect = canvas.getBoundingClientRect();
-      if (rect.width < 2 || rect.height < 2) {
-        pointerRef.current.active = false;
-        return;
-      }
-      canvasRectRef.current = rect;
-      pointerRef.current.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      pointerRef.current.y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+      pointerRef.current.clientX = e.clientX;
+      pointerRef.current.clientY = e.clientY;
       pointerRef.current.active = true;
+      pointerRef.current.dirty = true;
+    };
+    const onBlur = () => {
+      pointerRef.current.active = false;
     };
     document.addEventListener("pointermove", onMove, { passive: true });
-    return () => document.removeEventListener("pointermove", onMove);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      document.removeEventListener("pointermove", onMove);
+      window.removeEventListener("blur", onBlur);
+    };
   }, [containerRef]);
 
   useFrame((state, delta) => {
     const group = groupRef.current;
     if (!group) return;
-    if (hidden) return;
+    if (paused) return;
 
     if (!reducedMotion) {
       const t = state.clock.elapsedTime;
@@ -140,17 +146,29 @@ function ConstellationField({ reducedMotion, nodeCount, palette, containerRef })
     const hoverSprite = hoverSpriteRef.current;
     if (!p.active || !hoverSprite) return;
 
-    const rect = canvasRectRef.current ?? state.gl.domElement.getBoundingClientRect();
-    if (rect.width < 2 || rect.height < 2) {
-      hoverSprite.material.opacity = 0;
-      return;
+    /* Re-measure the canvas rect only while the pointer is active and has
+       moved since the last conversion — never per event, never idle. */
+    if (p.dirty) {
+      const canvas = containerRef.current?.querySelector("canvas");
+      const rect = canvas ? canvas.getBoundingClientRect() : null;
+      if (!rect || rect.width < 2 || rect.height < 2) {
+        p.active = false;
+        hoverSprite.material.opacity = 0;
+        return;
+      }
+      canvasRectRef.current = rect;
+      p.dirty = false;
+      p.x = ((p.clientX - rect.left) / rect.width) * 2 - 1;
+      p.y = -(((p.clientY - rect.top) / rect.height) * 2 - 1);
     }
+    const rect = canvasRectRef.current;
+    if (!rect) return;
     const aspect = rect.width / rect.height;
     const k = Math.tan((state.camera.fov * Math.PI) / 360);
     const camZ = state.camera.position.z;
     let best = -1;
     let bestD = Infinity;
-    for (let i = 0; i < positions.length; i++) {
+    for (let i = 0; i < nodeCount; i++) {
       scratch
         .set(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2])
         .applyEuler(group.rotation);
@@ -250,8 +268,10 @@ function ConstellationField({ reducedMotion, nodeCount, palette, containerRef })
 
 export default function KnowledgeConstellation({ className }) {
   const reducedMotion = useReducedMotion();
-  const palette = useScenePalette();
   const containerRef = useRef(null);
+  const { ref: viewRef, off } = useOffscreen();
+  const paused = useTabHidden() || off;
+  const palette = useScenePaletteLive(containerRef);
   const { nodeCount, dpr } = useSceneBudget({
     high: 650,
     low: 320,
@@ -260,13 +280,17 @@ export default function KnowledgeConstellation({ className }) {
 
   return (
     <div
-      ref={containerRef}
+      ref={(node) => {
+        containerRef.current = node;
+        viewRef.current = node;
+      }}
       className={className}
       aria-hidden="true"
       style={{ pointerEvents: "none" }}
     >
       <Canvas
         dpr={dpr}
+        frameloop={paused ? "demand" : "always"}
         camera={{ position: [0, 0, 11], fov: 50 }}
         gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
         style={{ background: "transparent" }}
@@ -276,6 +300,7 @@ export default function KnowledgeConstellation({ className }) {
           nodeCount={nodeCount}
           palette={palette}
           containerRef={containerRef}
+          paused={paused}
         />
       </Canvas>
     </div>

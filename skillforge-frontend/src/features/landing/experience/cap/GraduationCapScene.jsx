@@ -6,6 +6,7 @@ import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.j
 import CapEmblem from "./CapEmblem";
 import {
   softGlowTexture,
+  useOffscreen,
   useReducedMotion,
   useSceneBudget,
   useScenePaletteLive,
@@ -13,13 +14,13 @@ import {
 } from "@/lib/three-engine";
 
 /* -------------------------------------------------------------------------- */
-/*  GraduationCapScene — the hero's giant realistic graduation cap.           */
+/*  GraduationCapScene — a giant realistic graduation cap.                    */
 /*  A premium mortarboard: square beveled board, skullcap, center button,     */
 /*  and a tassel whose yaw LAGS behind the cap's spin (damped secondary       */
 /*  motion) with a gentle pendulum sway. Slow Y rotation with subtle          */
 /*  sinusoidal X/Z, floating lift, damped mouse parallax (desktop), and a     */
-/*  springy entrance. Mounted ONLY in the hero section as a decorative        */
-/*  backdrop (pointer-events: none); it folds away with the hero. Materials   */
+/*  springy entrance. Mounted in the hero (00 ARRIVAL) and the finale         */
+/*  (13 MASTERY) as a decorative backdrop (pointer-events: none). Materials   */
 /*  resolve the --cap-* / --ember tokens live, so the cap re-tints smoothly   */
 /*  when the theme switches. Falls back to CapEmblem when WebGL is            */
 /*  unavailable and freezes to a static pose under prefers-reduced-motion.    */
@@ -358,7 +359,8 @@ function CapRig({
 }
 
 function CapCanvas({ reduced, hidden }) {
-  const palette = useScenePaletteLive();
+  const containerRef = useRef(null);
+  const palette = useScenePaletteLive(containerRef);
   const { dpr } = useSceneBudget({ high: 480, low: 240, baseDpr: 1.75 });
 
   /* Woven-fabric bump map, generated once and disposed with the scene. */
@@ -383,7 +385,8 @@ function CapCanvas({ reduced, hidden }) {
   );
 
   return (
-    <Canvas
+    <div ref={containerRef} className="h-full w-full">
+      <Canvas
       dpr={dpr}
       frameloop={reduced || hidden ? "demand" : "always"}
       camera={{ position: [0, 1.05, 4.2], fov: 38 }}
@@ -409,13 +412,16 @@ function CapCanvas({ reduced, hidden }) {
         knotMat={knotMat}
         tailMat={tailMat}
       />
-    </Canvas>
+      </Canvas>
+    </div>
   );
 }
 
 export default function GraduationCapScene({ className }) {
   const reduced = useReducedMotion();
-  const hidden = useTabHidden();
+  const tabHidden = useTabHidden();
+  const { ref: viewRef, off } = useOffscreen();
+  const hidden = tabHidden || off;
 
   const webgl = useMemo(() => {
     try {
@@ -433,11 +439,7 @@ export default function GraduationCapScene({ className }) {
   }
 
   return (
-    <div
-      className={className}
-      aria-hidden="true"
-      style={{ pointerEvents: "none" }}
-    >
+    <div ref={viewRef} className={className} aria-hidden="true" style={{ pointerEvents: "none" }}>
       <CapCanvas reduced={reduced} hidden={hidden} />
     </div>
   );

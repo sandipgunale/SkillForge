@@ -19,7 +19,6 @@ function SheetClose({ ...props }) {
 function SheetPortal({ ...props }) {
   return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />;
 }
-
 function SheetOverlay({ className, ...props }) {
   return (
     <SheetPrimitive.Backdrop
@@ -38,10 +37,11 @@ function SheetContent({
   children,
   side = "right",
   showCloseButton = true,
+  container,
   ...props
 }) {
   return (
-    <SheetPortal>
+    <SheetPortal container={container}>
       <SheetOverlay />
       <SheetPrimitive.Popup
         data-slot="sheet-content"
