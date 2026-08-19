@@ -1,13 +1,14 @@
 import { useRef } from "react";
 
 import { Progress } from "@/components/ui/progress";
-import { useMountAnimation } from "@/lib/motion-gsap";
+import { useMountAnimation, useNumeralRoll } from "@/lib/motion-gsap";
 
 export default function QuizProgress({ current, total }) {
   const percentage = ((current + 1) / total) * 100;
   const counterRef = useRef(null);
 
   useMountAnimation(counterRef, [current], { y: 6, duration: 0.25 });
+  useNumeralRoll(counterRef, { to: current + 1, duration: 0.5 });
 
   return (
     <div className="mt-7 space-y-2.5">

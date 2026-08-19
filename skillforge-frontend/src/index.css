@@ -153,6 +153,7 @@
    Light theme — warm paper, ink text, ember primary
    ========================================================================== */
 :root {
+    --morph-duration: 600ms;
     --background: oklch(0.985 0.003 80);
     --foreground: oklch(0.2 0.02 60);
 
@@ -329,8 +330,8 @@
         @apply bg-background text-foreground;
         font-feature-settings: "cv11", "ss01";
         transition:
-            background-color 600ms ease,
-            color 600ms ease;
+            background-color var(--morph-duration) ease,
+            color var(--morph-duration) ease;
     }
 
     /* Cinematic theme morph — surfaces, borders and cards follow the mood */
@@ -338,9 +339,19 @@
     .glass-strong,
     .card {
         transition:
-            background-color 600ms ease,
-            border-color 600ms ease,
-            box-shadow 600ms ease;
+            background-color var(--morph-duration) ease,
+            border-color var(--morph-duration) ease,
+            box-shadow var(--morph-duration) ease;
+    }
+
+    /* Reduced motion: no 600ms cross-fade on theme swaps (T-ADD-3) */
+    @media (prefers-reduced-motion: reduce) {
+        body,
+        .glass,
+        .glass-strong,
+        .card {
+            transition: none;
+        }
     }
 
     ::selection {

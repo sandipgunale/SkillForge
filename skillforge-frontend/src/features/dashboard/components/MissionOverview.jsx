@@ -1,11 +1,13 @@
+import { lazy, Suspense, useRef } from "react";
 import { Award, BrainCircuit, Clock3, Flame, Sparkles, TrendingUp } from "lucide-react";
-import { useRef } from "react";
 
 import AIOrb from "./AIOrb";
 import CountUp from "@/components/common/CountUp";
 import { Progress } from "@/components/ui/progress";
 import { useMotionScope, useReducedMotion } from "@/lib/motion-gsap";
 import { formatStudyTime } from "@/lib/format";
+
+const ForgeSignature = lazy(() => import("@/features/landing/experience/cap/ForgeSignature"));
 
 function greeting() {
   const hour = new Date().getHours();
@@ -24,6 +26,15 @@ function quip(progress) {
   if (progress >= 50) return "Building real momentum. Stay in the loop.";
   if (progress >= 25) return "The forge is warming up. Consistency compounds.";
   return "Every session lights a new ember. Start with one quiz.";
+}
+
+/* The Knowledge Forge signature (P4) as a live progress ornament: health maps
+   to the journey phases the learner is in (T-ENG-5 — app state driver). */
+function signaturePhase(progress) {
+  if (progress >= 75) return "mastered";
+  if (progress >= 50) return "personalized";
+  if (progress >= 25) return "structured";
+  return "fragmented";
 }
 
 export default function MissionOverview({ analytics }) {
@@ -132,6 +143,12 @@ export default function MissionOverview({ analytics }) {
                 health
               </p>
             </div>
+
+            <Suspense fallback={null}>
+              <div className="pointer-events-none absolute bottom-1 left-1/2 size-14 -translate-x-1/2 opacity-80">
+                <ForgeSignature phase={signaturePhase(progress)} />
+              </div>
+            </Suspense>
           </div>
         </div>
       </div>
