@@ -37,10 +37,14 @@ export default function MasterySection() {
         defaults: { ease: "none" },
       });
       if (cap.length) {
+        /* Cap phases 2-3 (rotate + depth): the cap arrives from below with a
+           slight counter-rotation that settles straight, while the scale
+           draws it closer. Hosted on the Mastery sticky stage — the hero cap
+           has already receded out of the story. */
         tl.fromTo(
           cap,
-          { yPercent: 34, opacity: 0, scale: 0.9 },
-          { yPercent: 0, opacity: 1, scale: 1 },
+          { yPercent: 34, opacity: 0, scale: 0.9, rotation: -5 },
+          { yPercent: 0, opacity: 1, scale: 1, rotation: 0 },
           0,
         );
       }

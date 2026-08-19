@@ -160,6 +160,7 @@ function Tassel({ stringMat, tailMat, knotMat, palette, tasselRef, lagRef }) {
 function CapRig({
   reduced,
   hidden,
+  entrance,
   palette,
   bump,
   boardMat,
@@ -173,7 +174,14 @@ function CapRig({
   const innerRef = useRef(null);
   const tasselRef = useRef(null);
   const shadowRef = useRef(null);
-  const springRef = useRef({ value: 0, target: 1, vel: 0 });
+  /* Entrance scale — underdamped spring with a slight overshoot, so the cap
+     settles into place like it was set down, not dropped. `entrance="idle"`
+     starts at rest (value 1): the hero beat timeline owns that appearance. */
+  const springRef = useRef({
+    value: entrance === "idle" ? 1 : 0.0001,
+    target: 1,
+    vel: 0,
+  });
   const pointerRef = useRef({ x: 0, y: 0, active: false });
   const lagRef = useRef(0);
   const colorState = useRef(null);
@@ -234,8 +242,7 @@ function CapRig({
 
     if (reduced || hidden || !group || !inner) return;
 
-    /* Entrance scale — underdamped spring with a slight overshoot, so the
-       cap settles into place like it was set down, not dropped. */
+    /* Entrance spring (skipped when entrance="idle" — spring starts at rest) */
     const spring = springRef.current;
     spring.vel += (spring.target - spring.value) * 32 * delta;
     spring.vel *= Math.max(0, 1 - 9 * delta);
@@ -358,7 +365,7 @@ function CapRig({
   );
 }
 
-function CapCanvas({ reduced, hidden }) {
+function CapCanvas({ reduced, hidden, entrance }) {
   const containerRef = useRef(null);
   const palette = useScenePaletteLive(containerRef);
   const { dpr } = useSceneBudget({ high: 480, low: 240, baseDpr: 1.75 });
@@ -403,6 +410,7 @@ function CapCanvas({ reduced, hidden }) {
       <CapRig
         reduced={reduced}
         hidden={hidden}
+        entrance={entrance}
         palette={palette}
         bump={bump}
         boardMat={boardMat}
@@ -417,7 +425,7 @@ function CapCanvas({ reduced, hidden }) {
   );
 }
 
-export default function GraduationCapScene({ className }) {
+export default function GraduationCapScene({ className, entrance = "spring" }) {
   const reduced = useReducedMotion();
   const tabHidden = useTabHidden();
   const { ref: viewRef, off } = useOffscreen();
@@ -440,7 +448,7 @@ export default function GraduationCapScene({ className }) {
 
   return (
     <div ref={viewRef} className={className} aria-hidden="true" style={{ pointerEvents: "none" }}>
-      <CapCanvas reduced={reduced} hidden={hidden} />
+      <CapCanvas reduced={reduced} hidden={hidden} entrance={entrance} />
     </div>
   );
 }

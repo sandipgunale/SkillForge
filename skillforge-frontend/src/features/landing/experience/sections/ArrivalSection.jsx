@@ -3,7 +3,11 @@ import { Link } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants/routes";
-import { useMotionScope, useReducedMotion } from "@/lib/motion-gsap";
+import {
+  GSAP_EASE,
+  useMotionScope,
+  useReducedMotion,
+} from "@/lib/motion-gsap";
 
 import useDeferredScene from "../useDeferredScene";
 import CapEmblem from "../cap/CapEmblem";
@@ -15,11 +19,29 @@ import { SceneErrorBoundary, T } from "./shared";
 /*  the hero gives way the cap recedes — scroll-scrubbed, the user owns it.   */
 /*  Deferred: the 3D scene mounts only after first paint + idle (FCP budget)  */
 /*  and falls back to the SVG emblem when WebGL is unavailable.               */
+/*                                                                           */
+/*  Entrance — "the forge is waking up": one beat sequence with deterministic */
+/*  from-states (direct style writes, no clearProps — the P1-1 lesson). The   */
+/*  cap itself appears when the deferred scene mounts (B1); the halo opens    */
+/*  on clock time (B2) and copy beats follow (B3–B8); an ember pulse closes   */
+/*  the sequence (coda). Reduced motion: single opacity cross-fade, no        */
+/*  travel, no pre-hiding of children.                                        */
 /* -------------------------------------------------------------------------- */
 
 const GraduationCapScene = lazy(() => import("../cap/GraduationCapScene"));
 
 const FACTS = ["Curated resources", "AI-graded quizzes", "Adaptive paths"];
+
+const BEATS = {
+  halo: 0.1,
+  label: 0.25,
+  title: 0.4,
+  subtitle: 0.5,
+  cta: 0.6,
+  facts: 0.75,
+  scroll: 1.0,
+  coda: 1.2,
+};
 
 export default function ArrivalSection() {
   const rootRef = useRef(null);
@@ -28,17 +50,128 @@ export default function ArrivalSection() {
 
   useMotionScope(
     ({ gsap, select }) => {
-      if (reduced) return undefined;
-      const tl = gsap.timeline({ defaults: { ease: "expo.out" } });
-      tl.from(select("[data-hero='label']"), { opacity: 0, y: 16, duration: 0.55 }, 0)
-        .from(select("[data-hero='title']"), { opacity: 0, y: 28, duration: 0.7 }, 0.08)
-        .from(select("[data-hero='subtitle']"), { opacity: 0, y: 24, duration: 0.7 }, 0.18)
-        .from(select("[data-hero='cta']"), { opacity: 0, y: 20, duration: 0.6 }, 0.28)
-        .from(select("[data-hero='facts']"), { opacity: 0, y: 16, duration: 0.6 }, 0.38)
-        .from(select("[data-hero='scroll']"), { opacity: 0, duration: 0.6 }, 1);
+      const reset = (els) =>
+        els.forEach((el) => {
+          el.style.opacity = "";
+          el.style.transform = "";
+        });
 
-      /* Cap recede — as the hero scrolls out, the cap scales down, sinks,
-         and fades; the copy drifts up at the same pace. One authored exit. */
+      /* Reduced motion: a single opacity cross-fade of the statement at
+         600ms. Nothing else moves; children are never pre-hidden. */
+      if (reduced) {
+        const copy = select("[data-hero-copy]");
+        if (copy.length) {
+          copy.forEach((el) => {
+            el.style.opacity = "0";
+          });
+          gsap.to(copy, { opacity: 1, duration: 0.6, delay: 0.6, ease: GSAP_EASE.scene });
+        }
+        return undefined;
+      }
+
+      /* Deterministic from-states via direct style writes (matching the
+         fromTo start values below) so the hero is simply hidden until each
+         beat plays it in. Direct writes, not gsap.set: the fromTo tweens
+         kill pre-existing gsap.set tweens, and no clearProps anywhere. */
+      const preHide = (els, styles) =>
+        els.forEach((el) => {
+          Object.entries(styles).forEach(([prop, value]) => {
+            el.style[prop] = value;
+          });
+        });
+      preHide(select("[data-hero='label']"), { opacity: "0", transform: "translateY(16px)" });
+      preHide(select("[data-hero='title']"), { opacity: "0", transform: "translateY(28px)" });
+      preHide(select("[data-hero='subtitle']"), { opacity: "0", transform: "translateY(24px)" });
+      preHide(select("[data-hero='cta']"), {
+        opacity: "0",
+        transform: "translateY(20px) scale(0.96)",
+      });
+      preHide(select("[data-hero='facts']"), { opacity: "0", transform: "translateY(16px)" });
+      preHide(select("[data-hero='scroll']"), { opacity: "0" });
+      preHide(select("[data-cap-halo]"), { opacity: "0.2" });
+
+      const tl = gsap.timeline({ defaults: { ease: GSAP_EASE.scene } });
+
+      tl.fromTo(
+        select("[data-cap-halo]"),
+        { opacity: 0.2 },
+        { opacity: 0.6, duration: 1.2 },
+        BEATS.halo,
+      )
+        .fromTo(
+          select("[data-hero='label']"),
+          { opacity: 0, y: 16 },
+          { opacity: 1, y: 0, duration: 0.55 },
+          BEATS.label,
+        )
+        .fromTo(
+          select("[data-hero='title']"),
+          { opacity: 0, y: 28 },
+          { opacity: 1, y: 0, duration: 0.7 },
+          BEATS.title,
+        )
+        .fromTo(
+          select("[data-hero='subtitle']"),
+          { opacity: 0, y: 24 },
+          { opacity: 1, y: 0, duration: 0.7 },
+          BEATS.subtitle,
+        )
+        .fromTo(
+          select("[data-hero='cta']"),
+          { opacity: 0, y: 20, scale: 0.96 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: GSAP_EASE.physical },
+          BEATS.cta,
+        )
+        .fromTo(
+          select("[data-hero='facts']"),
+          { opacity: 0, y: 16 },
+          { opacity: 1, y: 0, duration: 0.6 },
+          BEATS.facts,
+        )
+        .fromTo(
+          select("[data-hero='scroll']"),
+          { opacity: 0 },
+          { opacity: 1, duration: 0.6 },
+          BEATS.scroll,
+        )
+        .fromTo(
+          select("[data-cap-halo]"),
+          { opacity: 0.6 },
+          { opacity: 0.9, duration: 0.25, ease: GSAP_EASE.micro },
+          BEATS.coda,
+        )
+        .to(select("[data-cap-halo]"), { opacity: 0.6, duration: 0.9 }, BEATS.coda + 0.25);
+
+      /* Live prefers-reduced-motion toggle (T-ADD-4 pattern): if the user
+         switches to reduce mid-flight, kill the sequence and restore the
+         natural (visible) state immediately. */
+      const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+      const onMediaChange = (e) => {
+        if (!e.matches) return;
+        tl.kill();
+        reset([
+          ...select("[data-hero='label']"),
+          ...select("[data-hero='title']"),
+          ...select("[data-hero='subtitle']"),
+          ...select("[data-hero='cta']"),
+          ...select("[data-hero='facts']"),
+          ...select("[data-hero='scroll']"),
+          ...select("[data-cap-halo]"),
+        ]);
+      };
+      media.addEventListener("change", onMediaChange);
+      return () => media.removeEventListener("change", onMediaChange);
+    },
+    [reduced],
+    rootRef,
+  );
+
+  /* Phase 1 — cap recede: as the hero scrolls out, the cap scales down,
+     sinks, and fades; the copy drifts up at the same pace. One authored
+     exit, scrubbed so the user owns it. (Reduced motion: static.) */
+  useMotionScope(
+    ({ gsap, select }) => {
+      if (reduced) return undefined;
       const capWrap = select("[data-cap-slot] > div");
       if (capWrap.length) {
         gsap.fromTo(
@@ -82,12 +215,28 @@ export default function ArrivalSection() {
     rootRef,
   );
 
+  /* B1 — the cap wakes when the deferred scene mounts: a quiet fade-in (the
+     scene starts at rest via entrance="idle"; the beat timeline never races
+     the lazy chunk). The SVG emblem fallback stays visible untouched. */
+  useMotionScope(
+    ({ gsap, select }) => {
+      const scene = select("[data-cap-scene]");
+      if (!scene.length) return undefined;
+      gsap.fromTo(scene, { opacity: 0 }, { opacity: 1, duration: 0.8, ease: GSAP_EASE.scene });
+      return undefined;
+    },
+    [sceneReady],
+    rootRef,
+  );
+
   const cap = (
     <div className="aspect-square h-full w-full">
       {sceneReady ? (
         <SceneErrorBoundary>
           <Suspense fallback={null}>
-            <GraduationCapScene className="h-full w-full" />
+            <div data-cap-scene style={{ opacity: 0 }} className="h-full w-full">
+              <GraduationCapScene entrance="idle" className="h-full w-full" />
+            </div>
           </Suspense>
         </SceneErrorBoundary>
       ) : (
@@ -111,6 +260,12 @@ export default function ArrivalSection() {
         className="pointer-events-none absolute right-0 top-[62svh] z-0 lg:top-[16svh]"
       >
         <div className="aspect-square w-[104svw] sm:w-[86vw] lg:w-[52vw] xl:w-[58vw]">
+          {/* Ember halo behind the cap — B2 opens it, the coda pulses it.
+              No Tailwind transforms here: the beat tweens own transform. */}
+          <div
+            data-cap-halo
+            className="absolute top-[8%] left-[8%] h-[84%] w-[84%] rounded-full bg-lp-accent/20 blur-3xl"
+          />
           {cap}
         </div>
       </div>
