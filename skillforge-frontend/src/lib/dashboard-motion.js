@@ -20,13 +20,6 @@ export { useMagnetic } from "@/lib/motion-gsap";
    Reduced-motion renders everything instantly (callers gate content).
    ========================================================================== */
 
-export const PRESETS = {
-  fade: { opacity: 0, y: 24, duration: 0.55, ease: GSAP_EASE.outExpo },
-  rise: { opacity: 0, y: 40, duration: 0.7, ease: GSAP_EASE.outExpo },
-  scale: { opacity: 0, scale: 0.96, duration: 0.6, ease: GSAP_EASE.smooth },
-  card: { opacity: 0, y: 28, scale: 0.98, duration: 0.65, ease: GSAP_EASE.outExpo },
-};
-
 /**
  * Page enter — a single reveal over `[data-enter]` elements. Runs once on
  * mount regardless of scroll position; harmless with `once` ScrollTrigger.

@@ -57,6 +57,7 @@ export default function ArrivalSection() {
       const reset = (els) =>
         els.forEach((el) => {
           el.style.opacity = "";
+          el.style.visibility = "";
           el.style.transform = "";
         });
 
@@ -67,8 +68,9 @@ export default function ArrivalSection() {
         if (copy.length) {
           copy.forEach((el) => {
             el.style.opacity = "0";
+            el.style.visibility = "hidden";
           });
-          gsap.to(copy, { opacity: 1, duration: 0.6, delay: 0.6, ease: GSAP_EASE.scene });
+          gsap.to(copy, { autoAlpha: 1, duration: 0.6, delay: 0.6, ease: GSAP_EASE.scene });
         }
         return undefined;
       }
@@ -83,15 +85,16 @@ export default function ArrivalSection() {
             el.style[prop] = value;
           });
         });
-      preHide(select("[data-hero='label']"), { opacity: "0", transform: "translateY(16px)" });
-      preHide(select("[data-hero='title']"), { opacity: "0", transform: "translateY(28px)" });
-      preHide(select("[data-hero='subtitle']"), { opacity: "0", transform: "translateY(24px)" });
+      preHide(select("[data-hero='label']"), { opacity: "0", visibility: "hidden", transform: "translateY(16px)" });
+      preHide(select("[data-hero='title']"), { opacity: "0", visibility: "hidden", transform: "translateY(28px)" });
+      preHide(select("[data-hero='subtitle']"), { opacity: "0", visibility: "hidden", transform: "translateY(24px)" });
       preHide(select("[data-hero='cta']"), {
         opacity: "0",
+        visibility: "hidden",
         transform: "translateY(20px) scale(0.96)",
       });
-      preHide(select("[data-hero='facts']"), { opacity: "0", transform: "translateY(16px)" });
-      preHide(select("[data-hero='scroll']"), { opacity: "0" });
+      preHide(select("[data-hero='facts']"), { opacity: "0", visibility: "hidden", transform: "translateY(16px)" });
+      preHide(select("[data-hero='scroll']"), { opacity: "0", visibility: "hidden" });
       preHide(select("[data-cap-halo]"), { opacity: "0.2" });
 
       const tl = gsap.timeline({ defaults: { ease: GSAP_EASE.scene } });
@@ -104,38 +107,38 @@ export default function ArrivalSection() {
       )
         .fromTo(
           select("[data-hero='label']"),
-          { opacity: 0, y: 16 },
-          { opacity: 1, y: 0, duration: 0.55 },
+          { autoAlpha: 0, y: 16 },
+          { autoAlpha: 1, y: 0, duration: 0.55 },
           BEATS.label,
         )
         .fromTo(
           select("[data-hero='title']"),
-          { opacity: 0, y: 28 },
-          { opacity: 1, y: 0, duration: 0.7 },
+          { autoAlpha: 0, y: 28 },
+          { autoAlpha: 1, y: 0, duration: 0.7 },
           BEATS.title,
         )
         .fromTo(
           select("[data-hero='subtitle']"),
-          { opacity: 0, y: 24 },
-          { opacity: 1, y: 0, duration: 0.7 },
+          { autoAlpha: 0, y: 24 },
+          { autoAlpha: 1, y: 0, duration: 0.7 },
           BEATS.subtitle,
         )
         .fromTo(
           select("[data-hero='cta']"),
-          { opacity: 0, y: 20, scale: 0.96 },
-          { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: GSAP_EASE.physical },
+          { autoAlpha: 0, y: 20, scale: 0.96 },
+          { autoAlpha: 1, y: 0, scale: 1, duration: 0.6, ease: GSAP_EASE.physical },
           BEATS.cta,
         )
         .fromTo(
           select("[data-hero='facts']"),
-          { opacity: 0, y: 16 },
-          { opacity: 1, y: 0, duration: 0.6 },
+          { autoAlpha: 0, y: 16 },
+          { autoAlpha: 1, y: 0, duration: 0.6 },
           BEATS.facts,
         )
         .fromTo(
           select("[data-hero='scroll']"),
-          { opacity: 0 },
-          { opacity: 1, duration: 0.6 },
+          { autoAlpha: 0 },
+          { autoAlpha: 1, duration: 0.6 },
           BEATS.scroll,
         )
         .fromTo(

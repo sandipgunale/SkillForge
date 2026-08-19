@@ -44,6 +44,7 @@ export function useSectionEntrance(rootRef, { identity, variant = "rise" } = {})
       const reset = (els) =>
         els.forEach((el) => {
           el.style.opacity = "";
+          el.style.visibility = "";
           el.style.transform = "";
           el.style.clipPath = "";
           el.style.filter = "";
@@ -80,14 +81,14 @@ export function useSectionEntrance(rootRef, { identity, variant = "rise" } = {})
         });
       const headStyles =
         variant === "clip"
-          ? { opacity: "0", transform: "translateY(44px)", clipPath: "inset(100% 0% 0% 0%)" }
-          : { opacity: "0", transform: "translateY(40px)" };
-      preHide(label, { opacity: "0", transform: "translateY(16px)" });
+          ? { opacity: "0", visibility: "hidden", transform: "translateY(44px)", clipPath: "inset(100% 0% 0% 0%)" }
+          : { opacity: "0", visibility: "hidden", transform: "translateY(40px)" };
+      preHide(label, { opacity: "0", visibility: "hidden", transform: "translateY(16px)" });
       preHide(head, headStyles);
-      preHide(lead, { opacity: "0", transform: "translateY(24px)" });
-      if (units.length) preHide(units, { opacity: "0", transform: "translateY(26px)" });
-      else preHide(content, { opacity: "0", transform: "translateY(28px)" });
-      preHide(aside, { opacity: "0", transform: "translateY(30px)" });
+      preHide(lead, { opacity: "0", visibility: "hidden", transform: "translateY(24px)" });
+      if (units.length) preHide(units, { opacity: "0", visibility: "hidden", transform: "translateY(26px)" });
+      else preHide(content, { opacity: "0", visibility: "hidden", transform: "translateY(28px)" });
+      preHide(aside, { opacity: "0", visibility: "hidden", transform: "translateY(30px)" });
 
       const tl = gsap.timeline({
         defaults: { ease: "expo.out" },
@@ -95,31 +96,31 @@ export function useSectionEntrance(rootRef, { identity, variant = "rise" } = {})
       });
 
       if (label.length) {
-        tl.fromTo(label, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.55 }, 0.05);
+        tl.fromTo(label, { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.55 }, 0.05);
       }
       if (head.length) {
         const headVars =
           variant === "clip"
-            ? { opacity: 0, y: 44, clipPath: "inset(100% 0% 0% 0%)" }
-            : { opacity: 0, y: 40 };
+            ? { autoAlpha: 0, y: 44, clipPath: "inset(100% 0% 0% 0%)" }
+            : { autoAlpha: 0, y: 40 };
         const headTo =
           variant === "clip"
-            ? { opacity: 1, y: 0, clipPath: "inset(0% 0% 0% 0%)", duration: 0.9 }
-            : { opacity: 1, y: 0, duration: 0.8 };
+            ? { autoAlpha: 1, y: 0, clipPath: "inset(0% 0% 0% 0%)", duration: 0.9 }
+            : { autoAlpha: 1, y: 0, duration: 0.8 };
         tl.fromTo(head, headVars, headTo, 0);
       }
       if (lead.length) {
-        tl.fromTo(lead, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.7 }, 0.12);
+        tl.fromTo(lead, { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.7 }, 0.12);
       }
       if (variant === "activate") {
         if (units.length) {
-          tl.fromTo(units, { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.6, stagger: 0.13 }, 0.2);
+          tl.fromTo(units, { autoAlpha: 0, y: 26 }, { autoAlpha: 1, y: 0, duration: 0.6, stagger: 0.13 }, 0.2);
         }
       } else if (content.length) {
-        tl.fromTo(content, { opacity: 0, y: 28 }, { opacity: 1, y: 0, duration: 0.8 }, 0.18);
+        tl.fromTo(content, { autoAlpha: 0, y: 28 }, { autoAlpha: 1, y: 0, duration: 0.8 }, 0.18);
       }
       if (aside.length) {
-        tl.fromTo(aside, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.8 }, 0.18);
+        tl.fromTo(aside, { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: 0.8 }, 0.18);
       }
     },
     [reduced, identity, variant],

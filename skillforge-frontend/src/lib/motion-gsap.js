@@ -70,10 +70,14 @@ export const MOTION_TOKENS = {
    exactly the properties it animates.
    ========================================================================== */
 
+/* Pre-hide = invisible AND out of the pointer/tab order: opacity alone
+   leaves hidden CTAs clickable. Builders pair this with autoAlpha fromTo
+   tweens, which restore visibility when the beat plays in. */
 const preHideWrites = (els, styles) =>
   els.forEach((el) => {
     Object.entries(styles).forEach(([prop, value]) => {
       el.style[prop] = value;
+      if (prop === "opacity" && value === "0") el.style.visibility = "hidden";
     });
   });
 
@@ -107,24 +111,24 @@ const BUILDERS = {
 
     const tl = gsap.timeline({ defaults: { ease: GSAP_EASE.scene }, ...chapterTrigger(gsap, root) });
     if (slots.label.length) {
-      tl.fromTo(slots.label, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.55 }, 0.05);
+      tl.fromTo(slots.label, { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.55 }, 0.05);
     }
     if (slots.head.length) {
       tl.fromTo(
         slots.head,
-        { opacity: 0, y: 44, clipPath: "inset(100% 0% 0% 0%)" },
-        { opacity: 1, y: 0, clipPath: "inset(0% 0% 0% 0%)", duration: 0.9 },
+        { autoAlpha: 0, y: 44, clipPath: "inset(100% 0% 0% 0%)" },
+        { autoAlpha: 1, y: 0, clipPath: "inset(0% 0% 0% 0%)", duration: 0.9 },
         0,
       );
     }
     if (slots.lead.length) {
-      tl.fromTo(slots.lead, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.7 }, 0.12);
+      tl.fromTo(slots.lead, { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.7 }, 0.12);
     }
     if (slots.content.length) {
-      tl.fromTo(slots.content, { opacity: 0, y: 28 }, { opacity: 1, y: 0, duration: 0.8 }, 0.18);
+      tl.fromTo(slots.content, { autoAlpha: 0, y: 28 }, { autoAlpha: 1, y: 0, duration: 0.8 }, 0.18);
     }
     if (slots.aside.length) {
-      tl.fromTo(slots.aside, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.8 }, 0.18);
+      tl.fromTo(slots.aside, { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: 0.8 }, 0.18);
     }
     return undefined;
   },
@@ -145,24 +149,24 @@ const BUILDERS = {
 
     const tl = gsap.timeline({ defaults: { ease: GSAP_EASE.scene }, ...chapterTrigger(gsap, root) });
     if (slots.label.length) {
-      tl.fromTo(slots.label, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.55 }, 0.05);
+      tl.fromTo(slots.label, { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.55 }, 0.05);
     }
     if (slots.head.length) {
       tl.fromTo(
         slots.head,
-        { opacity: 0, filter: "blur(10px)" },
-        { opacity: 1, filter: "blur(0px)", duration: 0.85 },
+        { autoAlpha: 0, filter: "blur(10px)" },
+        { autoAlpha: 1, filter: "blur(0px)", duration: 0.85 },
         0,
       );
     }
     if (slots.lead.length) {
-      tl.fromTo(slots.lead, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.7 }, 0.1);
+      tl.fromTo(slots.lead, { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.7 }, 0.1);
     }
     if (rows.length) {
       tl.fromTo(
         rows,
-        { opacity: 0, y: 18, filter: "blur(8px)" },
-        { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.7, stagger: 0.12 },
+        { autoAlpha: 0, y: 18, filter: "blur(8px)" },
+        { autoAlpha: 1, y: 0, filter: "blur(0px)", duration: 0.7, stagger: 0.12 },
         0.18,
       );
     }
@@ -185,27 +189,27 @@ const BUILDERS = {
 
     const tl = gsap.timeline({ defaults: { ease: GSAP_EASE.scene }, ...chapterTrigger(gsap, root) });
     if (slots.label.length) {
-      tl.fromTo(slots.label, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.55 }, 0.05);
+      tl.fromTo(slots.label, { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.55 }, 0.05);
     }
     if (slots.head.length) {
-      tl.fromTo(slots.head, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.8 }, 0);
+      tl.fromTo(slots.head, { autoAlpha: 0, y: 40 }, { autoAlpha: 1, y: 0, duration: 0.8 }, 0);
     }
     if (slots.lead.length) {
-      tl.fromTo(slots.lead, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.7 }, 0.12);
+      tl.fromTo(slots.lead, { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.7 }, 0.12);
     }
     if (chips.length) {
       tl.fromTo(
         chips,
-        { opacity: 0, y: 18 },
-        { opacity: 1, y: 0, duration: 0.5, stagger: 0.08 },
+        { autoAlpha: 0, y: 18 },
+        { autoAlpha: 1, y: 0, duration: 0.5, stagger: 0.08 },
         0.18,
       );
     }
     if (slots.aside.length) {
       tl.fromTo(
         slots.aside,
-        { opacity: 0, clipPath: "inset(0% 100% 0% 0%)" },
-        { opacity: 1, clipPath: "inset(0% 0% 0% 0%)", duration: 0.9 },
+        { autoAlpha: 0, clipPath: "inset(0% 100% 0% 0%)" },
+        { autoAlpha: 1, clipPath: "inset(0% 0% 0% 0%)", duration: 0.9 },
         0.1,
       );
     }
@@ -223,16 +227,16 @@ const BUILDERS = {
 
     const tl = gsap.timeline({ defaults: { ease: GSAP_EASE.scene }, ...chapterTrigger(gsap, root) });
     if (slots.label.length) {
-      tl.fromTo(slots.label, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.55 }, 0.05);
+      tl.fromTo(slots.label, { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.55 }, 0.05);
     }
     if (slots.head.length) {
-      tl.fromTo(slots.head, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.8 }, 0);
+      tl.fromTo(slots.head, { autoAlpha: 0, y: 40 }, { autoAlpha: 1, y: 0, duration: 0.8 }, 0);
     }
     if (cards.length) {
       tl.fromTo(
         cards,
-        { opacity: 0, y: 34 },
-        { opacity: 1, y: 0, duration: 0.75, stagger: 0.14, ease: GSAP_EASE.physical },
+        { autoAlpha: 0, y: 34 },
+        { autoAlpha: 1, y: 0, duration: 0.75, stagger: 0.14, ease: GSAP_EASE.physical },
         0.16,
       );
     }
@@ -452,10 +456,9 @@ export function useMountAnimation(
     const tween = gsap.from(ref.current, { ...from, onComplete });
 
     return () => {
-      tween.revert();
+      tween.kill();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reduced, y, scale, scaleX, opacity, blur, height, duration, ease, delay, ...deps]);
+  }, [ref, reduced, y, scale, scaleX, opacity, blur, height, duration, ease, delay, onComplete, props, deps]);
 }
 
 /** Entrance-only wrapper for small panels (search dropdown, tooltips). */
@@ -584,7 +587,7 @@ export function useSpotlight(ref) {
     let rect = null;
     const write = () => {
       raf = 0;
-      if (!pending) return;
+      if (!pending || !rect) return;
       el.style.setProperty("--spot-x", `${pending.x}px`);
       el.style.setProperty("--spot-y", `${pending.y}px`);
       el.style.setProperty("--spot-opacity", "1");
@@ -601,14 +604,23 @@ export function useSpotlight(ref) {
     const onLeave = () => {
       el.style.setProperty("--spot-opacity", "0");
       rect = null;
+      pending = null;
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
     };
-    const onFocus = () => {
+    const onFocus = (e) => {
+      if (!e.target.matches(":focus-visible")) return;
       rect = el.getBoundingClientRect();
       el.style.setProperty("--spot-x", `${rect.width / 2}px`);
       el.style.setProperty("--spot-y", `${rect.height / 2}px`);
       el.style.setProperty("--spot-opacity", "1");
     };
-    const onBlur = () => el.style.setProperty("--spot-opacity", "0");
+    const onBlur = () => {
+      el.style.setProperty("--spot-opacity", "0");
+      pending = null;
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+    };
 
     el.addEventListener("pointerenter", onEnter);
     el.addEventListener("pointermove", onMove);
@@ -698,6 +710,7 @@ export function usePressPhysics(ref, { scale = 0.97 } = {}) {
         duration: MOTION_TOKENS.micro.duration,
         ease: GSAP_EASE.physical,
         overwrite: "auto",
+        onComplete: () => gsap.set(el, { clearProps: "transform" }),
       });
 
     el.addEventListener("pointerdown", press);
@@ -721,12 +734,15 @@ export function usePressPhysics(ref, { scale = 0.97 } = {}) {
  * (quiz feedback, gamification count-ups, roadmap numerals); the landing
  * numerals stay scrub-driven.
  */
-export function useNumeralRoll(ref, { to, duration = 1, pad = 0, suffix = "", ease = "power2.out" } = {}) {
+export function useNumeralRoll(
+  ref,
+  { to, duration = 1, pad = 0, suffix = "", ease = "power2.out", visible = true } = {},
+) {
   const { reduced } = useMotionSafe();
 
   useEffect(() => {
     const el = ref.current;
-    if (!el) return undefined;
+    if (!el || !visible) return undefined;
     const format = (v) => String(Math.round(v)).padStart(pad, "0") + suffix;
     if (reduced) {
       el.textContent = format(to);
@@ -744,7 +760,7 @@ export function useNumeralRoll(ref, { to, duration = 1, pad = 0, suffix = "", ea
     return () => {
       tween.kill();
     };
-  }, [ref, reduced, to, duration, pad, suffix, ease]);
+  }, [ref, reduced, to, duration, pad, suffix, ease, visible]);
 }
 
 /**

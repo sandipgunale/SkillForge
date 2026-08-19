@@ -188,7 +188,7 @@ Each section declares one identity in `SECTION_MOTION` (wake, claim, trust, proc
 
 ### Hero arc
 
-Entrance beats at 0/100/250/400/500/600/1200ms (cap wake, halo, eyebrow, headline, subcopy, CTA cluster, ember burst) with deterministic from-states (direct style writes — no `clearProps`, the P1-1 lesson). Then the cap's 5-phase scroll: recede (hero exit) → rotate → depth → dissolve (hosted on the Mastery sticky stage) → return-differently (reformed by the knowledge net, never a replay of the entrance).
+Entrance beats (canonical BEATS map, audit row 63): cap wake 0 / halo .1 / label .25 / title .4 / subtitle .5 / cta .6 / facts .75 / scroll cue 1.0 / coda 1.2 — with deterministic from-states (direct style writes — no `clearProps`, the P1-1 lesson). Then the cap's 5-phase scroll: recede (hero exit) → rotate → depth → dissolve (hosted on the Mastery sticky stage) → return-differently (reformed by the knowledge net, never a replay of the entrance).
 
 ### Rules
 

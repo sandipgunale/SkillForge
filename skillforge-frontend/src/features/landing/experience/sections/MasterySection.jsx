@@ -83,7 +83,7 @@ export default function MasterySection() {
       }
       return undefined;
     },
-    [reduced],
+    [reduced, sceneReady],
     rootRef,
   );
 

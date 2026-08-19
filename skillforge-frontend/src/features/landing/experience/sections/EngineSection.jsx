@@ -79,22 +79,19 @@ export default function EngineSection() {
             ) : null}
             <div data-entrance="aside" className="lp-panel relative z-10 p-6 sm:p-8 lg:p-10">
               <svg
-                data-border-trace
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0 h-full w-full"
-                width="100%"
-                height="100%"
                 fill="none"
               >
                 <rect
+                  data-border-trace
                   x="1"
                   y="1"
-                  width="calc(100% - 2px)"
-                  height="calc(100% - 2px)"
                   rx="14"
                   vectorEffect="non-scaling-stroke"
                   stroke="var(--lp-accent)"
                   strokeWidth="1.5"
+                  style={{ width: "calc(100% - 2px)", height: "calc(100% - 2px)" }}
                 />
               </svg>
               <div className="flex items-center justify-between gap-4">

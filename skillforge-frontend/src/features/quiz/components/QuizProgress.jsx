@@ -22,7 +22,7 @@ export default function QuizProgress({ current, total }) {
             ref={counterRef}
             className="inline-block font-semibold text-foreground"
           >
-            {current + 1}
+            0
           </span>{" "}
           of {total}
         </span>

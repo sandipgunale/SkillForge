@@ -26,6 +26,7 @@ export default function LearningPathStats({
     to: completedQuizzes > 0 ? Math.round(averageScore) : 0,
     duration: 0.8,
     suffix: "%",
+    visible: completedQuizzes > 0,
   });
 
   const stats = [
