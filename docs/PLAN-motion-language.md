@@ -489,6 +489,15 @@ DX scope: no (consumer product surfaces; no API/CLI/docs surfaces change). Skipp
 | 64 | M3 (impl) | Process/answers/mirror keep their bespoke or fallback choreography (numeral scrub, chevron rotate, app-language rise) — identity declared, no build | Taste | P2 | Anti-slop rule: declared identities must not regress shipped QA'd behavior | — |
 | 65 | M3 (impl) | useMotionScope runs in a layout effect (refs guaranteed attached; from-state writes land before first paint) — passive effects can race ref attachment | Mechanical | P1 | Found via identity probe: Engine section's entrance silently never ran since the landing rebuild (section lacked ref={rootRef}) — restored | — |
 | 66 | M3 (impl) | Probe: identity-check (declaration coverage, builder from-states, resolution after trigger; clipPath shorthand normalization + easing-tail tolerance) | Mechanical | P1 | T-ENG-6 probe-asserted requirement | — |
+| 67 | M4 (impl) | Micro-hooks all live in motion-gsap.js (useSpotlight, useBorderTrace, usePressPhysics, useNumeralRoll); magnetic gains spring-to-rest on leave (physical duration + physical ease + overwrite auto) | Mechanical | P1 | M4-t1: one motion library, no duplicated pull logic | — |
+| 68 | M4 (impl) | Spotlight is CSS-var-only (--spot-x/--spot-y/--spot-opacity via .lp-spotlight utility); rect cached on enter; rAF-throttled move; focus shows glow at rect center — keyboard equivalent built in | Mechanical | P1 | M4-t4: no layout reads per move; M4-t3 focus-visible equivalence | — |
+| 69 | M4 (impl) | Border trace drives [data-border-trace] SVG dashoffset via pathLength=1 (hover + focus-visible, ui token); press physics = pointer events (touch covered), scale 0.97, release physical | Mechanical | P1 | M4-t2 press-touch; Button already carries native active:translate-y-px — hook scale composes | — |
+| 70 | M4 (impl) | Probe: micro-hooks battery (spotlight var writes on hover/focus + leave reset, trace dashoffset draw/restore, press scale down/up via synthetic pointerup — no navigation) | Mechanical | P1 | T-ENG-9 G7 gap; mouse.up triggers real click navigation — synthetic PointerEvent required | — |
+| 71 | M5 (impl) | ForgeSignature = 2D canvas particle signature (per T-ENG-3, not Three): unit-space cap silhouette sampler + scatter field; phases fragmented/structured/personalized/mastered via progress (easeOutCubic) or declarative phase prop | Mechanical | P1 | F5: 2D canvas; T-ENG-5: scrub-driven via imperative setProgress (no per-frame re-renders) | — |
+| 72 | M5 (impl) | Two-act finale (decision #25): act 1 cap scene dissolves (0.55-0.75, scale 1.06) as the signature fragment field enters; act 2 field converges into the cap silhouette (0.75-1.0) then rings; cap-return scrub kept on the wrapper so the M2 rotate/depth contract is untouched | Mechanical | P1 | M2-t2 deferred acts land here; mastery-rotate probe stays green | — |
+| 73 | M5 (impl) | Reduced motion = static CapEmblem silhouette, no loop, no travel (M5-t2 aria-hidden + role="presentation"); no-canvas = CapEmblem fallback (F9); lazy + Suspense fallback CapEmblem (F11/D-T11 loading state); device-memory particle budget (90 low / 210 full) + IO-gated rAF + DPR cap 1.5 | Mechanical | P1 | M5-t3; signature needs no WebGL — no-WebGL fallback only for canvas-context failure | — |
+| 74 | M5 (impl) | Mastery under reduced motion keeps the static cap scene and hides the signature entirely (no scrub exists to reveal it; the scene IS the static fallback) | Taste | P2 | Reduced contract: one static finale, not two stacked silhouettes | — |
+| 75 | M5 (impl) | Probe: signature battery (entry scattered span ~0.95, dissolve completes by 0.8, converged span ~0.74 + painted jump + ring sweep, reduced = emblem/no canvas/no errors); found + fixed: float-overflow RNG in scatter, canvas intrinsic 2:1 aspect from missing fill classes, sampler shortfall (205 < 210) crashing the loop | Mechanical | P1 | T-ENG-9 signature.mjs; three real defects caught by pixel assertions | — |
 
 ## Implementation Tasks (aggregated across phases)
 
@@ -500,13 +509,13 @@ DX scope: no (consumer product surfaces; no API/CLI/docs surfaces change). Skipp
 - [ ] **M2-t3 (P1, human 1h / CC 0.4h) — scrub-single-context** — one scrub context per section, context-safe.
 - [ ] **M3-t1 (P2, human 4h / CC 1.5h) — section-identities** — 9 identities declared + implemented.
 - [ ] **M3-t2 (P1, human 1h / CC 0.3h) — registry-docs** — per-identity docs in SECTION_MOTION.
-- [ ] **M4-t1 (P2, human 3h / CC 1h) — micro-hooks** — useSpotlight/useBorderTrace/usePressPhysics/useNumeralRoll + magnetic spring-to-rest.
-- [ ] **M4-t2 (P2, human 0.5h / CC 0.2h) — press-touch** — press on touch.
-- [ ] **M4-t3 (P2, human 0.5h / CC 0.2h) — focus-spotlight** — :focus-visible equivalents.
-- [ ] **M4-t4 (P2, human 0.5h / CC 0.2h) — spotlight-layout** — CSS var writes only.
-- [ ] **M5-t1 (P2, human 4h / CC 1.5h) — signature** — ForgeSignature lazy + phase API + Mastery + app ornament.
-- [ ] **M5-t2 (P1, human 0.3h / CC 0.1h) — signature-a11y** — aria-hidden + role="presentation".
-- [ ] **M5-t3 (P1, human 0.5h / CC 0.2h) — signature-perf** — device-memory cap + IO gate + reduced fallback.
+- [x] **M4-t1 (P2, human 3h / CC 1h) — micro-hooks** — useSpotlight/useBorderTrace/usePressPhysics/useNumeralRoll + magnetic spring-to-rest.
+- [x] **M4-t2 (P2, human 0.5h / CC 0.2h) — press-touch** — press on touch.
+- [x] **M4-t3 (P2, human 0.5h / CC 0.2h) — focus-spotlight** — :focus-visible equivalents.
+- [x] **M4-t4 (P2, human 0.5h / CC 0.2h) — spotlight-layout** — CSS var writes only.
+- [x] **M5-t1 (P2, human 4h / CC 1.5h) — signature** — ForgeSignature lazy + phase API + Mastery (app ornament mounts with M6 app surfaces).
+- [x] **M5-t2 (P1, human 0.3h / CC 0.1h) — signature-a11y** — aria-hidden + role="presentation".
+- [x] **M5-t3 (P1, human 0.5h / CC 0.2h) — signature-perf** — device-memory cap + IO gate + reduced fallback.
 - [ ] **M6-t1 (P3, human 3h / CC 1h) — app-surfaces** — quiz feedback, roadmap numeral, AI polish, gamification count-ups, theme morph.
 - [ ] **M7-t1 (P1, human 2h / CC 0.5h) — qa-perf** — probe battery, Lighthouse, bundle diff, CHANGELOG, release prep.
 - [ ] **M7-t2 (P1, human 1h / CC 0.5h) — probe-extensions** — beat order, scroll phases, reduced-motion, theme, signature, focus/touch.
