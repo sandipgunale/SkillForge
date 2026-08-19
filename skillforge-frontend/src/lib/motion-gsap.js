@@ -509,7 +509,8 @@ export function useMicroInteractions(
  * within a small radius and springs back on leave. Desktop fine pointers
  * only, disabled under prefers-reduced-motion. Restrained by design —
  * the pull is a whisper, not a tug. Rect is cached on enter (no per-move
- * layout reads); quickTo drives both axes.
+ * layout reads); quickTo drives both axes; leave returns with the physical
+ * (spring) token — magnetic spring-to-rest.
  */
 export function useMagnetic(ref, { strength = 0.35, radius = 140, max = null } = {}) {
   const { reduced } = useMotionSafe();
@@ -539,8 +540,15 @@ export function useMagnetic(ref, { strength = 0.35, radius = 140, max = null } =
       toY(Math.max(-cap, Math.min(cap, dy * strength)));
     };
     const onLeave = () => {
-      toX(0);
-      toY(0);
+      /* Spring-to-rest: the return uses the physical token (back.out) so
+         the CTA settles with a slight overshoot instead of a linear glide. */
+      gsap.to(el, {
+        x: 0,
+        y: 0,
+        duration: MOTION_TOKENS.physical.duration,
+        ease: GSAP_EASE.physical,
+        overwrite: "auto",
+      });
       rect = null;
     };
 
@@ -554,6 +562,189 @@ export function useMagnetic(ref, { strength = 0.35, radius = 140, max = null } =
       gsap.killTweensOf(el);
     };
   }, [ref, reduced, strength, radius, max]);
+}
+
+/**
+ * Spotlight hover — a radial glow tracks the pointer over a card. The
+ * handler writes CSS vars only (`--spot-x`, `--spot-y`, `--spot-opacity`);
+ * the visual comes from the `.lp-spotlight` utility's ::before. Rect is
+ * cached on enter (no per-move layout reads); rAF-throttled writes; a
+ * `:focus-visible` equivalent lights the glow at the card center.
+ */
+export function useSpotlight(ref) {
+  const { reduced } = useMotionSafe();
+
+  useEffect(() => {
+    const el = ref.current;
+    if (reduced || !el) return undefined;
+    if (!window.matchMedia("(pointer: fine)").matches) return undefined;
+
+    let raf = 0;
+    let pending = null;
+    let rect = null;
+    const write = () => {
+      raf = 0;
+      if (!pending) return;
+      el.style.setProperty("--spot-x", `${pending.x}px`);
+      el.style.setProperty("--spot-y", `${pending.y}px`);
+      el.style.setProperty("--spot-opacity", "1");
+      pending = null;
+    };
+    const onMove = (e) => {
+      pending = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      if (!raf) raf = requestAnimationFrame(write);
+    };
+    const onEnter = () => {
+      rect = el.getBoundingClientRect();
+      el.style.setProperty("--spot-opacity", "1");
+    };
+    const onLeave = () => {
+      el.style.setProperty("--spot-opacity", "0");
+      rect = null;
+    };
+    const onFocus = () => {
+      rect = el.getBoundingClientRect();
+      el.style.setProperty("--spot-x", `${rect.width / 2}px`);
+      el.style.setProperty("--spot-y", `${rect.height / 2}px`);
+      el.style.setProperty("--spot-opacity", "1");
+    };
+    const onBlur = () => el.style.setProperty("--spot-opacity", "0");
+
+    el.addEventListener("pointerenter", onEnter);
+    el.addEventListener("pointermove", onMove);
+    el.addEventListener("pointerleave", onLeave);
+    el.addEventListener("focusin", onFocus);
+    el.addEventListener("focusout", onBlur);
+    return () => {
+      el.removeEventListener("pointerenter", onEnter);
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerleave", onLeave);
+      el.removeEventListener("focusin", onFocus);
+      el.removeEventListener("focusout", onBlur);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [ref, reduced]);
+}
+
+/**
+ * Border trace — an SVG outline (child `[data-border-trace]`) draws itself
+ * around a panel on hover. The svg must carry `pathLength="1"`; the hook
+ * manages dasharray/dashoffset with the ui token. A `:focus-visible`
+ * equivalent traces on keyboard focus. Disabled under reduced motion
+ * (the border simply rests untraced; the panel's static border remains).
+ */
+export function useBorderTrace(ref) {
+  const { reduced } = useMotionSafe();
+
+  useEffect(() => {
+    const el = ref.current;
+    if (reduced || !el) return undefined;
+    const path = el.querySelector("[data-border-trace]");
+    if (!path) return undefined;
+    path.setAttribute("pathLength", "1");
+    path.style.strokeDasharray = "1 1";
+    path.style.strokeDashoffset = "1";
+
+    const trace = (offset) =>
+      gsap.to(path, {
+        strokeDashoffset: offset,
+        duration: MOTION_TOKENS.ui.duration,
+        ease: GSAP_EASE.ui,
+        overwrite: "auto",
+      });
+    const onEnter = () => trace(0);
+    const onLeave = () => trace(1);
+    const onFocus = (e) => {
+      if (e.target.matches(":focus-visible")) trace(0);
+    };
+    const onBlur = () => trace(1);
+
+    el.addEventListener("pointerenter", onEnter);
+    el.addEventListener("pointerleave", onLeave);
+    el.addEventListener("focusin", onFocus);
+    el.addEventListener("focusout", onBlur);
+    return () => {
+      el.removeEventListener("pointerenter", onEnter);
+      el.removeEventListener("pointerleave", onLeave);
+      el.removeEventListener("focusin", onFocus);
+      el.removeEventListener("focusout", onBlur);
+      gsap.killTweensOf(path);
+    };
+  }, [ref, reduced]);
+}
+
+/**
+ * Press physics — scale down on press, settle back on release. Pointer
+ * events cover mouse, pen, and touch (tap = press). Micro token, reduced-
+ * motion safe (no scale).
+ */
+export function usePressPhysics(ref, { scale = 0.97 } = {}) {
+  const { reduced } = useMotionSafe();
+
+  useEffect(() => {
+    const el = ref.current;
+    if (reduced || !el) return undefined;
+
+    const press = () =>
+      gsap.to(el, {
+        scale,
+        duration: MOTION_TOKENS.micro.duration,
+        ease: GSAP_EASE.micro,
+        overwrite: "auto",
+      });
+    const release = () =>
+      gsap.to(el, {
+        scale: 1,
+        duration: MOTION_TOKENS.micro.duration,
+        ease: GSAP_EASE.physical,
+        overwrite: "auto",
+      });
+
+    el.addEventListener("pointerdown", press);
+    el.addEventListener("pointerup", release);
+    el.addEventListener("pointerleave", release);
+    el.addEventListener("pointercancel", release);
+    return () => {
+      el.removeEventListener("pointerdown", press);
+      el.removeEventListener("pointerup", release);
+      el.removeEventListener("pointerleave", release);
+      el.removeEventListener("pointercancel", release);
+      gsap.killTweensOf(el);
+    };
+  }, [ref, reduced, scale]);
+}
+
+/**
+ * Numeral roll — an eased counting animation for stat readouts. Writes
+ * textContent (with optional padding/suffix) on a GSAP tween; reduced
+ * motion jumps straight to the final value. App surfaces consume this
+ * (quiz feedback, gamification count-ups, roadmap numerals); the landing
+ * numerals stay scrub-driven.
+ */
+export function useNumeralRoll(ref, { to, duration = 1, pad = 0, suffix = "", ease = "power2.out" } = {}) {
+  const { reduced } = useMotionSafe();
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const format = (v) => String(Math.round(v)).padStart(pad, "0") + suffix;
+    if (reduced) {
+      el.textContent = format(to);
+      return undefined;
+    }
+    const state = { v: 0 };
+    const tween = gsap.to(state, {
+      v: to,
+      duration,
+      ease,
+      onUpdate: () => {
+        el.textContent = format(state.v);
+      },
+    });
+    return () => {
+      tween.kill();
+    };
+  }, [ref, reduced, to, duration, pad, suffix, ease]);
 }
 
 /**

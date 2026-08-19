@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants/routes";
-import { useMotionScope, useReducedMotion } from "@/lib/motion-gsap";
+import { useMotionScope, usePressPhysics, useReducedMotion } from "@/lib/motion-gsap";
 
 import { useInView } from "../useEntrance";
 import CapEmblem from "../cap/CapEmblem";
@@ -19,8 +19,13 @@ const GraduationCapScene = lazy(() => import("../cap/GraduationCapScene"));
 
 export default function MasterySection() {
   const rootRef = useRef(null);
+  const ctaRef = useRef(null);
+  const ctaOutlineRef = useRef(null);
   const reduced = useReducedMotion();
   const sceneReady = useInView(rootRef);
+
+  usePressPhysics(ctaRef);
+  usePressPhysics(ctaOutlineRef);
 
   useMotionScope(
     ({ gsap, select }) => {
@@ -99,10 +104,10 @@ export default function MasterySection() {
             where you're headed. Forge what's next.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Button asChild size="lg" className={T.ctaPrimary}>
+            <Button asChild ref={ctaRef} size="lg" className={T.ctaPrimary}>
               <Link to={ROUTES.REGISTER}>Start forging</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className={T.ctaOutline}>
+            <Button asChild ref={ctaOutlineRef} size="lg" variant="outline" className={T.ctaOutline}>
               <Link to={ROUTES.DASHBOARD}>Open the dashboard</Link>
             </Button>
           </div>

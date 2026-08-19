@@ -1,6 +1,6 @@
 import { lazy, Suspense, useRef } from "react";
 
-import { useReducedMotion } from "@/lib/motion-gsap";
+import { useBorderTrace, useReducedMotion } from "@/lib/motion-gsap";
 
 import { useInView, useSectionEntrance } from "../useEntrance";
 import ForgeGraph from "./ForgeGraph";
@@ -30,6 +30,7 @@ export default function EngineSection() {
 
   const panelRef = useRef(null);
   const near = useInView(panelRef);
+  useBorderTrace(panelRef);
 
   return (
     <section
@@ -77,6 +78,25 @@ export default function EngineSection() {
               </div>
             ) : null}
             <div data-entrance="aside" className="lp-panel relative z-10 p-6 sm:p-8 lg:p-10">
+              <svg
+                data-border-trace
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 h-full w-full"
+                width="100%"
+                height="100%"
+                fill="none"
+              >
+                <rect
+                  x="1"
+                  y="1"
+                  width="calc(100% - 2px)"
+                  height="calc(100% - 2px)"
+                  rx="14"
+                  vectorEffect="non-scaling-stroke"
+                  stroke="var(--lp-accent)"
+                  strokeWidth="1.5"
+                />
+              </svg>
               <div className="flex items-center justify-between gap-4">
                 <p className="font-lp-mono text-[0.6875rem] uppercase tracking-[0.22em] text-lp-muted">
                   Knowledge map

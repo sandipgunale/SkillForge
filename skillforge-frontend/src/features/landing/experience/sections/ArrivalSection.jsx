@@ -6,6 +6,7 @@ import { ROUTES } from "@/constants/routes";
 import {
   GSAP_EASE,
   useMotionScope,
+  usePressPhysics,
   useReducedMotion,
 } from "@/lib/motion-gsap";
 
@@ -45,8 +46,11 @@ const BEATS = {
 
 export default function ArrivalSection() {
   const rootRef = useRef(null);
+  const ctaRef = useRef(null);
   const reduced = useReducedMotion();
   const sceneReady = useDeferredScene();
+
+  usePressPhysics(ctaRef);
 
   useMotionScope(
     ({ gsap, select }) => {
@@ -298,7 +302,7 @@ export default function ArrivalSection() {
             data-hero="cta"
             className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row lg:justify-start"
           >
-            <Button asChild size="lg" className={T.ctaPrimary}>
+            <Button asChild ref={ctaRef} size="lg" className={T.ctaPrimary}>
               <Link to={ROUTES.REGISTER}>Start forging</Link>
             </Button>
             <Button asChild size="lg" variant="outline" className={T.ctaOutline}>

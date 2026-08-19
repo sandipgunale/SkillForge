@@ -1,8 +1,10 @@
+import { useRef } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants/routes";
+import { usePressPhysics } from "@/lib/motion-gsap";
 import { SECTIONS } from "../experience/registry";
 
 /* -------------------------------------------------------------------------- */
@@ -47,6 +49,9 @@ const FOOTER_COLUMNS = [
 ];
 
 export default function LandingFooter() {
+  const ctaRef = useRef(null);
+  usePressPhysics(ctaRef);
+
   return (
     <footer
       data-motion="quiet"
@@ -64,7 +69,7 @@ export default function LandingFooter() {
               <span className="text-lp-accent">Start forging.</span>
             </h2>
             <div className="mt-8">
-              <Button asChild size="lg" className="lp-glow rounded-[4px] bg-lp-accent px-7 text-base font-semibold text-lp-accent-ink transition-colors hover:bg-lp-accent-strong">
+              <Button asChild ref={ctaRef} size="lg" className="lp-glow rounded-[4px] bg-lp-accent px-7 text-base font-semibold text-lp-accent-ink transition-colors hover:bg-lp-accent-strong">
                 <Link to={ROUTES.REGISTER}>
                   Start forging
                   <ArrowUpRight className="ml-2 size-4" />

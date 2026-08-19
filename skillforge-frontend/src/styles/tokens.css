@@ -133,6 +133,32 @@
   box-shadow: var(--lp-glow);
 }
 
+/* Spotlight — a radial copper glow tracks the pointer over cards.
+   The useSpotlight hook writes --spot-x/--spot-y/--spot-opacity (CSS vars
+   only); this utility renders the glow. Overlay ::before keeps the panel
+   content above the light. */
+.landing-shell .lp-spotlight {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.landing-shell .lp-spotlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(
+    420px circle at var(--spot-x, 50%) var(--spot-y, 50%),
+    color-mix(in oklch, var(--lp-accent) 14%, transparent),
+    transparent 65%
+  );
+  opacity: var(--spot-opacity, 0);
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
 /* Accessible focus — visible on the landing, ring matches the accent.
    No border-radius override: the shadow follows each element's own
    resting radius, so focus never mutates the shape. */
