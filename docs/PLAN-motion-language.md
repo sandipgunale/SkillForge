@@ -498,6 +498,11 @@ DX scope: no (consumer product surfaces; no API/CLI/docs surfaces change). Skipp
 | 73 | M5 (impl) | Reduced motion = static CapEmblem silhouette, no loop, no travel (M5-t2 aria-hidden + role="presentation"); no-canvas = CapEmblem fallback (F9); lazy + Suspense fallback CapEmblem (F11/D-T11 loading state); device-memory particle budget (90 low / 210 full) + IO-gated rAF + DPR cap 1.5 | Mechanical | P1 | M5-t3; signature needs no WebGL — no-WebGL fallback only for canvas-context failure | — |
 | 74 | M5 (impl) | Mastery under reduced motion keeps the static cap scene and hides the signature entirely (no scrub exists to reveal it; the scene IS the static fallback) | Taste | P2 | Reduced contract: one static finale, not two stacked silhouettes | — |
 | 75 | M5 (impl) | Probe: signature battery (entry scattered span ~0.95, dissolve completes by 0.8, converged span ~0.74 + painted jump + ring sweep, reduced = emblem/no canvas/no errors); found + fixed: float-overflow RNG in scatter, canvas intrinsic 2:1 aspect from missing fill classes, sampler shortfall (205 < 210) crashing the loop | Mechanical | P1 | T-ENG-9 signature.mjs; three real defects caught by pixel assertions | — |
+| 76 | M6 (impl) | First useNumeralRoll consumers: quiz question counter (composes with the existing bump) + learning-path stats (weeks/resources/quizzes/avg score; "—" case keeps hooks unconditional) | Mechanical | P2 | M6-t1 quiz feedback + roadmap numeral; hook exists since M4 — app surfaces now use it | — |
+| 77 | M6 (impl) | GamificationCard points -> shared CountUp (was static; AchievementsPage already counted); AI send CTAs (AICenter + AICopilot) gain press physics | Mechanical | P2 | M6-t1 gamification count-ups + AI polish; existing components reused, no new logic | — |
+| 78 | M6 (impl) | Theme morph: `--morph-duration: 600ms` token in :root (single source, matches DURATION.morph) + `@media (prefers-reduced-motion: reduce)` kills the 600ms cross-fade — CSS-only, no dead hook (anti-slop) | Taste | P2 | T-ADD-3 intent satisfied without an unused hook; probed: var present, reduced bodyTransition ~0s | — |
+| 79 | M6 (impl) | Signature ornament in MissionOverview: lazy ForgeSignature under the AIOrb health ring, phase mapped from learning health (T-ENG-5 app-state driver); sized via wrapper div (component root owns h-full/w-full) | Mechanical | P2 | M5-t1 "app ornament" lands here; reduced = static CapEmblem, aria-hidden inherited | — |
+| 80 | M6 (impl) | Probe: app-motion (register -> dashboard -> ornament phase/size/aria, stats + gamification numerals, AI send press via real mouse, morph token + reduced gate); found: register rate limit (5/10min, dev switch RATE_LIMIT_ENABLED=false), ornament size-14 clashed with h-full root, synthetic pointerdown unreliable in probes | Mechanical | P2 | T-ENG-9 app-motion.mjs; rate limiter is prod-correct — probe env only | — |
 
 ## Implementation Tasks (aggregated across phases)
 
@@ -516,7 +521,7 @@ DX scope: no (consumer product surfaces; no API/CLI/docs surfaces change). Skipp
 - [x] **M5-t1 (P2, human 4h / CC 1.5h) — signature** — ForgeSignature lazy + phase API + Mastery (app ornament mounts with M6 app surfaces).
 - [x] **M5-t2 (P1, human 0.3h / CC 0.1h) — signature-a11y** — aria-hidden + role="presentation".
 - [x] **M5-t3 (P1, human 0.5h / CC 0.2h) — signature-perf** — device-memory cap + IO gate + reduced fallback.
-- [ ] **M6-t1 (P3, human 3h / CC 1h) — app-surfaces** — quiz feedback, roadmap numeral, AI polish, gamification count-ups, theme morph.
+- [x] **M6-t1 (P3, human 3h / CC 1h) — app-surfaces** — quiz feedback, roadmap numeral, AI polish, gamification count-ups, theme morph.
 - [ ] **M7-t1 (P1, human 2h / CC 0.5h) — qa-perf** — probe battery, Lighthouse, bundle diff, CHANGELOG, release prep.
 - [ ] **M7-t2 (P1, human 1h / CC 0.5h) — probe-extensions** — beat order, scroll phases, reduced-motion, theme, signature, focus/touch.
 - [ ] **M7-t3 (P1, human 0.5h / CC 0.2h) — p1-1-rerun** — mandatory entrance-flash regression probe.
