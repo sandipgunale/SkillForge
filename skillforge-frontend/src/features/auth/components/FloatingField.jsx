@@ -51,6 +51,7 @@ export default function FloatingField({
   id,
   label,
   icon,
+  type = "text",
   autoComplete,
   field,
   error,
@@ -69,7 +70,7 @@ export default function FloatingField({
   const score = passwordStrength(value);
   const segments = strengthSegments(score);
 
-  const inputType = isPassword && !showPassword ? "password" : "text";
+  const inputType = isPassword && !showPassword ? "password" : type;
 
   const trailingKey = isPassword
     ? "eye"
