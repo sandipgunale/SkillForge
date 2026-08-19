@@ -479,6 +479,12 @@ DX scope: no (consumer product surfaces; no API/CLI/docs surfaces change). Skipp
 | 54 | Eng | F11: useCount reset st.current on `to` change; verify via M6 probe | Mechanical | P3 | Stale-value restart semantics untested | — |
 | 55 | Eng | F12: Lighthouse on vite build + vite preview (not dev server) | Mechanical | P6 | Dev build inflates FCP/LCP | — |
 | 56 | Eng | W2/W3: FAQ cut to fade+rotate; M6 AI scoped to conformance only (cut thought shimmer) | Taste | P3 | Decoration creep vs P1 | shimmer |
+| 57 | M2 (impl) | Entrance gate: cap wake is an opacity fade keyed on deferred scene mount (`entrance="idle"` keeps the rig at rest until the beat owns the reveal) | Mechanical | P1 | Lazy chunk + beat timeline would otherwise race on cold loads | — |
+| 58 | M2 (impl) | Ember halo is a DOM element behind the cap slot (beat timeline owns opacity; no Three glow prop) | Mechanical | P1 | Decided in Design phase; DOM keeps it on the motion layer | — |
+| 59 | M2 (impl) | M2-t2 narrowed: dissolve + return-differently deferred to M5 — ForgeSignature owns both acts (decision #25, two distinct acts); M2 ships rotate + depth on the Mastery scrub | Taste | P1 | Keeps the shipped QA'd finale intact until the signature replaces the ending beat | — |
+| 60 | M2 (impl) | Beat positions canonicalized in a BEATS map (halo .1 / label .25 / title .4 / subtitle .5 / cta .6 / facts .75 / scroll 1 / coda 1.2); reduced motion = single 0.6s-delay opacity cross-fade of `[data-hero-copy]` only | Mechanical | P1 | Deterministic positions; reduced variant never pre-hides children | — |
+| 61 | M2 (impl) | Live media toggle: `prefers-reduced-motion` change listener kills the timeline and resets inline styles (no gsap.set, no clearProps) | Mechanical | P2 | T-ADD-4 pattern; in-flight beat never leaves elements stuck hidden | — |
+| 62 | M2 (impl) | Probe battery: landing-hero (beat order, pre-hide contract, halo rest 0.600, scroll fade-only), hero-reduced (opacity-only, no transforms), mastery-rotate (rotation -5deg->0 + scale 0.9->1, settled flat, Tailwind centering translate preserved) | Mechanical | P1 | T-ENG-8; mastery probe proves no transform conflict on data-cap-return | — |
 
 ## Implementation Tasks (aggregated across phases)
 
