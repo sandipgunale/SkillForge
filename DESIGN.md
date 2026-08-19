@@ -155,17 +155,51 @@ of truth for `/showcase`.
   product brand mark, not a landing token. Copper governs everything else in
   the shell.
 
-## Motion
+## Motion Language
 
-- **Approach:** expressive but disciplined; scroll progress = forging progress.
-- **Easing:** one source in `src/lib/motion-gsap.js`; ease-out for entrances,
-  ease-in-out for scroll-linked, none on exit unless meaningful.
-- **Duration tiers:** micro 120–180ms (hover/active), reveal 400–700ms
-  (entrances), cinematic 1–2s (cap passages, graph formation).
-- **Reduced motion:** `prefers-reduced-motion` → static SVG poster cap, no
-  pinning, no transforms, no parallax.
-- **Perf:** single RAF, no per-frame layout, off-screen pause, dispose on
-  unmount (see `docs/PLAN-landing-rebuild.md`).
+Motion is information, not decoration. Every animation must communicate meaning; generic animations are rejected. One motion library (`src/lib/motion-gsap.js`), one token source (`src/lib/design-system.js` — `DURATION`/`EASE`/`MOTION`), GSAP as the primary engine.
+
+### The 5 layers (descending intensity)
+
+1. **Global scene** — ambient, slow 8–16s cycles (particles, glow, aurora; `MOTION.ambient` documented constants — Three.js frame loops are math, not tweens).
+2. **Section** — one named identity per landing section (see the registry in `SECTION_MOTION`, `motion-gsap.js`). Mostly scroll-driven, scrub or once-trigger.
+3. **Component** — hover/click/press micro-interactions, 100–250ms, spring physics.
+4. **Micro** — the smallest details: glints, line draws, number transitions, chevron rotates.
+5. **Physical/3D** — hero cap: real mass, momentum, inertia, spring-dampened pointer response.
+
+### Token mapping (the single table)
+
+Categories are the primary key; components declare intent, never raw durations/curves. Values map onto existing constants — never revalue them.
+
+| Category | Intent | Duration | Ease |
+| --- | --- | --- | --- |
+| `micro` | press, toggle, chevron rotate | `fast` (150ms) | `outExpo` |
+| `ui` | component in/out (cards, modals, panels) | `base` (250ms) | `outExpo` |
+| `scene` | section/scroll choreography | `entrance` (800ms) | `outExpo` |
+| `physical` | mass/spring (cap, magnetic) | `base` (250ms) | `spring` |
+| `scroll` | scrub/parallax | — (scroll progress, not clock) | — |
+| `ambient` | 3D loops | `float` 9000 / `breathe` 6000 / `aurora` 18000 | — |
+
+GSAP mirrors: `GSAP_EASE.{micro,ui,scene,physical}` and `MOTION_TOKENS` in `motion-gsap.js`. This table supersedes the earlier ad-hoc tiers (micro 120–180 / reveal 400–700 / cinematic 1–2s).
+
+### Section identities (landing)
+
+Each section declares one identity in `SECTION_MOTION` (wake, claim, trust, process, machine, formation, proof, transformation, answers, mirror, quiet, shell) and is wired via `data-motion="<identity>"`. Bespoke sections (Arrival, Mastery, ForgeGraph) register `builder` entries — the escape hatch that keeps the registry honest. **Anti-slop rule: no new section may fall back to a generic rise/fade; an identity is mandatory.** The dashboard `PRESETS.rise` is a legacy default, not a template for new work.
+
+### Hero arc
+
+Entrance beats at 0/100/250/400/500/600/1200ms (cap wake, halo, eyebrow, headline, subcopy, CTA cluster, ember burst) with deterministic from-states (direct style writes — no `clearProps`, the P1-1 lesson). Then the cap's 5-phase scroll: recede (hero exit) → rotate → depth → dissolve (hosted on the Mastery sticky stage) → return-differently (reformed by the knowledge net, never a replay of the entrance).
+
+### Rules
+
+- Compositor-friendly properties only (transform/opacity/filter); `will-change` only during active animation.
+- One ScrollTrigger per section; rAF-throttled handlers; rect cached on enter (no per-move layout reads).
+- Cleanup every animation via context-safe `gsap.context`/`useMotionScope`.
+- **Reduced motion:** `prefers-reduced-motion` → opacity-only variants (no travel, no transforms), static cap silhouette, no parallax; input-driven micro-interactions (magnetic/tilt) disabled.
+- **Mobile:** parallax 40% of desktop; magnetic off on touch; no scroll-jacking ever.
+- Keyboard: every interactive motion has a `:focus-visible` equivalent; motion never replaces focus styles.
+- Perf gate: Lighthouse ≥ 98 / INP < 200ms; ≤ 1 live WebGL context on the landing; device-memory particle caps; signature lazy + IO-gated, 2D canvas (not a third WebGL context).
+- Theme morph: coordinated with the next-themes class swap, `DURATION.morph` (600ms), no white flash.
 
 ## Decisions Log
 
@@ -179,3 +213,6 @@ of truth for `/showcase`.
 | 2026-08-18 | display-3 (4.25rem) + small (14px) tiers documented | Section statements and FAQ answers already shipped at these sizes; now codified. |
 | 2026-08-18 | 44px invisible hit areas on nav links/CTA | Editorial size with accessible reach; no visual change. |
 | 2026-08-18 | AppLogo keeps amber on the copper landing | Brand mark exception; everything else in the shell is copper. |
+| 2026-08-19 | Motion language codified (5 layers, token mapping table, section identities) | /autoplan review: motion was functional but not a language; single mapping table supersedes ad-hoc tiers; anti-slop rule (identities mandatory). |
+| 2026-08-19 | Cap phases 2–5 host on Mastery sticky stage | Design + eng reviews: hero cap leaves the viewport after recede; "through the story" needs scroll-jacking (rejected). Same emotional intent, physically visible. |
+| 2026-08-19 | Dead motion hooks purged (useScrollShow/useStaggerIn/useSectionReveal/useSplitReveal/useWidgetReveal) | Three carried the banned clearProps flash pattern; dead code is bait (AGENTS.md). useReducedMotion consolidated into motion-gsap. |

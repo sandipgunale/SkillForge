@@ -309,24 +309,10 @@ export function buildDust(count, { inner = 9, outer = 13.5, flatten = 1 } = {}) 
 /*  Adaptive runtime — reduced motion, tab visibility, device capability       */
 /* -------------------------------------------------------------------------- */
 
-/** Tracks prefers-reduced-motion with live updates. */
-export function useReducedMotion() {
-  const [reduced, setReduced] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-  );
-
-  useEffect(() => {
-    if (typeof window === "undefined") return undefined;
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const onChange = (e) => setReduced(e.matches);
-    media.addEventListener("change", onChange);
-    return () => media.removeEventListener("change", onChange);
-  }, []);
-
-  return reduced;
-}
+/* useReducedMotion lives in motion-gsap.js (the single motion library);
+   re-exported here so scene imports keep their path. */
+import { useReducedMotion } from "./motion-gsap";
+export { useReducedMotion };
 
 /** Tracks document.visibilitychange so the Canvas frameloop can pause. */
 export function useTabHidden() {
