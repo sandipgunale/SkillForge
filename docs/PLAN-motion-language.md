@@ -503,6 +503,9 @@ DX scope: no (consumer product surfaces; no API/CLI/docs surfaces change). Skipp
 | 78 | M6 (impl) | Theme morph: `--morph-duration: 600ms` token in :root (single source, matches DURATION.morph) + `@media (prefers-reduced-motion: reduce)` kills the 600ms cross-fade — CSS-only, no dead hook (anti-slop) | Taste | P2 | T-ADD-3 intent satisfied without an unused hook; probed: var present, reduced bodyTransition ~0s | — |
 | 79 | M6 (impl) | Signature ornament in MissionOverview: lazy ForgeSignature under the AIOrb health ring, phase mapped from learning health (T-ENG-5 app-state driver); sized via wrapper div (component root owns h-full/w-full) | Mechanical | P2 | M5-t1 "app ornament" lands here; reduced = static CapEmblem, aria-hidden inherited | — |
 | 80 | M6 (impl) | Probe: app-motion (register -> dashboard -> ornament phase/size/aria, stats + gamification numerals, AI send press via real mouse, morph token + reduced gate); found: register rate limit (5/10min, dev switch RATE_LIMIT_ENABLED=false), ornament size-14 clashed with h-full root, synthetic pointerdown unreliable in probes | Mechanical | P2 | T-ENG-9 app-motion.mjs; rate limiter is prod-correct — probe env only | — |
+| 81 | M7 (qa) | Bundle audit: landing route chunk 7.70 kB (ceiling 70 kB met); ForgeSignature 3.32 kB + GraduationCapScene 6.84 kB in their own lazy chunks — zero main-chunk cost from the signature; vendor-three 882 kB (gzip 235 kB) loads on hero cap mount (pre-existing landing-rebuild P4 architecture) | Mechanical | P1 | M7-t1 bundle diff; motion-language adds no eager bytes | — |
+| 82 | M7 (qa) | Lighthouse baseline (prod build, mobile-emulated): PERF 44 / A11Y 96 / BP 100 / SEO 100, FCP 4.6s, LCP 5.7s, CLS 0. FCP/LCP dominated by vendor-three main-thread compile on the hero cap scene; a11y = lp-token contrast on landing AI/resources cards (text-lp-accent/lp-muted under 4.5:1). No pre-motion baseline exists — recorded as the new baseline | Mechanical | P1 | M7-t1; hazards are landing-rebuild design territory, not motion-language regressions; follow-ups filed below | — |
+| 83 | M7 (qa) | Follow-ups out of motion-language scope: (a) hero vendor-three blocks FCP — defer/soft-load the hero cap scene or preconnect; (b) lp-token contrast on AI/resources cards -> /plan-design-review pass; (c) app-motion deep flows (quiz/path numerals with live data) need seeded data | Mechanical | P1 | Future M8 / landing-rebuild hardening; ship gate held by user | — |
 
 ## Implementation Tasks (aggregated across phases)
 
@@ -522,9 +525,9 @@ DX scope: no (consumer product surfaces; no API/CLI/docs surfaces change). Skipp
 - [x] **M5-t2 (P1, human 0.3h / CC 0.1h) — signature-a11y** — aria-hidden + role="presentation".
 - [x] **M5-t3 (P1, human 0.5h / CC 0.2h) — signature-perf** — device-memory cap + IO gate + reduced fallback.
 - [x] **M6-t1 (P3, human 3h / CC 1h) — app-surfaces** — quiz feedback, roadmap numeral, AI polish, gamification count-ups, theme morph.
-- [ ] **M7-t1 (P1, human 2h / CC 0.5h) — qa-perf** — probe battery, Lighthouse, bundle diff, CHANGELOG, release prep.
-- [ ] **M7-t2 (P1, human 1h / CC 0.5h) — probe-extensions** — beat order, scroll phases, reduced-motion, theme, signature, focus/touch.
-- [ ] **M7-t3 (P1, human 0.5h / CC 0.2h) — p1-1-rerun** — mandatory entrance-flash regression probe.
+- [ ] **M7-t1 (P1, human 2h / CC 0.5h) — qa-perf** — probe battery (DONE), Lighthouse baseline (DONE), bundle diff (DONE); CHANGELOG + release prep HELD on user ship decision.
+- [x] **M7-t2 (P1, human 1h / CC 0.5h) — probe-extensions** — beat order, scroll phases, reduced-motion, theme, signature, focus/touch.
+- [x] **M7-t3 (P1, human 0.5h / CC 0.2h) — p1-1-rerun** — mandatory entrance-flash regression probe.
 
 ### CEO Review Task Additions (folding pending approval)
 
