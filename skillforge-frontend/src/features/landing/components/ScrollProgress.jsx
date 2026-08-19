@@ -83,6 +83,7 @@ export default function ScrollProgress() {
   return (
     <div
       data-scroll-progress
+      data-motion="shell"
       aria-hidden="true"
       className="pointer-events-none fixed bottom-6 right-5 z-40 hidden select-none flex-col items-end gap-2 md:flex"
     >

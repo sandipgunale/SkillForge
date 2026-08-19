@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-import { useMotionScope, useReducedMotion } from "@/lib/motion-gsap";
+import { SECTION_MOTION, useMotionScope, useReducedMotion } from "@/lib/motion-gsap";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -17,9 +17,15 @@ gsap.registerPlugin(ScrollTrigger);
  * Section entrance — plays one short choreography when the section crosses
  * ~78% of the viewport (once). Selectors: [data-entrance='label'|'head'|
  * 'lead'|'content'|'aside']. Deterministic from-states, once-only, disabled
- * under prefers-reduced-motion. Mirrors the pre-rebuild entrance system.
+ * under prefers-reduced-motion.
+ *
+ * `identity` declares the section's SECTION_MOTION identity (M3): when the
+ * registry entry has a `build` function it runs that choreography (claim/
+ * mask, trust/blur, machine/wipe, proof/quote); otherwise the fallback
+ * variant system (rise/clip/activate) applies. Sections must declare their
+ * identity — never inline tweens (anti-slop rule).
  */
-export function useSectionEntrance(rootRef, { variant = "rise" } = {}) {
+export function useSectionEntrance(rootRef, { identity, variant = "rise" } = {}) {
   const reduced = useReducedMotion();
 
   useMotionScope(
@@ -40,10 +46,20 @@ export function useSectionEntrance(rootRef, { variant = "rise" } = {}) {
           el.style.opacity = "";
           el.style.transform = "";
           el.style.clipPath = "";
+          el.style.filter = "";
         });
       if (reduced) {
         reset([...label, ...head, ...lead, ...content, ...aside, ...units]);
         return undefined;
+      }
+
+      const entry = identity ? SECTION_MOTION[identity] : null;
+      if (entry?.build) {
+        /* Builder identity (M3): reset every slot first so the builder owns
+           exactly the properties it animates (no stale inline values), then
+           let the registry choreograph the section. */
+        reset([...label, ...head, ...lead, ...content, ...aside, ...units]);
+        return entry.build({ gsap, select, reset, root: rootRef.current });
       }
 
       /* ScrollTrigger defers a timeline's from-states until the trigger
@@ -106,7 +122,7 @@ export function useSectionEntrance(rootRef, { variant = "rise" } = {}) {
         tl.fromTo(aside, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.8 }, 0.18);
       }
     },
-    [reduced, variant],
+    [reduced, identity, variant],
     rootRef,
   );
 

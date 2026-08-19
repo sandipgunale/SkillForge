@@ -4,8 +4,8 @@ import { useScrubReveal, useSectionEntrance } from "../useEntrance";
 import { Section, T } from "./shared";
 
 /* -------------------------------------------------------------------------- */
-/*  04 · RESOURCES  05 · AI  06 · PRACTICE  07 · ROADMAP  08 · PROGRESS      */
-/*  Product sections — editorial copy beside honest sample-UI panels, real    */
+/*  04 Â· RESOURCES  05 Â· AI  06 Â· PRACTICE  07 Â· ROADMAP  08 Â· PROGRESS      */
+/*  Product sections â€” editorial copy beside honest sample-UI panels, real    */
 /*  feature facts only (no fabricated stats; every mockup is labeled).        */
 /* -------------------------------------------------------------------------- */
 
@@ -13,7 +13,7 @@ function SectionHead({ num, label, title, lead }) {
   return (
     <div className="max-w-[92vw] lg:max-w-[74%]">
       <p data-entrance="label" className={T.label}>
-        <span className="text-lp-faint">{num}</span> — {label}
+        <span className="text-lp-faint">{num}</span> â€” {label}
       </p>
       <h2 data-entrance="head" className={`${T.h2} mt-5`}>
         {title}
@@ -25,37 +25,37 @@ function SectionHead({ num, label, title, lead }) {
   );
 }
 
-/* ----------------------------- 04 · RESOURCES ----------------------------- */
+/* ----------------------------- 04 Â· RESOURCES ----------------------------- */
 
 const RESOURCE_ROWS = [
   {
     num: "01",
     title: "Searchable catalog",
-    body: "Every resource curated into one focused catalog — courses, articles, docs, repos. Search, filter, and stop juggling twenty tabs.",
+    body: "Every resource curated into one focused catalog â€” courses, articles, docs, repos. Search, filter, and stop juggling twenty tabs.",
   },
   {
     num: "02",
     title: "Quick open",
-    body: "Jump anywhere in your workspace in two keystrokes. Your library, your paths, your last quiz — always one command away.",
+    body: "Jump anywhere in your workspace in two keystrokes. Your library, your paths, your last quiz â€” always one command away.",
   },
   {
     num: "03",
     title: "Bookmarks & ratings",
-    body: "Tag what matters, rate what helped. Your ratings sharpen the recommendations — and the AI reads them when it drafts your practice.",
+    body: "Tag what matters, rate what helped. Your ratings sharpen the recommendations â€” and the AI reads them when it drafts your practice.",
   },
   {
     num: "04",
     title: "Progress-aware pages",
-    body: "Resources remember where you left off — across sessions, devices, and a week of real life getting in the way.",
+    body: "Resources remember where you left off â€” across sessions, devices, and a week of real life getting in the way.",
   },
 ];
 
 export function ResourcesSection() {
   const rootRef = useRef(null);
-  useSectionEntrance(rootRef);
+  useSectionEntrance(rootRef, { identity: "mirror" });
 
   return (
-    <Section id="resources" sectionRef={rootRef} className="bg-lp-surface">
+    <Section id="resources" motion="mirror" sectionRef={rootRef} className="bg-lp-surface">
       <SectionHead
         num="04"
         label="Resources"
@@ -65,7 +65,7 @@ export function ResourcesSection() {
             <span className="text-lp-muted">Your entire library.</span>
           </>
         }
-        lead="SkillForge replaces the tab-soup: a curated catalog that lives next to your paths, quizzes, and progress — so the raw material is always in reach of the forge."
+        lead="SkillForge replaces the tab-soup: a curated catalog that lives next to your paths, quizzes, and progress â€” so the raw material is always in reach of the forge."
       />
       <div className="mt-14 border-t border-lp-border" data-entrance="content">
         {RESOURCE_ROWS.map((row) => (
@@ -87,21 +87,21 @@ export function ResourcesSection() {
   );
 }
 
-/* -------------------------------- 05 · AI --------------------------------- */
+/* -------------------------------- 05 Â· AI --------------------------------- */
 
 const AI_FACTS = [
   ["Guardrailed", "Every prompt passes injection guards before it touches the model."],
   ["Schema-validated", "AI responses are parsed and validated against strict schemas."],
   ["Resilient", "Retries, timeouts, and provider failover keep practice flowing."],
-  ["Measured", "Token, cost, and cache analytics — the AI never surprises you."],
+  ["Measured", "Token, cost, and cache analytics â€” the AI never surprises you."],
 ];
 
 export function AiSection() {
   const rootRef = useRef(null);
-  useSectionEntrance(rootRef);
+  useSectionEntrance(rootRef, { identity: "mirror" });
 
   return (
-    <Section id="ai" sectionRef={rootRef} className="bg-lp-bg">
+    <Section id="ai" motion="mirror" sectionRef={rootRef} className="bg-lp-bg">
       <div className="grid gap-12 lg:grid-cols-[1fr_1.05fr] lg:gap-16">
         <div>
           <SectionHead
@@ -137,7 +137,7 @@ export function AiSection() {
               AI evaluation
             </p>
             <p className="font-lp-mono mt-1 text-[0.6875rem] uppercase tracking-[0.16em] text-lp-faint">
-              Sample UI — live data at runtime
+              Sample UI â€” live data at runtime
             </p>
 
             <div className="mt-6 border border-lp-border p-5">
@@ -180,7 +180,7 @@ export function AiSection() {
                 Score 10 / 10
               </p>
               <p className={`${T.small} mt-2 text-lp-text`}>
-                Correct — <code className="font-lp-mono text-[0.95em] text-lp-accent">satisfies</code> validates a value
+                Correct â€” <code className="font-lp-mono text-[0.95em] text-lp-accent">satisfies</code> validates a value
                 against a type while preserving its inferred type. The check happens at compile time, not runtime.
               </p>
             </div>
@@ -191,23 +191,23 @@ export function AiSection() {
   );
 }
 
-/* ------------------------------ 06 · PRACTICE ----------------------------- */
+/* ------------------------------ 06 Â· PRACTICE ----------------------------- */
 
 const CYCLE = [
-  ["01", "Set the forge", "Pick a topic or open an adaptive path — the sequence is drafted for you."],
-  ["02", "Attempt", "Answer a short quiz heat: 5–10 questions, one sitting, honest effort."],
-  ["03", "Evaluation", "The AI grades instantly against the rubric — a score you can trust."],
+  ["01", "Set the forge", "Pick a topic or open an adaptive path â€” the sequence is drafted for you."],
+  ["02", "Attempt", "Answer a short quiz heat: 5â€“10 questions, one sitting, honest effort."],
+  ["03", "Evaluation", "The AI grades instantly against the rubric â€” a score you can trust."],
   ["04", "Feedback", "Explanations land where you erred, with pointers to the exact resources."],
-  ["05", "Next heat", "The path adapts to your result. Repeat daily — momentum compounds."],
+  ["05", "Next heat", "The path adapts to your result. Repeat daily â€” momentum compounds."],
 ];
 
 export function PracticeSection() {
   const rootRef = useRef(null);
-  useSectionEntrance(rootRef);
+  useSectionEntrance(rootRef, { identity: "mirror" });
   useScrubReveal(rootRef);
 
   return (
-    <Section id="practice" sectionRef={rootRef} className="bg-lp-surface">
+    <Section id="practice" motion="mirror" sectionRef={rootRef} className="bg-lp-surface">
       <SectionHead
         num="06"
         label="Practice"
@@ -217,7 +217,7 @@ export function PracticeSection() {
             <span className="text-lp-muted">finish.</span>
           </>
         }
-        lead="Reading alone doesn't build skill — retrieval does. The forge runs on short, frequent practice heats: attempt, get graded, learn where you missed, and feed the result back into the path."
+        lead="Reading alone doesn't build skill â€” retrieval does. The forge runs on short, frequent practice heats: attempt, get graded, learn where you missed, and feed the result back into the path."
       />
       <div className="mt-14 border-t border-lp-border">
         {CYCLE.map(([num, title, body]) => (
@@ -241,20 +241,20 @@ export function PracticeSection() {
   );
 }
 
-/* ------------------------------ 07 · ROADMAP ------------------------------ */
+/* ------------------------------ 07 Â· ROADMAP ------------------------------ */
 
 const PHASES = [
-  ["Weeks 01–04", "Foundations", "Sequenced core: syntax, tooling, and your first builds."],
-  ["Weeks 05–08", "Depth", "Real-world patterns, testing, and performance under load."],
-  ["Weeks 09–12", "Projects", "Ship portfolio work — the path certifies what you built."],
+  ["Weeks 01â€“04", "Foundations", "Sequenced core: syntax, tooling, and your first builds."],
+  ["Weeks 05â€“08", "Depth", "Real-world patterns, testing, and performance under load."],
+  ["Weeks 09â€“12", "Projects", "Ship portfolio work â€” the path certifies what you built."],
 ];
 
 export function RoadmapSection() {
   const rootRef = useRef(null);
-  useSectionEntrance(rootRef);
+  useSectionEntrance(rootRef, { identity: "mirror" });
 
   return (
-    <Section id="roadmap" sectionRef={rootRef} className="bg-lp-bg">
+    <Section id="roadmap" motion="mirror" sectionRef={rootRef} className="bg-lp-bg">
       <SectionHead
         num="07"
         label="Learning paths"
@@ -264,7 +264,7 @@ export function RoadmapSection() {
             <span className="text-lp-accent">one direction.</span>
           </>
         }
-        lead="Pathfinder drafts a 12-week path from your goal and your quiz performance — foundations, depth, then real projects. You can edit every week; the forge keeps the sequence honest."
+        lead="Pathfinder drafts a 12-week path from your goal and your quiz performance â€” foundations, depth, then real projects. You can edit every week; the forge keeps the sequence honest."
       />
       <div className="mt-14 grid gap-5 lg:grid-cols-3" data-entrance="content">
         {PHASES.map(([weeks, title, body], i) => (
@@ -281,21 +281,21 @@ export function RoadmapSection() {
         ))}
       </div>
       <p className="font-lp-mono mt-8 text-[0.6875rem] uppercase tracking-[0.2em] text-lp-faint">
-        Every path is editable — walk it your way.
+        Every path is editable â€” walk it your way.
       </p>
     </Section>
   );
 }
 
-/* ------------------------------ 08 · PROGRESS ----------------------------- */
+/* ------------------------------ 08 Â· PROGRESS ----------------------------- */
 
 export function ProgressSection() {
   const rootRef = useRef(null);
-  useSectionEntrance(rootRef);
+  useSectionEntrance(rootRef, { identity: "mirror" });
   useScrubReveal(rootRef);
 
   return (
-    <Section id="progress" sectionRef={rootRef} className="bg-lp-surface">
+    <Section id="progress" motion="mirror" sectionRef={rootRef} className="bg-lp-surface">
       <div className="grid gap-12 lg:grid-cols-[1fr_1.05fr] lg:gap-16">
         <div>
           <SectionHead
@@ -307,7 +307,7 @@ export function ProgressSection() {
                 <span className="text-lp-accent">read.</span>
               </>
             }
-            lead="The forge instruments your learning the way a foundry instruments its heat: health, streaks, badges, and weekly digests — so you can see the metal taking shape."
+            lead="The forge instruments your learning the way a foundry instruments its heat: health, streaks, badges, and weekly digests â€” so you can see the metal taking shape."
           />
           <div className="mt-10 max-w-[52ch]" data-entrance="content">
             <ul className="flex flex-col gap-5">
@@ -328,7 +328,7 @@ export function ProgressSection() {
           </div>
         </div>
 
-        {/* Instrument readouts — sample UI */}
+        {/* Instrument readouts â€” sample UI */}
         <div data-entrance="aside" className="flex flex-col justify-center">
           <div className="lp-panel p-6 sm:p-8">
             <div className="flex items-center justify-between gap-4">
@@ -336,7 +336,7 @@ export function ProgressSection() {
                 Learning health
               </p>
               <p className="font-lp-mono text-[0.6875rem] uppercase tracking-[0.16em] text-lp-faint">
-                Sample UI — live data at runtime
+                Sample UI â€” live data at runtime
               </p>
             </div>
 

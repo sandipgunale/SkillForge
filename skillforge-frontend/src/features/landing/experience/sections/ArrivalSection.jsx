@@ -250,6 +250,7 @@ export default function ArrivalSection() {
       ref={rootRef}
       id="top"
       data-landing-section="top"
+      data-motion="wake"
       className="relative overflow-hidden"
     >
       {/* The cap — decorative, never blocks input. Desktop: anchored right,

@@ -48,7 +48,10 @@ const FOOTER_COLUMNS = [
 
 export default function LandingFooter() {
   return (
-    <footer className="relative overflow-hidden border-t border-lp-border bg-lp-surface">
+    <footer
+      data-motion="quiet"
+      className="relative overflow-hidden border-t border-lp-border bg-lp-surface"
+    >
       <div className="mx-auto max-w-[1180px] px-[clamp(24px,5vw,56px)] py-16 lg:py-24">
         {/* Statement + CTA */}
         <div className="grid items-end gap-10 lg:grid-cols-[1fr_auto]">

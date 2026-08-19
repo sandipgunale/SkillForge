@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -56,12 +56,197 @@ export const MOTION_TOKENS = {
   physical: { duration: MOTION.physical.duration / 1000, ease: GSAP_EASE.physical },
 };
 
+/* ==========================================================================
+   Section identity builders — the choreography per declared identity.
+
+   A builder receives { gsap, select, reset, root, tokens } and runs inside
+   the section's gsap.context (scoped + reverted with the component). It owns
+   its deterministic from-states (direct style writes — the P1-1 lesson, no
+   clearProps) and returns nothing. Identities without a builder (mirror,
+   quiet, …) keep their declared fallback behavior.
+
+   The driver (`useSectionEntrance({ identity })` in useEntrance.js) resets
+   all entrance slots before a builder runs, so a builder can rely on writing
+   exactly the properties it animates.
+   ========================================================================== */
+
+const preHideWrites = (els, styles) =>
+  els.forEach((el) => {
+    Object.entries(styles).forEach(([prop, value]) => {
+      el.style[prop] = value;
+    });
+  });
+
+const chapterSlots = (select) => ({
+  label: select("[data-entrance='label']"),
+  head: select("[data-entrance='head']"),
+  lead: select("[data-entrance='lead']"),
+  content: select("[data-entrance='content']"),
+  aside: select("[data-entrance='aside']"),
+});
+
+const chapterTrigger = (gsap, root) => ({
+  scrollTrigger: { trigger: root, start: "top 78%", once: true },
+});
+
+const BUILDERS = {
+  /* claim — the editorial statement: the display line rises under a clip
+     mask, one layer at a time. */
+  mask({ gsap, select, root }) {
+    const slots = chapterSlots(select);
+    if (!slots.head.length && !slots.label.length) return undefined;
+    preHideWrites(slots.label, { opacity: "0", transform: "translateY(16px)" });
+    preHideWrites(slots.head, {
+      opacity: "0",
+      transform: "translateY(44px)",
+      clipPath: "inset(100% 0% 0% 0%)",
+    });
+    preHideWrites(slots.lead, { opacity: "0", transform: "translateY(24px)" });
+    preHideWrites(slots.content, { opacity: "0", transform: "translateY(28px)" });
+    preHideWrites(slots.aside, { opacity: "0", transform: "translateY(30px)" });
+
+    const tl = gsap.timeline({ defaults: { ease: GSAP_EASE.scene }, ...chapterTrigger(gsap, root) });
+    if (slots.label.length) {
+      tl.fromTo(slots.label, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.55 }, 0.05);
+    }
+    if (slots.head.length) {
+      tl.fromTo(
+        slots.head,
+        { opacity: 0, y: 44, clipPath: "inset(100% 0% 0% 0%)" },
+        { opacity: 1, y: 0, clipPath: "inset(0% 0% 0% 0%)", duration: 0.9 },
+        0,
+      );
+    }
+    if (slots.lead.length) {
+      tl.fromTo(slots.lead, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.7 }, 0.12);
+    }
+    if (slots.content.length) {
+      tl.fromTo(slots.content, { opacity: 0, y: 28 }, { opacity: 1, y: 0, duration: 0.8 }, 0.18);
+    }
+    if (slots.aside.length) {
+      tl.fromTo(slots.aside, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.8 }, 0.18);
+    }
+    return undefined;
+  },
+
+  /* trust — claims resolve blur-to-focus, one row at a time. */
+  blur({ gsap, select, root }) {
+    const slots = chapterSlots(select);
+    if (!slots.head.length && !slots.label.length) return undefined;
+    const rows = select("[data-entrance='content'] > *");
+    preHideWrites(slots.label, { opacity: "0", transform: "translateY(16px)" });
+    preHideWrites(slots.head, { opacity: "0", filter: "blur(10px)" });
+    preHideWrites(slots.lead, { opacity: "0", transform: "translateY(24px)" });
+    preHideWrites(rows, {
+      opacity: "0",
+      transform: "translateY(18px)",
+      filter: "blur(8px)",
+    });
+
+    const tl = gsap.timeline({ defaults: { ease: GSAP_EASE.scene }, ...chapterTrigger(gsap, root) });
+    if (slots.label.length) {
+      tl.fromTo(slots.label, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.55 }, 0.05);
+    }
+    if (slots.head.length) {
+      tl.fromTo(
+        slots.head,
+        { opacity: 0, filter: "blur(10px)" },
+        { opacity: 1, filter: "blur(0px)", duration: 0.85 },
+        0,
+      );
+    }
+    if (slots.lead.length) {
+      tl.fromTo(slots.lead, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.7 }, 0.1);
+    }
+    if (rows.length) {
+      tl.fromTo(
+        rows,
+        { opacity: 0, y: 18, filter: "blur(8px)" },
+        { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.7, stagger: 0.12 },
+        0.18,
+      );
+    }
+    return undefined;
+  },
+
+  /* machine — the framed panel opens with a wipe; chips light in sequence. */
+  wipe({ gsap, select, root }) {
+    const slots = chapterSlots(select);
+    if (!slots.head.length && !slots.label.length) return undefined;
+    const chips = select("[data-entrance='content'] > *");
+    preHideWrites(slots.label, { opacity: "0", transform: "translateY(16px)" });
+    preHideWrites(slots.head, { opacity: "0", transform: "translateY(40px)" });
+    preHideWrites(slots.lead, { opacity: "0", transform: "translateY(24px)" });
+    preHideWrites(chips, { opacity: "0", transform: "translateY(18px)" });
+    preHideWrites(slots.aside, {
+      opacity: "0",
+      clipPath: "inset(0% 100% 0% 0%)",
+    });
+
+    const tl = gsap.timeline({ defaults: { ease: GSAP_EASE.scene }, ...chapterTrigger(gsap, root) });
+    if (slots.label.length) {
+      tl.fromTo(slots.label, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.55 }, 0.05);
+    }
+    if (slots.head.length) {
+      tl.fromTo(slots.head, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.8 }, 0);
+    }
+    if (slots.lead.length) {
+      tl.fromTo(slots.lead, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.7 }, 0.12);
+    }
+    if (chips.length) {
+      tl.fromTo(
+        chips,
+        { opacity: 0, y: 18 },
+        { opacity: 1, y: 0, duration: 0.5, stagger: 0.08 },
+        0.18,
+      );
+    }
+    if (slots.aside.length) {
+      tl.fromTo(
+        slots.aside,
+        { opacity: 0, clipPath: "inset(0% 100% 0% 0%)" },
+        { opacity: 1, clipPath: "inset(0% 0% 0% 0%)", duration: 0.9 },
+        0.1,
+      );
+    }
+    return undefined;
+  },
+
+  /* proof — voices roll in one after another, settling each card. */
+  quote({ gsap, select, root }) {
+    const slots = chapterSlots(select);
+    if (!slots.head.length && !slots.label.length) return undefined;
+    const cards = select("[data-entrance='content'] > *");
+    preHideWrites(slots.label, { opacity: "0", transform: "translateY(16px)" });
+    preHideWrites(slots.head, { opacity: "0", transform: "translateY(40px)" });
+    preHideWrites(cards, { opacity: "0", transform: "translateY(34px)" });
+
+    const tl = gsap.timeline({ defaults: { ease: GSAP_EASE.scene }, ...chapterTrigger(gsap, root) });
+    if (slots.label.length) {
+      tl.fromTo(slots.label, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.55 }, 0.05);
+    }
+    if (slots.head.length) {
+      tl.fromTo(slots.head, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.8 }, 0);
+    }
+    if (cards.length) {
+      tl.fromTo(
+        cards,
+        { opacity: 0, y: 34 },
+        { opacity: 1, y: 0, duration: 0.75, stagger: 0.14, ease: GSAP_EASE.physical },
+        0.16,
+      );
+    }
+    return undefined;
+  },
+};
+
 /**
  * Section motion registry — one named identity per landing section (and the
  * shell). Sections declare their identity; they never inline tweens. Entries
- * support `presets`/`variant` for declarative choreography and `builder` for
- * bespoke timelines (Arrival, Mastery, ForgeGraph) — the escape hatch that
- * keeps the registry honest. See DESIGN.md "Motion Language".
+ * support `build` for registry-driven choreography (mask/blur/wipe/quote),
+ * `presets`/`variant` for declarative choreography, and bespoke section
+ * timelines (Arrival, Mastery, ForgeGraph) via `builder: true` — the escape
+ * hatch that keeps the registry honest. See DESIGN.md "Motion Language".
  */
 export const SECTION_MOTION = {
   wake: {
@@ -69,19 +254,20 @@ export const SECTION_MOTION = {
     docs: "Hero: entrance beat sequence (0/100/250/400/500/600/1200ms) + cap 5-phase scroll + return-differently.",
   },
   claim: {
-    variant: "mask",
+    build: BUILDERS.mask,
     docs: "Statements: oversized words rise with clip mask, one line at a time; keyword accent glint.",
   },
   trust: {
-    variant: "blur",
+    build: BUILDERS.blur,
     docs: "Why: cards resolve blur-to-focus with shadow settle; checkmark line-draw micro-interaction.",
   },
   process: {
+    build: null,
     variant: "numeral",
     docs: "How: step cards advance on scrub; connector line draws node-to-node; numerals roll 01->02->03.",
   },
   machine: {
-    variant: "wipe",
+    build: BUILDERS.wipe,
     nested: {
       formation: {
         docs: "ForgeGraph: nodes activate -> edges draw -> clusters form (once-assembly + edge draw-in).",
@@ -90,7 +276,7 @@ export const SECTION_MOTION = {
     docs: "Engine: panel reveals with mask wipe; shimmer travels; status ticks light sequentially.",
   },
   proof: {
-    variant: "quote",
+    build: BUILDERS.quote,
     docs: "Experience: testimonial quotes roll vertically; star counts transition up.",
   },
   transformation: {
@@ -162,7 +348,11 @@ export function useMotionScope(callback, dependencies, root) {
     callbackRef.current = callback;
   }, [callback]);
 
-  useEffect(() => {
+  /* Layout effect: the scope ref is guaranteed attached and the from-state
+     writes (preHide) land before first paint. Passive effects can race the
+     ref attachment (the Engine section's entrance used to silently never
+     run); synchronous refs are the contract here. */
+  useLayoutEffect(() => {
     if (!scopeRef.current) return undefined;
     let ctx = null;
     ctx = gsap.context(() => {

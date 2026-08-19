@@ -19,11 +19,11 @@ const CIRCUIT = [
 
 export function HowSection() {
   const rootRef = useRef(null);
-  useSectionEntrance(rootRef);
+  useSectionEntrance(rootRef, { identity: "process" });
   useScrubReveal(rootRef);
 
   return (
-    <Section id="how" sectionRef={rootRef} className="bg-lp-bg">
+    <Section id="how" motion="process" sectionRef={rootRef} className="bg-lp-bg">
       <div className="max-w-[92vw] lg:max-w-[74%]">
         <p data-entrance="label" className={T.label}>
           <span className="text-lp-faint">11</span> — How it works

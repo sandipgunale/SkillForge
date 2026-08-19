@@ -8,7 +8,7 @@ import { Chapter, Section, T } from "./shared";
 
 export function ProblemSection() {
   return (
-    <Section id="problem" className="bg-lp-bg">
+    <Section id="problem" motion="claim" className="bg-lp-bg">
       <Chapter
         num="01"
         label="The problem"
@@ -37,7 +37,7 @@ export function ProblemSection() {
 
 export function ShiftSection() {
   return (
-    <Section id="shift" className="bg-lp-surface">
+    <Section id="shift" motion="claim" className="bg-lp-surface">
       <Chapter
         num="02"
         label="The shift"

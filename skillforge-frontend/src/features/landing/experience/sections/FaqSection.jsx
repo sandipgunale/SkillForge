@@ -37,7 +37,7 @@ const FAQS = [
 
 export default function FaqSection() {
   const rootRef = useRef(null);
-  useSectionEntrance(rootRef);
+  useSectionEntrance(rootRef, { identity: "answers" });
 
   /* Opening a <details> changes the page height: re-measure the section
      tops (navbar/progress) and refresh ScrollTrigger positions (mastery
@@ -47,7 +47,7 @@ export default function FaqSection() {
   };
 
   return (
-    <Section id="faq" sectionRef={rootRef} className="bg-lp-surface">
+    <Section id="faq" motion="answers" sectionRef={rootRef} className="bg-lp-surface">
       <div className="grid gap-12 lg:grid-cols-[1fr_1.5fr] lg:gap-16">
         <div className="lg:sticky lg:top-24 lg:self-start">
           <p data-entrance="label" className={T.label}>

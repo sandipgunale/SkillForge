@@ -98,6 +98,7 @@ export default function Cursor() {
       <div
         ref={dotRef}
         data-cursor-dot
+        data-motion="shell"
         aria-hidden="true"
         className="pointer-events-none fixed left-0 top-0 z-90 size-1.5 rounded-full bg-ember"
         style={{ transform: "translate3d(-100px, -100px, 0)" }}

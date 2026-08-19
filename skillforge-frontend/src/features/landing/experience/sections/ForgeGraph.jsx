@@ -189,6 +189,7 @@ export default function ForgeGraph() {
   return (
     <svg
       ref={rootRef}
+      data-motion="formation"
       viewBox={`0 0 ${W} ${H}`}
       role="img"
       aria-label="A knowledge graph of topics you are learning: React, TypeScript, GSAP, Tailwind, and more around a central You node"

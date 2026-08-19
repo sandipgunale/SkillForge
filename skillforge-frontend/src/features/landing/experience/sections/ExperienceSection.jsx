@@ -31,10 +31,10 @@ const ROLES = [
 
 export function ExperienceSection() {
   const rootRef = useRef(null);
-  useSectionEntrance(rootRef);
+  useSectionEntrance(rootRef, { identity: "proof" });
 
   return (
-    <Section id="experience" sectionRef={rootRef} className="bg-lp-surface">
+    <Section id="experience" motion="proof" sectionRef={rootRef} className="bg-lp-surface">
       <div className="max-w-[92vw] lg:max-w-[74%]">
         <p data-entrance="label" className={T.label}>
           <span className="text-lp-faint">10</span> — The experience

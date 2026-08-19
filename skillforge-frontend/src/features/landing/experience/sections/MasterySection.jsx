@@ -74,6 +74,7 @@ export default function MasterySection() {
       ref={rootRef}
       id="mastery"
       data-landing-section="mastery"
+      data-motion="transformation"
       className="relative min-h-[140svh] bg-lp-bg"
     >
       <div className="sticky top-0 flex min-h-svh flex-col items-center justify-center overflow-hidden px-6 text-center">

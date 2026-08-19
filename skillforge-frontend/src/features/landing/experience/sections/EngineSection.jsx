@@ -26,13 +26,19 @@ const LEGEND = [
 export default function EngineSection() {
   const rootRef = useRef(null);
   const reduced = useReducedMotion();
-  useSectionEntrance(rootRef, { variant: "activate" });
+  useSectionEntrance(rootRef, { identity: "machine", variant: "activate" });
 
   const panelRef = useRef(null);
   const near = useInView(panelRef);
 
   return (
-    <section id="engine" data-landing-section="engine" className="relative bg-lp-bg">
+    <section
+      ref={rootRef}
+      id="engine"
+      data-landing-section="engine"
+      data-motion="machine"
+      className="relative bg-lp-bg"
+    >
       <div className="lp-container">
         <div className="grid gap-10 py-[clamp(56px,9vw,120px)] lg:min-h-[150svh] lg:grid-cols-[1fr_1.12fr] lg:gap-16">
           {/* Left — sticky statement */}

@@ -35,11 +35,21 @@ export class SceneErrorBoundary extends Component {
 /**
  * Chapter — statement-first editorial section body: mono label above a
  * display statement, lead + content below, optional aside column.
- * Wires the entrance choreography via data-entrance attributes.
+ * Wires the entrance choreography via data-entrance attributes and declares
+ * the section's motion identity (SECTION_MOTION registry).
  */
-export function Chapter({ num, label, title, lead, children, aside, variant = "rise" }) {
+export function Chapter({
+  num,
+  label,
+  title,
+  lead,
+  children,
+  aside,
+  identity = "claim",
+  variant,
+}) {
   const rootRef = useRef(null);
-  useSectionEntrance(rootRef, { variant });
+  useSectionEntrance(rootRef, { identity, variant });
 
   return (
     <div ref={rootRef} className="grid gap-12 lg:gap-16">
@@ -66,13 +76,15 @@ export function Chapter({ num, label, title, lead, children, aside, variant = "r
   );
 }
 
-/** Section — native-flow wrapper with the standard vertical rhythm. */
-export function Section({ id, children, className = "", sectionRef }) {
+/** Section — native-flow wrapper with the standard vertical rhythm. Declares
+ *  the section's motion identity via `motion` (SECTION_MOTION registry). */
+export function Section({ id, children, className = "", sectionRef, motion }) {
   return (
     <section
       ref={sectionRef}
       id={id}
       data-landing-section={id}
+      data-motion={motion}
       className={`relative ${className}`}
     >
       <div className="lp-container py-[clamp(56px,9vw,120px)]">{children}</div>
