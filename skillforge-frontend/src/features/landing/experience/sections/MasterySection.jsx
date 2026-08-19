@@ -16,11 +16,13 @@ import { SceneErrorBoundary, T } from "./shared";
 /* -------------------------------------------------------------------------- */
 
 const GraduationCapScene = lazy(() => import("../cap/GraduationCapScene"));
+const ForgeSignature = lazy(() => import("../cap/ForgeSignature"));
 
 export default function MasterySection() {
   const rootRef = useRef(null);
   const ctaRef = useRef(null);
   const ctaOutlineRef = useRef(null);
+  const signatureRef = useRef(null);
   const reduced = useReducedMotion();
   const sceneReady = useInView(rootRef);
 
@@ -31,7 +33,10 @@ export default function MasterySection() {
     ({ gsap, select }) => {
       if (reduced) return undefined;
       const cap = select("[data-cap-return]");
+      const scene = select("[data-cap-scene-wrap]");
+      const sig = select("[data-signature-wrap]");
       const copy = select("[data-mastery-copy]");
+      const proxy = { p: 0 };
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: rootRef.current,
@@ -42,8 +47,8 @@ export default function MasterySection() {
         defaults: { ease: "none" },
       });
       if (cap.length) {
-        /* Cap phases 2-3 (rotate + depth): the cap arrives from below with a
-           slight counter-rotation that settles straight, while the scale
+        /* Act 1 — cap phases 2-3 (rotate + depth): the cap returns from below
+           with a slight counter-rotation that settles straight, while the scale
            draws it closer. Hosted on the Mastery sticky stage — the hero cap
            has already receded out of the story. */
         tl.fromTo(
@@ -58,6 +63,24 @@ export default function MasterySection() {
            pointer tab order until the scrub reveals it. */
         tl.fromTo(copy, { y: 28, autoAlpha: 0 }, { y: 0, autoAlpha: 1 }, 0.18);
       }
+      if (scene.length && sig.length) {
+        /* Act 2 — the Knowledge Forge signature (F4, decision #25): two
+           distinct acts, not a replay. The cap scene dissolves (0.55-0.75)
+           as the signature's fragment field enters; the field then converges
+           into the cap silhouette (0.75-1.0), fragmented -> structured ->
+           personalized -> mastered, driven through the imperative handle. */
+        tl.to(scene, { opacity: 0, scale: 1.06, duration: 0.2, ease: "power1.in" }, 0.55);
+        tl.fromTo(sig, { opacity: 0 }, { opacity: 1, duration: 0.12 }, 0.55);
+        tl.to(
+          proxy,
+          {
+            p: 1,
+            duration: 0.25,
+            onUpdate: () => signatureRef.current?.setProgress(proxy.p),
+          },
+          0.75,
+        );
+      }
       return undefined;
     },
     [reduced],
@@ -68,6 +91,16 @@ export default function MasterySection() {
     <SceneErrorBoundary>
       <Suspense fallback={null}>
         <GraduationCapScene className="h-full w-full" />
+      </Suspense>
+    </SceneErrorBoundary>
+  ) : (
+    <CapEmblem className="h-full w-full opacity-90" />
+  );
+
+  const signature = sceneReady ? (
+    <SceneErrorBoundary>
+      <Suspense fallback={<CapEmblem className="h-full w-full opacity-90" />}>
+        <ForgeSignature ref={signatureRef} progress={0} />
       </Suspense>
     </SceneErrorBoundary>
   ) : (
@@ -88,7 +121,10 @@ export default function MasterySection() {
           aria-hidden="true"
           className="pointer-events-none absolute top-1/2 left-1/2 w-[82svh] -translate-x-1/2 -translate-y-1/2 sm:w-[62svw] lg:w-[44svw]"
         >
-          <div className="aspect-square">{cap}</div>
+          <div className="relative aspect-square">
+            <div data-cap-scene-wrap className="absolute inset-0">{cap}</div>
+            <div data-signature-wrap className="absolute inset-0 opacity-0">{signature}</div>
+          </div>
         </div>
 
         <div data-mastery-copy className="relative z-10 mx-auto max-w-[1180px]">
