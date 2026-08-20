@@ -1,8 +1,9 @@
 import { lazy, Suspense, useRef } from "react";
-import { Award, BrainCircuit, Clock3, Flame, Sparkles, TrendingUp } from "lucide-react";
+import { Award, BrainCircuit, Clock3, Sparkles, TrendingUp } from "lucide-react";
 
 import AIOrb from "./AIOrb";
 import CountUp from "@/components/common/CountUp";
+import LogoMark from "@/components/common/LogoMark";
 import { Progress } from "@/components/ui/progress";
 import { useMotionScope, useReducedMotion } from "@/lib/motion-gsap";
 import { formatStudyTime } from "@/lib/format";
@@ -100,7 +101,7 @@ export default function MissionOverview({ analytics }) {
           <div className="max-w-sm space-y-2.5">
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
-                <Flame className="size-4 text-warning" aria-hidden="true" />
+                <LogoMark className="size-4" />
                 Learning Health
               </span>
               <span className="font-semibold text-foreground">

@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
-import { Flame } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/constants/routes";
+
+import LogoMark from "@/components/common/LogoMark";
 
 export default function AppLogo({ className }) {
   return (
@@ -15,7 +16,7 @@ export default function AppLogo({ className }) {
       aria-label="SkillForge dashboard"
     >
       <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-lg shadow-primary/25">
-        <Flame className="size-4.5" />
+        <LogoMark className="size-8" />
       </div>
 
       <span className="text-base font-bold tracking-tight">SkillForge</span>
