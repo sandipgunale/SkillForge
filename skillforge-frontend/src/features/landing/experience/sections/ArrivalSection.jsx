@@ -222,26 +222,17 @@ export default function ArrivalSection() {
     rootRef,
   );
 
-  /* B1 — the cap wakes when the deferred scene mounts: a quiet fade-in (the
-     scene starts at rest via entrance="idle"; the beat timeline never races
-     the lazy chunk). The SVG emblem fallback stays visible untouched. */
-  useMotionScope(
-    ({ gsap, select }) => {
-      const scene = select("[data-cap-scene]");
-      if (!scene.length) return undefined;
-      gsap.fromTo(scene, { opacity: 0 }, { opacity: 1, duration: 0.8, ease: GSAP_EASE.scene });
-      return undefined;
-    },
-    [sceneReady],
-    rootRef,
-  );
+  /* B1 — the cap wakes when it mounts: GraduationCapScene fades itself in
+     (it owns the fade so a slow lazy chunk can never leave the cap stuck
+     invisible at an external opacity:0). The SVG emblem fallback stays
+     visible untouched until the scene mounts. */
 
   const cap = (
     <div className="aspect-square h-full w-full">
       {sceneReady ? (
         <SceneErrorBoundary>
-          <Suspense fallback={null}>
-            <div data-cap-scene style={{ opacity: 0 }} className="h-full w-full">
+          <Suspense fallback={<CapEmblem className="h-full w-full opacity-80" />}>
+            <div className="h-full w-full">
               <GraduationCapScene entrance="idle" className="h-full w-full" />
             </div>
           </Suspense>

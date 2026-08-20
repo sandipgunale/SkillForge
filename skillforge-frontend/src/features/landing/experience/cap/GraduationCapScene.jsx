@@ -4,6 +4,7 @@ import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 
 import CapEmblem from "./CapEmblem";
+import { useMountAnimation } from "@/lib/motion-gsap";
 import {
   softGlowTexture,
   useOffscreen,
@@ -444,6 +445,15 @@ export default function GraduationCapScene({ className, entrance = "spring" }) {
   const tabHidden = useTabHidden();
   const { ref: viewRef, off } = useOffscreen();
   const hidden = tabHidden || off;
+
+  /* Self-fade on mount: parents swap this scene in under a Suspense boundary
+     whose timing they cannot control, so the fade must live here — the scene
+     guarantees it is visible no matter when the lazy chunk resolves. Reduced
+     motion: no fade, immediately visible. */
+  useMountAnimation(viewRef, [], {
+    duration: 0.8,
+    ease: "expo.out",
+  });
 
   const webgl = useMemo(() => {
     try {

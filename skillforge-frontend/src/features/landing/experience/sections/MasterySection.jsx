@@ -89,7 +89,7 @@ export default function MasterySection() {
 
   const cap = sceneReady ? (
     <SceneErrorBoundary>
-      <Suspense fallback={null}>
+      <Suspense fallback={<CapEmblem className="h-full w-full opacity-90" />}>
         <GraduationCapScene className="h-full w-full" />
       </Suspense>
     </SceneErrorBoundary>

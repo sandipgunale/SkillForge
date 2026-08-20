@@ -112,6 +112,7 @@ export const router = createBrowserRouter([
   // ------------------------------------------------------------------------
   {
     element: <LandingLayout />,
+    errorElement: <AppError />,
     children: [
       {
         index: true,
@@ -136,6 +137,7 @@ export const router = createBrowserRouter([
   // ------------------------------------------------------------------------
   {
     element: <PublicRoute />,
+    errorElement: <AppError />,
     children: [
       {
         element: <AuthLayout />,

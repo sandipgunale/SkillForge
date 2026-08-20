@@ -491,16 +491,34 @@ export default function LivingCoreScene({ className }) {
   const tabHidden = useTabHidden();
   const palette = useScenePalette();
 
+  /* WebGL availability probe — the scene is decorative; on devices or
+     browsers without WebGL it must vanish (null) so the auth UI below it
+     keeps rendering, never throwing "Error creating WebGL context". */
+  const webgl = useMemo(() => {
+    try {
+      const canvas = document.createElement("canvas");
+      return Boolean(
+        canvas.getContext("webgl2") || canvas.getContext("webgl"),
+      );
+    } catch {
+      return false;
+    }
+  }, []);
+
   const { nodeCount, dpr } = useSceneBudget({
     high: 480,
     low: 240,
     baseDpr: 1.5,
   });
 
+  if (!webgl) {
+    return null;
+  }
+
   return (
-    <div className={className} aria-hidden="true">
+    <div className={className} aria-hidden="true" style={{ pointerEvents: "none" }}>
       <Canvas
-        frameloop={tabHidden ? "never" : "always"}
+        frameloop={reducedMotion || tabHidden ? "demand" : "always"}
         dpr={dpr}
         camera={{ position: [0, 0, 11], fov: 50 }}
         gl={{

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useRef } from "react";
+import { Component, lazy, Suspense, useRef } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 
 import { alpha } from "@/lib/design-system";
@@ -10,6 +10,21 @@ import AuthLogo from "@/features/auth/components/AuthLogo";
 const LivingCoreScene = lazy(() =>
   import("@/features/auth/components/three/LivingCoreScene"),
 );
+
+/* Decorative-scene guard: the background scene is pure decoration. If its
+   lazy chunk fails to load or throws for any reason, the scene simply
+   vanishes (null) — the auth UI above it must always render. */
+class SceneBoundary extends Component {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
 
 export default function AuthLayout() {
   const location = useLocation();
@@ -54,11 +69,17 @@ export default function AuthLayout() {
         className="noise-overlay pointer-events-none absolute inset-0 z-[1]"
       />
 
-      {/* Layer 3 — the living intelligence core */}
-      <div aria-hidden="true" className="absolute inset-0 z-[2]">
-        <Suspense fallback={null}>
-          <LivingCoreScene className="absolute inset-0 h-full w-full opacity-80" />
-        </Suspense>
+      {/* Layer 3 — the living intelligence core (decorative: never
+          intercepts pointer events, so it can never block the forms) */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-[2]"
+      >
+        <SceneBoundary>
+          <Suspense fallback={null}>
+            <LivingCoreScene className="absolute inset-0 h-full w-full opacity-80" />
+          </Suspense>
+        </SceneBoundary>
       </div>
 
       {/* Layer 4 — cinematic vignette */}

@@ -11,7 +11,7 @@ let refreshPromise = null;
 export async function refreshAccessToken() {
   if (!refreshPromise) {
     refreshPromise = apiClient
-      .post("/auth/refresh")
+      .post("/auth/refresh", {}, { timeout: 5000 })
       .then((res) => {
         useAuthStore.getState().setSession(res.data);
         return res.data;
