@@ -240,7 +240,21 @@ function CapRig({
       tailMaterial.emissive.lerp(paletteColors.ember, f);
     }
 
-    if (reduced || hidden || !group || !inner) return;
+    if (reduced || !group || !inner) {
+      /* Static pose under reduced motion: the demand frameloop only renders
+         on invalidate (pointer events, resize), so the entrance spring would
+         otherwise freeze at its scale-0.0001 start — an invisible cap until
+         the user clicks. Settle the spring so the very first frame draws the
+         cap at full size. */
+      if (reduced && group) {
+        const s = springRef.current;
+        s.value = 1;
+        s.vel = 0;
+        group.scale.setScalar(1);
+      }
+      return;
+    }
+    if (hidden) return;
 
     /* Entrance spring (skipped when entrance="idle" — spring starts at rest) */
     const spring = springRef.current;
