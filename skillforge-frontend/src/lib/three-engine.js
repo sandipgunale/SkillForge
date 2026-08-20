@@ -69,11 +69,12 @@ function resolveScenePalette(rootRef) {
     dim: resolveColor("--muted-foreground", root),
     board: resolveColor("--cap-board", root),
     fabric: resolveColor("--cap-fabric", root),
+    gold: resolveColor("--cap-gold", root),
   };
 }
 
 function samePalette(a, b) {
-  return ["ember", "aurora", "dim", "board", "fabric"].every(
+  return ["ember", "aurora", "dim", "board", "fabric", "gold"].every(
     (key) => a[key].getHex() === b[key].getHex(),
   );
 }
