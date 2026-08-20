@@ -227,9 +227,10 @@
     --book-cover-muted: oklch(0.74 0.015 60);
     --book-spine: oklch(0.13 0.02 60);
 
-    /* Graduation cap materials (light theme) — deep ink fabric, ember tassel */
-    --cap-board: oklch(0.24 0.015 60);
-    --cap-fabric: oklch(0.33 0.02 60);
+    /* Graduation cap materials (light theme) — deep blue-ink fabric, gold trim */
+    --cap-board: oklch(0.24 0.018 255);
+    --cap-fabric: oklch(0.33 0.022 255);
+    --cap-gold: oklch(0.66 0.11 75);
 }
 
 /* ==========================================================================
@@ -310,6 +311,7 @@
     /* Graduation cap materials (dark theme) — deep blue-ink fabric */
     --cap-board: oklch(0.3 0.02 260);
     --cap-fabric: oklch(0.4 0.025 260);
+    --cap-gold: oklch(0.78 0.12 78);
 }
 
 /* ==========================================================================
@@ -317,17 +319,21 @@
    ========================================================================== */
 @layer base {
     * {
-        @apply border-border outline-ring/50;
+        border-color: var(--border);
+        outline-color: color-mix(in oklab, var(--ring) 50%, transparent);
     }
 
     html {
-        @apply font-sans antialiased;
+        font-family: var(--font-sans);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
         scroll-behavior: smooth;
         text-rendering: optimizeLegibility;
     }
 
     body {
-        @apply bg-background text-foreground;
+        background-color: var(--background);
+        color: var(--foreground);
         font-feature-settings: "cv11", "ss01";
         transition:
             background-color var(--morph-duration) ease,
