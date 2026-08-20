@@ -133,6 +133,34 @@ export function useScenePaletteLive(rootRef) {
 }
 
 /* -------------------------------------------------------------------------- */
+/*  WebGL context-loss lifecycle                                             */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Attach WebGL context-loss/restore listeners to a renderer canvas. When the
+ * browser drops a context (GPU pressure, driver reset, too many live contexts),
+ * a Three.js canvas goes permanently dead — there is no built-in handling in
+ * R3F 9.6.x. The caller supplies onLost/onRestored so the decorative scene can
+ * swap in its fallback (e.g. CapEmblem) or hide itself, and resume rendering
+ * when the context is restored (three re-initializes internally on restore).
+ * Returns a detach function for unmount cleanup.
+ */
+export function attachContextLoss(canvas, onLost, onRestored) {
+  if (!canvas) return () => {};
+  const handleLost = (event) => {
+    event.preventDefault();
+    onLost();
+  };
+  const handleRestored = () => onRestored();
+  canvas.addEventListener("webglcontextlost", handleLost, false);
+  canvas.addEventListener("webglcontextrestored", handleRestored, false);
+  return () => {
+    canvas.removeEventListener("webglcontextlost", handleLost);
+    canvas.removeEventListener("webglcontextrestored", handleRestored);
+  };
+}
+
+/* -------------------------------------------------------------------------- */
 /*  Soft radial glow sprite texture (shared by all scenes)                     */
 /* -------------------------------------------------------------------------- */
 

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useEffect } from "react";
+import { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
@@ -8,6 +8,7 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import CapEmblem from "./CapEmblem";
 import { useMountAnimation } from "@/lib/motion-gsap";
 import {
+  attachContextLoss,
   softGlowTexture,
   useOffscreen,
   useReducedMotion,
@@ -520,7 +521,9 @@ function CapRig({
 /* Studio environment: one PMREM-processed RoomEnvironment shared by all
    materials (set imperatively on Canvas mount, so metals reflect the soft
    studio walls instead of reading as dim plastic). Subtle intensity so the
-   dark fabric keeps its character. */
+   dark fabric keeps its character. Returns the texture so the owner can
+   dispose it on unmount — an undisposed PMREM texture leaks GPU memory on
+   every remount (dev HMR, route navigation, StrictMode double-mounting). */
 function applyStudioEnvironment(state) {
   const pmrem = new THREE.PMREMGenerator(state.gl);
   const env = new RoomEnvironment(state.gl);
@@ -529,9 +532,10 @@ function applyStudioEnvironment(state) {
   state.scene.environmentIntensity = 0.55;
   env.dispose();
   pmrem.dispose();
+  return texture;
 }
 
-function CapCanvas({ reduced, hidden, entrance }) {
+function CapCanvas({ reduced, hidden, entrance, onContextLost, onContextRestored }) {
   const containerRef = useRef(null);
   const palette = useScenePaletteLive(containerRef);
   const { dpr } = useSceneBudget({ high: 480, low: 240, baseDpr: 1.75 });
@@ -539,6 +543,19 @@ function CapCanvas({ reduced, hidden, entrance }) {
   /* Woven-fabric bump map, generated once and disposed with the scene. */
   const bump = useMemo(() => fabricBumpTexture(), []);
   useEffect(() => () => bump.dispose(), [bump]);
+
+  /* The PMREM environment texture is created imperatively in onCreated, so it
+     is NOT auto-disposed by R3F — dispose it explicitly on unmount. */
+  const envTexture = useRef(null);
+  useEffect(
+    () => () => {
+      if (envTexture.current) {
+        envTexture.current.dispose();
+        envTexture.current = null;
+      }
+    },
+    [],
+  );
 
   /* One ref per material, shared with the frame loop for theme lerping. */
   const boardMat = useRef(null);
@@ -569,7 +586,14 @@ function CapCanvas({ reduced, hidden, entrance }) {
         camera={{ position: [0, 0.95, 4.35], fov: 38 }}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
         style={{ background: "transparent" }}
-        onCreated={applyStudioEnvironment}
+        onCreated={(state) => {
+          envTexture.current = applyStudioEnvironment(state);
+          attachContextLoss(
+            state.gl.domElement,
+            onContextLost,
+            onContextRestored,
+          );
+        }}
       >
         {/* Studio lighting: warm key, cool fill, rim separation, gold accent */}
         <ambientLight intensity={0.32} />
@@ -606,6 +630,14 @@ export default function GraduationCapScene({ className, entrance = "spring" }) {
   const { ref: viewRef, off } = useOffscreen();
   const hidden = tabHidden || off;
 
+  /* WebGL context loss (GPU pressure, driver reset) — the Three.js canvas
+     goes permanently dead and there is no R3F handling for it. Swap in the
+     CapEmblem fallback until the context is restored, so the cap slot is
+     never an empty/warm-glow dead canvas. */
+  const [glLost, setGlLost] = useState(false);
+  const handleContextLost = useCallback(() => setGlLost(true), []);
+  const handleContextRestored = useCallback(() => setGlLost(false), []);
+
   /* Self-fade on mount: parents swap this scene in under a Suspense boundary
      whose timing they cannot control, so the fade must live here — the scene
      guarantees it is visible no matter when the lazy chunk resolves. Reduced
@@ -626,13 +658,19 @@ export default function GraduationCapScene({ className, entrance = "spring" }) {
     }
   }, []);
 
-  if (!webgl) {
+  if (!webgl || glLost) {
     return <CapEmblem className={className} />;
   }
 
   return (
     <div ref={viewRef} className={className} aria-hidden="true" style={{ pointerEvents: "none" }}>
-      <CapCanvas reduced={reduced} hidden={hidden} entrance={entrance} />
+      <CapCanvas
+        reduced={reduced}
+        hidden={hidden}
+        entrance={entrance}
+        onContextLost={handleContextLost}
+        onContextRestored={handleContextRestored}
+      />
     </div>
   );
 }

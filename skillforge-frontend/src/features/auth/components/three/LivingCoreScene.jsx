@@ -1,9 +1,10 @@
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
 import { useAuthSceneStore } from "../../store/authSceneStore";
 import {
+  attachContextLoss,
   buildDust,
   buildEdges,
   buildNodeField,
@@ -505,13 +506,21 @@ export default function LivingCoreScene({ className }) {
     }
   }, []);
 
+  /* WebGL context loss (GPU pressure, driver reset) — the canvas goes
+     permanently dead with no R3F handling. Hide the decorative scene until
+     the context is restored; the auth card above it is unaffected either
+     way. */
+  const [glLost, setGlLost] = useState(false);
+  const handleContextLost = useCallback(() => setGlLost(true), []);
+  const handleContextRestored = useCallback(() => setGlLost(false), []);
+
   const { nodeCount, dpr } = useSceneBudget({
     high: 480,
     low: 240,
     baseDpr: 1.5,
   });
 
-  if (!webgl) {
+  if (!webgl || glLost) {
     return null;
   }
 
@@ -527,6 +536,13 @@ export default function LivingCoreScene({ className }) {
           powerPreference: "high-performance",
         }}
         style={{ background: "transparent" }}
+        onCreated={(state) => {
+          attachContextLoss(
+            state.gl.domElement,
+            handleContextLost,
+            handleContextRestored,
+          );
+        }}
       >
         <CoreField
           reducedMotion={reducedMotion}
