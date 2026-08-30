@@ -33,6 +33,14 @@ const ResourceDetailPage = lazy(
   () => import("@/features/resources/pages/ResourceDetailPage"),
 );
 
+const ResourceStudioPage = lazy(
+  () => import("@/features/resources/pages/ResourceStudioPage"),
+);
+
+const CourseBuilderPage = lazy(
+  () => import("@/features/resources/pages/CourseBuilderPage"),
+);
+
 const QuizSetupPage = lazy(() => import("@/features/quiz/pages/QuizSetupPage"));
 
 const QuizPage = lazy(() => import("@/features/quiz/pages/QuizPage"));
@@ -112,6 +120,7 @@ export const router = createBrowserRouter([
   // ------------------------------------------------------------------------
   {
     element: <LandingLayout />,
+    errorElement: <AppError />,
     children: [
       {
         index: true,
@@ -136,6 +145,7 @@ export const router = createBrowserRouter([
   // ------------------------------------------------------------------------
   {
     element: <PublicRoute />,
+    errorElement: <AppError />,
     children: [
       {
         element: <AuthLayout />,
@@ -211,6 +221,24 @@ export const router = createBrowserRouter([
             element: (
               <RequireRole role="ADMIN">
                 {withSuspense(AdminPage)}
+              </RequireRole>
+            ),
+          },
+
+          {
+            path: ROUTES.RESOURCE_STUDIO,
+            element: (
+              <RequireRole role="ADMIN">
+                {withSuspense(ResourceStudioPage)}
+              </RequireRole>
+            ),
+          },
+
+          {
+            path: ROUTES.COURSE_BUILDER,
+            element: (
+              <RequireRole role="ADMIN">
+                {withSuspense(CourseBuilderPage)}
               </RequireRole>
             ),
           },

@@ -41,6 +41,7 @@ export default function Cursor() {
     let lastX = -100;
     let lastY = -100;
     let lastScale = 1;
+    let settleFrames = 0;
 
     const onMove = (e) => {
       pos.x = e.clientX;
@@ -49,6 +50,7 @@ export default function Cursor() {
       const target = e.target instanceof Element ? e.target : null;
       const hovered = target?.closest(HOT_TARGETS);
       scale.target = hovered ? 2.1 : 1;
+      if (!raf) raf = requestAnimationFrame(tick);
     };
 
     const tick = () => {
@@ -56,16 +58,24 @@ export default function Cursor() {
       ringPos.y += (pos.y - ringPos.y) * 0.22;
       scale.value += (scale.target - scale.value) * 0.22;
       /* Dirty-guard: skip the style write when nothing moved (the ring has
-         settled) — no wasted style churn on a static page. */
+         settled) — no wasted style churn on a static page. After a few
+         clean frames the loop stops entirely and re-arms on the next
+         pointer move, so a static page costs zero idle frames. */
       if (
         Math.abs(ringPos.x - lastX) > 0.05 ||
         Math.abs(ringPos.y - lastY) > 0.05 ||
         Math.abs(scale.value - lastScale) > 0.005
       ) {
+        settleFrames = 0;
         lastX = ringPos.x;
         lastY = ringPos.y;
         lastScale = scale.value;
         ring.style.transform = `translate3d(${ringPos.x - 18}px, ${ringPos.y - 18}px, 0) scale(${scale.value})`;
+      } else if (settleFrames++ < 3) {
+        /* keep easing through the tail of the damped spring */
+      } else {
+        raf = 0;
+        return;
       }
       raf = requestAnimationFrame(tick);
     };
@@ -88,6 +98,7 @@ export default function Cursor() {
       <div
         ref={dotRef}
         data-cursor-dot
+        data-motion="shell"
         aria-hidden="true"
         className="pointer-events-none fixed left-0 top-0 z-90 size-1.5 rounded-full bg-ember"
         style={{ transform: "translate3d(-100px, -100px, 0)" }}

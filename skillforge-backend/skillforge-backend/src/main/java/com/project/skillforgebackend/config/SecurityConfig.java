@@ -6,6 +6,7 @@ import com.project.skillforgebackend.config.properties.AppProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -111,12 +112,31 @@ public class SecurityConfig {
                         // Prometheus scrape: allowlisted IPs only; everyone
                         // else falls through to the authenticated rule below
                         .requestMatchers(metricsAccess).permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/resources/{resourceId}/sections")
+                        .hasAnyRole("ADMIN", "INSTRUCTOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/resources/{resourceId}/sections/order")
+                        .hasAnyRole("ADMIN", "INSTRUCTOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/sections/**")
+                        .hasAnyRole("ADMIN", "INSTRUCTOR")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/sections/**")
+                        .hasAnyRole("ADMIN", "INSTRUCTOR")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/resources/{resourceId}/content")
+                        .hasAnyRole("ADMIN", "INSTRUCTOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/content/**")
+                        .hasAnyRole("ADMIN", "INSTRUCTOR")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/content/**")
+                        .hasAnyRole("ADMIN", "INSTRUCTOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/resources/{resourceId}/content/order")
+                        .hasAnyRole("ADMIN", "INSTRUCTOR")
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/v1/topics",
                                 "/api/v1/topics/**",
                                 "/api/v1/resources",
-                                "/api/v1/resources/{resourceId}"
+                                "/api/v1/resources/{resourceId}",
+                                "/api/v1/resources/{resourceId}/content",
+                                "/api/v1/resources/{resourceId}/sections",
+                                "/api/v1/resources/{resourceId}/curriculum"
                         ).permitAll()
                         .requestMatchers(
                                 "/actuator/health",

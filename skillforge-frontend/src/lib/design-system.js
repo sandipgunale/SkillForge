@@ -258,6 +258,32 @@ export const EASE = {
 };
 
 /* ==========================================================================
+   Motion language — the 5 intent categories mapped onto existing DURATION /
+   EASE constants (the mapping table). Categories are the primary key;
+   components reference intent, never raw durations/curves. Never revalue
+   the constants below — existing consumers depend on their exact values.
+   `scroll` is intentionally absent: scrub timelines are driven by scroll
+   progress, not clock time. `ambient` values are documented constants for
+   Three.js frame loops (per-frame math, not tweens — see DESIGN.md).
+   ========================================================================== */
+export const MOTION = {
+  /* Quick mechanical feel: press, toggle, chevron rotate */
+  micro: { duration: DURATION.fast, ease: EASE.outExpo },
+  /* Component in/out: cards, modals, panels */
+  ui: { duration: DURATION.base, ease: EASE.outExpo },
+  /* Section / scroll choreography */
+  scene: { duration: DURATION.entrance, ease: EASE.outExpo },
+  /* Mass / spring behavior: cap physics, magnetic pull */
+  physical: { duration: DURATION.base, ease: EASE.spring },
+  /* Ambient 3D loops — documented constants, not tweens */
+  ambient: {
+    float: DURATION.float,
+    breathe: DURATION.breathe,
+    aurora: DURATION.aurora,
+  },
+};
+
+/* ==========================================================================
    4. DIAGRAM tokens — visual-grammar primitives for the engineering
    showcase (/showcase). Nodes, edges, layers, pills and arrows all compose
    from the brand variables above — ember→aurora ramp only, alpha()/mix()

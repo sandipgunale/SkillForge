@@ -22,6 +22,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -127,6 +128,16 @@ public class QuizQueryService {
 
             return quizResultBuilder.build(quiz, false);
         }
+    }
+
+    /**
+     * Latest quiz the user generated for a specific course lesson, if any.
+     * Returns empty when the user has not yet created a practice quiz for it.
+     */
+    public Optional<QuizDto> getQuizByLesson(User user, UUID lessonId) {
+        return quizRepository
+                .findTopByUserAndLesson_IdOrderByStartedAtDesc(user, lessonId)
+                .map(quizMapper::toDto);
     }
 
     public PagedResponse<QuizDto> getHistory(

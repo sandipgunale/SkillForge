@@ -76,10 +76,20 @@ public interface QuizRepository extends JpaRepository<Quiz, UUID>, JpaSpecificat
             Quiz.QuizStatus status
     );
 
-    @EntityGraph(attributePaths = {"topic", "learningPath", "questions"})
+    @EntityGraph(attributePaths = {"topic", "learningPath", "lesson", "questions"})
     Optional<Quiz> findTopByUserAndStatusOrderByStartedAtDesc(
             User user,
             Quiz.QuizStatus status
+    );
+
+    /**
+     * Latest quiz generated for a specific course lesson by the given user.
+     * Used by the lesson workspace to surface an existing practice quiz.
+     */
+    @EntityGraph(attributePaths = {"topic", "learningPath", "lesson", "questions"})
+    Optional<Quiz> findTopByUserAndLesson_IdOrderByStartedAtDesc(
+            User user,
+            UUID lessonId
     );
 
     @Query("""

@@ -2,11 +2,7 @@ import { useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 import { GLOW, RADIUS_CLASS } from "@/lib/design-system";
-import {
-  useMountAnimation,
-  useTilt,
-  useReducedMotion,
-} from "@/lib/motion-gsap";
+import { useTilt, useReducedMotion } from "@/lib/motion-gsap";
 
 /**
  * AuthCard — the "glass ceramic panel" of the auth experience.
@@ -14,20 +10,15 @@ import {
  * mouse-following reflection (light gliding across glass), a static
  * diagonal refraction sheen, and a subtle 3D tilt that springs back
  * naturally. Tilt is disabled under reduced motion.
+ * NOTE: deliberately has NO entrance animation — the card must be visible
+ * immediately and unconditionally; a gsap.from opacity gate would create an
+ * invisibility window (see AuthLayout).
  */
 export default function AuthCard({ children, className }) {
   const reduced = useReducedMotion();
   const cardRef = useRef(null);
   const tiltRef = useRef(null);
   const [glow, setGlow] = useState({ x: 50, y: 50, opacity: 0 });
-
-  useMountAnimation(cardRef, [], {
-    y: 28,
-    blur: 12,
-    duration: 0.7,
-    ease: "expo.out",
-    delay: 0.05,
-  });
 
   useTilt(tiltRef, { max: 2.5 });
 

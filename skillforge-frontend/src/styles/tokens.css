@@ -1,0 +1,220 @@
+/* ==========================================================================
+   Landing Design System — "Foundry Precision"
+   --------------------------------------------------------------------------
+   Single source of truth for the landing page (see DESIGN.md → Landing
+   Design System). Scoped to .landing-shell so the app (Ember Forge) and the
+   showcase keep their own tokens. Light values live on the base scope,
+   dark values on `.dark .landing-shell` — the app toggles `.dark` on <html>.
+
+   Palette: molten copper (forge heat) + steel blue (intelligence) on iron.
+   ========================================================================== */
+
+/* Cabinet Grotesk — vendored woff2 from the Fontshare CDN (verified at
+   build time 2026-08-17; fontsource does not ship it). font-display: swap;
+   fallback stack keeps the page readable if the files ever 404. */
+@font-face {
+  font-family: "Cabinet Grotesk";
+  src: url("../assets/fonts/cabinet-grotesk-500.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Cabinet Grotesk";
+  src: url("../assets/fonts/cabinet-grotesk-700.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Cabinet Grotesk";
+  src: url("../assets/fonts/cabinet-grotesk-800.woff2") format("woff2");
+  font-weight: 800;
+  font-display: swap;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Cabinet Grotesk";
+  src: url("../assets/fonts/cabinet-grotesk-900.woff2") format("woff2");
+  font-weight: 900;
+  font-display: swap;
+  font-style: normal;
+}
+
+/* ==========================================================================
+   Landing scope — light (base)
+   ========================================================================== */
+.landing-shell {
+  --lp-font-display: "Cabinet Grotesk", system-ui, sans-serif;
+  --lp-font-body: "Instrument Sans", system-ui, sans-serif;
+  --lp-font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+
+  /* Surfaces — limestone paper + warm iron */
+  --lp-bg: #f7f5f1;
+  --lp-surface: #ffffff;
+  --lp-surface-2: #f0ede7;
+  --lp-border: rgba(23, 27, 33, 0.12);
+  --lp-border-strong: rgba(23, 27, 33, 0.28);
+  --lp-text: #171b21;
+  --lp-muted: #5c6b7a;
+  --lp-faint: #5f6b78;
+
+  /* Accent — deep copper (forge heat), darkened to meet WCAG AA (4.6:1) */
+  --lp-accent: #c24a15;
+  --lp-accent-strong: #b8461a;
+  --lp-accent-ink: #fff7f0;
+  --lp-secondary: #2563b5;
+  --lp-glow: 0 0 0 1px rgba(194, 74, 21, 0.16), 0 6px 30px rgba(194, 74, 21, 0.12);
+  --lp-focus-ring: 0 0 0 3px rgba(194, 74, 21, 0.22);
+
+  /* Scene aliases — the 3D cap + graph re-tint within the landing only */
+  --ember: #c24a15;
+  --aurora: #2563b5;
+  --cap-board: #3b3e43;
+  --cap-fabric: #27292d;
+  --cap-gold: #b58a24;
+
+  background: var(--lp-bg);
+  color: var(--lp-text);
+  font-family: var(--lp-font-body);
+}
+
+/* ==========================================================================
+   Landing scope — dark (primary; the forge reads best in low light)
+   ========================================================================== */
+.dark .landing-shell {
+  /* Surfaces — iron black, cool panels */
+  --lp-bg: #0b0e13;
+  --lp-surface: #12161d;
+  --lp-surface-2: #1a2029;
+  --lp-border: rgba(210, 220, 235, 0.1);
+  --lp-border-strong: rgba(210, 220, 235, 0.22);
+  --lp-text: #eef2f7;
+  --lp-muted: #93a1b3;
+  --lp-faint: #7d8a99;
+
+  /* Accent — molten copper */
+  --lp-accent: #ff8a3d;
+  --lp-accent-strong: #ffa05e;
+  --lp-accent-ink: #1a0d04;
+  --lp-secondary: #5ea2f0;
+  --lp-glow: 0 0 0 1px rgba(255, 138, 61, 0.14), 0 0 42px rgba(255, 138, 61, 0.1);
+  --lp-focus-ring: 0 0 0 3px rgba(255, 138, 61, 0.25);
+
+  /* Scene aliases — forged fabric, ceremonial gold tassel */
+  --ember: #ff8a3d;
+  --aurora: #5ea2f0;
+  --cap-board: #2d2f33;
+  --cap-fabric: #1d1f22;
+  --cap-gold: #d4a832;
+}
+
+/* ==========================================================================
+   Landing helpers
+   ========================================================================== */
+.landing-shell .lp-container {
+  max-width: 1180px;
+  margin-inline: auto;
+  padding-inline: clamp(24px, 5vw, 56px);
+}
+
+/* Anchor targets clear the fixed navbar (64px bar + 16px breathing room) */
+.landing-shell [data-landing-section] {
+  scroll-margin-top: 80px;
+}
+
+/* Hairline frame for panels */
+.landing-shell .lp-panel {
+  border: 1px solid var(--lp-border);
+  border-radius: 14px;
+  background: var(--lp-surface);
+}
+
+/* Copper glow — CTAs and focus hotspots (static shadow, never animated) */
+.landing-shell .lp-glow {
+  box-shadow: var(--lp-glow);
+}
+
+/* Spotlight — a radial copper glow tracks the pointer over cards.
+   The useSpotlight hook writes --spot-x/--spot-y/--spot-opacity (CSS vars
+   only); this utility renders the glow. Overlay ::before keeps the panel
+   content above the light. */
+.landing-shell .lp-spotlight {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.landing-shell .lp-spotlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(
+    420px circle at var(--spot-x, 50%) var(--spot-y, 50%),
+    color-mix(in oklch, var(--lp-accent) 14%, transparent),
+    transparent 65%
+  );
+  opacity: var(--spot-opacity, 0);
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+/* Accessible focus — visible on the landing, ring matches the accent.
+   No border-radius override: the shadow follows each element's own
+   resting radius, so focus never mutates the shape. */
+.landing-shell :where(a, button, [tabindex]):focus-visible {
+  outline: none;
+  box-shadow: var(--lp-focus-ring);
+}
+
+/* Visited links stay distinguishable — text links cool toward muted on
+   return visits (color-mix keeps contrast ratios; accent-colored CTAs —
+   solid or outline — keep their copper). */
+.landing-shell a:visited:not([class*="lp-accent"]):not([class*="bg-lp-"]) {
+  color: color-mix(in oklch, var(--lp-muted) 62%, var(--lp-text));
+}
+
+/* Custom cursor pair replaces the native pointer (Cursor mounts only on
+   fine pointers + wide viewport + no reduced motion, so the class is never
+   added where the native cursor must remain) */
+html.sf-cursor-none,
+html.sf-cursor-none * {
+  cursor: none !important;
+}
+
+/* Scroll cue — the hero's quiet "scroll" indicator */
+@keyframes lp-scroll-dot {
+  0% { transform: translateY(0); opacity: 1; }
+  70% { transform: translateY(12px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 0; }
+}
+.landing-shell .animate-scroll-dot {
+  animation: lp-scroll-dot 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* ForgeGraph — hover emphasis on nodes (CSS transition, no per-frame JS) */
+.landing-shell .forge-node {
+  cursor: default;
+  transition: opacity 200ms ease;
+}
+.landing-shell .forge-node.is-active {
+  opacity: 1;
+}
+.landing-shell .forge-node:not(.is-active) {
+  opacity: 0.55;
+}
+
+/* Reduced motion — the landing's scenes hand back to static art; kill any
+   leftover animation classes defensively. */
+@media (prefers-reduced-motion: reduce) {
+  .landing-shell *,
+  .landing-shell *::before,
+  .landing-shell *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

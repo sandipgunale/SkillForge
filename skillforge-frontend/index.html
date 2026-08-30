@@ -28,6 +28,34 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      /* Theme pre-hydration — next-themes (Vite/React, non-Next) does not
+         inject its bootstrap script, so without this the first paint can
+         render the wrong theme (flash) and the first render is
+         nondeterministic. Storage key "theme" + class attribute must match
+         the ThemeProvider config (src/providers/ThemeProvider.jsx). */
+      (function () {
+        try {
+          var stored = localStorage.getItem("theme");
+          var theme = stored
+            ? JSON.parse(stored)
+            : window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+          if (theme !== "light" && theme !== "dark") {
+            theme = window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+          }
+          var root = document.documentElement;
+          root.classList.remove("light", "dark");
+          root.classList.add(theme);
+          root.style.colorScheme = theme;
+        } catch (e) {
+          /* localStorage unavailable — fall back to the stylesheet default */
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

@@ -13,6 +13,12 @@ export const ROUTES = {
   RESOURCES: "/resources",
   RESOURCE_DETAIL: "/resources/:resourceId",
 
+  RESOURCE_STUDIO: "/admin/resources/:resourceId/studio",
+  resourceStudio: (id) => `/admin/resources/${id}/studio`,
+
+  COURSE_BUILDER: "/admin/courses/:courseId",
+  courseBuilder: (id) => `/admin/courses/${id}`,
+
   BOOKMARKS: "/bookmarks",
 
   QUIZ_SETUP: "/quiz",

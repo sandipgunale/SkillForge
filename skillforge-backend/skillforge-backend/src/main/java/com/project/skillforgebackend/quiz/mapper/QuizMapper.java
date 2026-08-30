@@ -54,6 +54,11 @@ public class QuizMapper {
                 .weekNumber(
                         quiz.getWeekNumber()
                 )
+                .lessonId(
+                        quiz.getLesson() != null
+                                ? quiz.getLesson().getId().toString()
+                                : null
+                )
                 .difficulty(quiz.getDifficulty())
                 .status(quiz.getStatus())
                 .totalQuestions(quiz.getTotalQuestions())

@@ -39,6 +39,10 @@ public record BusinessAuditEvent(
         RESOURCE_CREATED,
         RESOURCE_UPDATED,
         RESOURCE_DELETED,
+        COURSE_SECTION_CREATED,
+        COURSE_SECTION_UPDATED,
+        COURSE_SECTION_DELETED,
+        LESSON_COMPLETED,
         ADMIN_USER_UPDATED
     }
 }

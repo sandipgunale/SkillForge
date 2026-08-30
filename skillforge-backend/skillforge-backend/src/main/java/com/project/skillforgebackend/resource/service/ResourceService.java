@@ -22,10 +22,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import com.project.skillforgebackend.resource.dto.CreateTopicRequest;
 import com.project.skillforgebackend.resource.dto.UpdateTopicRequest;
@@ -33,6 +31,15 @@ import com.project.skillforgebackend.resource.entity.Topic;
 
 import com.project.skillforgebackend.resource.dto.CreateResourceRequest;
 import com.project.skillforgebackend.resource.dto.UpdateResourceRequest;
+import com.project.skillforgebackend.resource.dto.ContentItemDto;
+import com.project.skillforgebackend.resource.dto.CourseCurriculumDto;
+import com.project.skillforgebackend.resource.dto.CourseSectionWithLessonsDto;
+import com.project.skillforgebackend.resource.entity.ContentItem;
+import com.project.skillforgebackend.resource.entity.CourseSection;
+import com.project.skillforgebackend.resource.mapper.ContentItemMapper;
+import com.project.skillforgebackend.resource.mapper.CourseSectionMapper;
+import com.project.skillforgebackend.resource.repository.ContentItemRepository;
+import com.project.skillforgebackend.resource.repository.CourseSectionRepository;
 
 
 
@@ -49,6 +56,10 @@ public class ResourceService {
 
     private final TagRepository tagRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final CourseSectionRepository courseSectionRepository;
+    private final CourseSectionMapper courseSectionMapper;
+    private final ContentItemRepository contentItemRepository;
+    private final ContentItemMapper contentItemMapper;
 
     @Cacheable(cacheNames = "resources", key = "{#topicId, #difficulty, #type, #search, #pageable}")
     public Page<ResourceDto> getResources(
@@ -118,6 +129,48 @@ public class ResourceService {
                         new ResourceNotFoundException("Resource", id));
 
         return resourceMapper.toDto(resource);
+    }
+
+    @Transactional(readOnly = true)
+    public CourseCurriculumDto getCourseCurriculum(UUID resourceId) {
+        Resource resource = resourceRepository.findByIdAndActiveTrue(resourceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Resource", resourceId));
+
+        List<ContentItem> lessons =
+                contentItemRepository.findAllByResourceIdAndActiveTrueOrderByOrderIndexAsc(resourceId);
+
+        Map<UUID, List<ContentItem>> grouped = new LinkedHashMap<>();
+        for (ContentItem lesson : lessons) {
+            UUID key = lesson.getSection() != null ? lesson.getSection().getId() : null;
+            grouped.computeIfAbsent(key, k -> new ArrayList<>()).add(lesson);
+        }
+
+        List<CourseSectionWithLessonsDto> sectionDtos = new ArrayList<>();
+        if (resource.getType() == Resource.ResourceType.COURSE) {
+            List<CourseSection> sections =
+                    courseSectionRepository.findAllByResourceIdAndActiveTrueOrderByOrderIndexAsc(resourceId);
+            for (CourseSection section : sections) {
+                List<ContentItem> secLessons = grouped.getOrDefault(section.getId(), new ArrayList<>());
+                sectionDtos.add(CourseSectionWithLessonsDto.builder()
+                        .section(courseSectionMapper.toDto(section))
+                        .lessons(secLessons.stream().map(contentItemMapper::toDto).toList())
+                        .build());
+                grouped.remove(section.getId());
+            }
+        }
+
+        List<ContentItem> uncategorizedItems = grouped.get(null);
+        if (uncategorizedItems == null) {
+            uncategorizedItems = new ArrayList<>();
+        }
+        List<ContentItemDto> uncategorized =
+                uncategorizedItems.stream().map(contentItemMapper::toDto).toList();
+
+        return CourseCurriculumDto.builder()
+                .courseId(resourceId.toString())
+                .sections(sectionDtos)
+                .uncategorizedLessons(uncategorized)
+                .build();
     }
 
     @Transactional

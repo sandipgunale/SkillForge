@@ -52,17 +52,17 @@ export default function CapEmblem({ className }) {
       {/* Button */}
       <circle cx="60" cy="48" r="3.4" fill="var(--cap-board)" />
 
-      {/* Tassel — string from the button out over the edge */}
+      {/* Tassel — gold string from the button out over the edge */}
       <path
         d="M63 47 C76 45 84 44 88 49 C90 52 91 56 90 61"
         fill="none"
-        stroke="var(--ember)"
+        stroke="var(--cap-gold)"
         strokeWidth="2.2"
         strokeLinecap="round"
       />
       <path
         d="M90 61 C89 67 92 72 89 78 C87 82 83 82 81 78 C79 72 81 66 82 61 Z"
-        fill="var(--ember)"
+        fill="var(--cap-gold)"
         opacity="0.9"
       />
 

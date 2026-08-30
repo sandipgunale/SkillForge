@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import { Flame } from "lucide-react";
 import { gsap } from "gsap";
 
 import { Link } from "react-router-dom";
@@ -9,6 +8,8 @@ import { COMPONENT, SURFACE } from "@/lib/design-system";
 import { useReducedMotion } from "@/lib/motion-gsap";
 
 import { ROUTES } from "@/constants/routes";
+
+import LogoMark from "@/components/common/LogoMark";
 
 /**
  * AuthLogo — breathing flame mark.
@@ -67,7 +68,7 @@ export default function AuthLogo({ size = "md", showWordmark = true }) {
             flags.tile,
           )}
         >
-          <Flame className={flags.icon} strokeWidth={2.2} />
+          <LogoMark className={flags.icon} />
         </div>
       </div>
 

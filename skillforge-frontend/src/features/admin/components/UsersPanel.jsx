@@ -3,9 +3,8 @@ import { useState } from "react";
 import ErrorState from "@/components/common/ErrorState";
 import DashboardSkeleton from "@/features/dashboard/skeletons/DashboardSkeleton";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -17,6 +16,8 @@ import {
 
 import ResourcePagination from "@/features/resources/components/ResourcePagination";
 
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+
 import { useAdminUsers } from "../hooks/useAdminData";
 import { useUpdateUser } from "../hooks/useUpdateUser";
 
@@ -24,14 +25,38 @@ const PAGE_SIZE = 20;
 
 const ROLES = ["STUDENT", "INSTRUCTOR", "ADMIN"];
 
+const SORT_OPTIONS = [
+  { value: "createdAt,desc", label: "Newest first" },
+  { value: "createdAt,asc", label: "Oldest first" },
+  { value: "fullName,asc", label: "Name (A–Z)" },
+  { value: "email,asc", label: "Email (A–Z)" },
+  { value: "role,asc", label: "Role" },
+  { value: "isActive,desc", label: "Active first" },
+];
+
+const roleLabel = (role) => role.charAt(0) + role.slice(1).toLowerCase();
+
+const initials = (name = "") =>
+  name
+    .split(" ")
+    .map((part) => part[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
 export default function UsersPanel() {
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState("createdAt,desc");
   const [page, setPage] = useState(0);
 
+  const debouncedSearch = useDebouncedValue(search, 350);
+
   const { data, isLoading, isError, refetch } = useAdminUsers({
-    search: search || undefined,
+    search: debouncedSearch || undefined,
     page,
     size: PAGE_SIZE,
+    sort,
   });
 
   if (isError) {
@@ -44,30 +69,60 @@ export default function UsersPanel() {
     );
   }
 
+  const users = data?.content ?? [];
+
   return (
     <section className="space-y-4">
-      <Input
-        value={search}
-        onChange={(e) => {
-          setSearch(e.target.value);
-          setPage(0);
-        }}
-        placeholder="Search by name or email…"
-        aria-label="Search users"
-        className="max-w-md"
-      />
-
-      {isLoading && !data ? (
-        <DashboardSkeleton />
-      ) : (data?.content?.length ?? 0) === 0 ? (
-        <p className="text-muted-foreground">No users found.</p>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {(data?.content ?? []).map((user) => (
-            <UserCard key={user.id} user={user} />
-          ))}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative min-w-56 flex-1">
+          <Input
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(0);
+            }}
+            placeholder="Search by name or email…"
+            aria-label="Search users"
+          />
         </div>
-      )}
+
+        <Select value={sort} onValueChange={(value) => { setSort(value); setPage(0); }}>
+          <SelectTrigger className="w-44" aria-label="Sort users">
+            <SelectValue placeholder="Sort" />
+          </SelectTrigger>
+          <SelectContent>
+            {SORT_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border bg-background">
+        <div className="hidden items-center gap-3 border-b bg-muted/30 px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-muted-foreground md:flex">
+          <span className="min-w-0 flex-1">User</span>
+          <span className="w-36">Role</span>
+          <span className="w-28">Status</span>
+          <span className="w-32">Joined</span>
+          <span className="w-24 text-right">Actions</span>
+        </div>
+
+        {isLoading && !data ? (
+          <DashboardSkeleton />
+        ) : users.length === 0 ? (
+          <p className="py-10 text-center text-sm text-muted-foreground">
+            No users found.
+          </p>
+        ) : (
+          <ul className="divide-y">
+            {users.map((user) => (
+              <UserRow key={user.id} user={user} />
+            ))}
+          </ul>
+        )}
+      </div>
 
       <ResourcePagination
         page={data?.page ?? 0}
@@ -82,14 +137,11 @@ export default function UsersPanel() {
   );
 }
 
-function UserCard({ user }) {
+function UserRow({ user }) {
   const updateUser = useUpdateUser();
 
   const setRole = (role) =>
-    updateUser.mutate({
-      userId: user.id,
-      payload: { role },
-    });
+    updateUser.mutate({ userId: user.id, payload: { role } });
 
   const toggleActive = () =>
     updateUser.mutate({
@@ -98,59 +150,62 @@ function UserCard({ user }) {
     });
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <CardTitle className="truncate text-base">{user.fullName}</CardTitle>
+    <li className="flex flex-wrap items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/30 md:flex-nowrap">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <span
+          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-ember/10 text-xs font-semibold text-ember"
+          aria-hidden="true"
+        >
+          {initials(user.fullName)}
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium">{user.fullName}</p>
+          <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+        </div>
+      </div>
 
-            <p className="mt-0.5 truncate text-xs text-muted-foreground">
-              {user.email}
-            </p>
-          </div>
+      <div className="w-36">
+        <Select value={user.role} onValueChange={setRole}>
+          <SelectTrigger className="h-8 w-full" aria-label={`Role for ${user.fullName}`}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {ROLES.map((role) => (
+              <SelectItem key={role} value={role}>
+                {roleLabel(role)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-          <Badge variant={user.isActive ? "default" : "secondary"}>
-            {user.isActive ? "Active" : "Disabled"}
+      <div className="w-28">
+        {user.isActive ? (
+          <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-500">
+            Active
           </Badge>
-        </div>
-      </CardHeader>
+        ) : (
+          <Badge variant="outline" className="text-muted-foreground">
+            Disabled
+          </Badge>
+        )}
+      </div>
 
-      <CardContent className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Select value={user.role} onValueChange={setRole}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Role" />
-            </SelectTrigger>
+      <div className="w-32 text-sm text-muted-foreground">
+        {new Date(user.createdAt).toLocaleDateString()}
+      </div>
 
-            <SelectContent>
-              {ROLES.map((role) => (
-                <SelectItem key={role} value={role}>
-                  {role.charAt(0) + role.slice(1).toLowerCase()}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={updateUser.isPending}
-            onClick={toggleActive}
-          >
-            {user.isActive ? "Disable" : "Enable"}
-          </Button>
-        </div>
-
-        <p className="text-xs text-muted-foreground">
-          Joined {new Date(user.createdAt).toLocaleDateString()}
-          {user.skillLevel
-            ? ` · ${user.skillLevel.charAt(0)}${user.skillLevel
-                .slice(1)
-                .toLowerCase()}`
-            : ""}
-        </p>
-      </CardContent>
-    </Card>
+      <div className="flex w-full justify-end md:w-24">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={updateUser.isPending}
+          onClick={toggleActive}
+        >
+          {user.isActive ? "Disable" : "Enable"}
+        </Button>
+      </div>
+    </li>
   );
 }

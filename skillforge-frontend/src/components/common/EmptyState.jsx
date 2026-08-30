@@ -1,10 +1,10 @@
 import { useRef } from "react";
-import { Flame } from "lucide-react";
 
 import { useReveal, useMicroInteractions } from "@/lib/motion-gsap";
 
-export default function EmptyState({ icon, title, description, action }) {
-  const Icon = icon ?? Flame;
+import LogoMark from "@/components/common/LogoMark";
+
+export default function EmptyState({ icon: Icon, title, description, action }) {
 
   const containerRef = useRef(null);
   const iconRef = useRef(null);
@@ -23,7 +23,11 @@ export default function EmptyState({ icon, title, description, action }) {
           className="absolute inset-0 -z-10 rounded-2xl bg-ember/20 blur-2xl"
         />
         <div className="flex size-16 items-center justify-center rounded-2xl border bg-card text-ember shadow-sm">
+          {Icon ? (
           <Icon className="size-8" strokeWidth={1.75} />
+        ) : (
+          <LogoMark className="size-8" />
+        )}
         </div>
       </div>
 

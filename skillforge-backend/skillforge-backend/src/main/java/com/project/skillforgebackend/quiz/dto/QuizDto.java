@@ -46,4 +46,6 @@ public class QuizDto {
     private String learningPathId;
 
     private Integer weekNumber;
+
+    private String lessonId;
 }

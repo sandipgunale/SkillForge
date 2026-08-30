@@ -4,10 +4,10 @@ import { adminApi } from "../api/admin.api";
 
 const ADMIN_QUERY_KEYS = ["admin"];
 
-export function useAdminUsers({ search, page = 0, size = 20 } = {}) {
+export function useAdminUsers({ search, page = 0, size = 20, sort } = {}) {
   return useQuery({
-    queryKey: [...ADMIN_QUERY_KEYS, "users", { search, page, size }],
-    queryFn: () => adminApi.getUsers({ search, page, size }),
+    queryKey: [...ADMIN_QUERY_KEYS, "users", { search, page, size, sort }],
+    queryFn: () => adminApi.getUsers({ search, page, size, sort }),
     staleTime: 1000 * 60,
   });
 }

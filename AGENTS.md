@@ -243,7 +243,7 @@ states, skeletons, dark + light mode, and reduced-motion mode
 
 GSAP is the primary animation engine. Centralize ALL animation in one place:
 
-- One motion library (see `src/lib/motion.js`) — all presets, timelines,
+- One motion library (see `src/lib/motion-gsap.js`) — all presets, timelines,
   ScrollTrigger, and SplitText usage live there.
 - Motion tokens (duration/easing) come from one source (`src/lib/design-system.js`).
 - Use GSAP timelines; share presets, easing, and durations.

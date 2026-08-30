@@ -1,8 +1,7 @@
-import { lazy, Suspense, useRef } from "react";
+import { Component, lazy, Suspense } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 
 import { alpha } from "@/lib/design-system";
-import { useMountAnimation } from "@/lib/motion-gsap";
 import ThemeToggle from "@/components/common/ThemeToggle";
 import AuthLogo from "@/features/auth/components/AuthLogo";
 
@@ -11,14 +10,29 @@ const LivingCoreScene = lazy(() =>
   import("@/features/auth/components/three/LivingCoreScene"),
 );
 
+/* Decorative-scene guard: the background scene is pure decoration. If its
+   lazy chunk fails to load or throws for any reason, the scene simply
+   vanishes (null) — the auth UI above it must always render. */
+class SceneBoundary extends Component {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
+
 export default function AuthLayout() {
   const location = useLocation();
-  const panelRef = useRef(null);
 
-  useMountAnimation(panelRef, [location.pathname], {
-    duration: 0.32,
-    ease: "power2.inOut",
-  });
+  /* NOTE: no entrance animation on the card wrapper. The auth form must be
+     visible IMMEDIATELY and is non-negotiable — any gsap.from opacity gate
+     creates a window where the card is invisible (and, interrupted, can
+     strand it invisible). The page chrome (logo, toggle) and the card render
+     on first paint, unconditionally. */
 
   return (
     <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-background">
@@ -54,11 +68,17 @@ export default function AuthLayout() {
         className="noise-overlay pointer-events-none absolute inset-0 z-[1]"
       />
 
-      {/* Layer 3 — the living intelligence core */}
-      <div aria-hidden="true" className="absolute inset-0 z-[2]">
-        <Suspense fallback={null}>
-          <LivingCoreScene className="absolute inset-0 h-full w-full opacity-80" />
-        </Suspense>
+      {/* Layer 3 — the living intelligence core (decorative: never
+          intercepts pointer events, so it can never block the forms) */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-[2]"
+      >
+        <SceneBoundary>
+          <Suspense fallback={null}>
+            <LivingCoreScene className="absolute inset-0 h-full w-full opacity-80" />
+          </Suspense>
+        </SceneBoundary>
       </div>
 
       {/* Layer 4 — cinematic vignette */}
@@ -82,7 +102,7 @@ export default function AuthLayout() {
       {/* Layer 5 — the floating glass panel */}
       <main className="relative z-10 flex flex-1 items-center justify-center px-4 py-10 sm:py-12">
         <div className="w-full max-w-md">
-          <div key={location.pathname} ref={panelRef}>
+          <div key={location.pathname}>
             <Outlet />
           </div>
         </div>

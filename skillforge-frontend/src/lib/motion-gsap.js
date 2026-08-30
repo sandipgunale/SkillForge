@@ -1,9 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { SplitText } from "gsap/SplitText";
 
-import { DURATION } from "./design-system";
+import { DURATION, MOTION } from "./design-system";
 
 /* ==========================================================================
    SkillForge Motion Engine — GSAP
@@ -24,7 +23,7 @@ import { DURATION } from "./design-system";
    removed and framer-motion is no longer a dependency.
    ========================================================================== */
 
-gsap.registerPlugin(ScrollTrigger, SplitText);
+gsap.registerPlugin(ScrollTrigger);
 
 /* GSAP easing names mirroring the design-system bezier curves. */
 export const GSAP_EASE = {
@@ -32,6 +31,11 @@ export const GSAP_EASE = {
   inOutSoft: "power3.inOut",
   spring: "back.out(1.7)",
   smooth: "power2.out",
+  /* Motion language categories (mirror of design-system MOTION.ease) */
+  micro: "expo.out",
+  ui: "expo.out",
+  scene: "expo.out",
+  physical: "back.out(1.7)",
 };
 
 /* Durations (ms) from the design system, as seconds for GSAP. */
@@ -40,6 +44,268 @@ export const SECONDS = {
   slow: DURATION.slow / 1000,
   base: DURATION.base / 1000,
   fast: DURATION.fast / 1000,
+};
+
+/* Motion language categories in GSAP-ready form. Components declare intent
+   (micro / ui / scene / physical), never raw durations or curves. Derived
+   from the design-system MOTION mapping table — one source of truth. */
+export const MOTION_TOKENS = {
+  micro: { duration: MOTION.micro.duration / 1000, ease: GSAP_EASE.micro },
+  ui: { duration: MOTION.ui.duration / 1000, ease: GSAP_EASE.ui },
+  scene: { duration: MOTION.scene.duration / 1000, ease: GSAP_EASE.scene },
+  physical: { duration: MOTION.physical.duration / 1000, ease: GSAP_EASE.physical },
+};
+
+/* ==========================================================================
+   Section identity builders — the choreography per declared identity.
+
+   A builder receives { gsap, select, reset, root, tokens } and runs inside
+   the section's gsap.context (scoped + reverted with the component). It owns
+   its deterministic from-states (direct style writes — the P1-1 lesson, no
+   clearProps) and returns nothing. Identities without a builder (mirror,
+   quiet, …) keep their declared fallback behavior.
+
+   The driver (`useSectionEntrance({ identity })` in useEntrance.js) resets
+   all entrance slots before a builder runs, so a builder can rely on writing
+   exactly the properties it animates.
+   ========================================================================== */
+
+/* Pre-hide = invisible AND out of the pointer/tab order: opacity alone
+   leaves hidden CTAs clickable. Builders pair this with autoAlpha fromTo
+   tweens, which restore visibility when the beat plays in. */
+const preHideWrites = (els, styles) =>
+  els.forEach((el) => {
+    Object.entries(styles).forEach(([prop, value]) => {
+      el.style[prop] = value;
+      if (prop === "opacity" && value === "0") el.style.visibility = "hidden";
+    });
+  });
+
+const chapterSlots = (select) => ({
+  label: select("[data-entrance='label']"),
+  head: select("[data-entrance='head']"),
+  lead: select("[data-entrance='lead']"),
+  content: select("[data-entrance='content']"),
+  aside: select("[data-entrance='aside']"),
+});
+
+const chapterTrigger = (gsap, root) => ({
+  scrollTrigger: { trigger: root, start: "top 78%", once: true },
+});
+
+const BUILDERS = {
+  /* claim — the editorial statement: the display line rises under a clip
+     mask, one layer at a time. */
+  mask({ gsap, select, root }) {
+    const slots = chapterSlots(select);
+    if (!slots.head.length && !slots.label.length) return undefined;
+    preHideWrites(slots.label, { opacity: "0", transform: "translateY(16px)" });
+    preHideWrites(slots.head, {
+      opacity: "0",
+      transform: "translateY(44px)",
+      clipPath: "inset(100% 0% 0% 0%)",
+    });
+    preHideWrites(slots.lead, { opacity: "0", transform: "translateY(24px)" });
+    preHideWrites(slots.content, { opacity: "0", transform: "translateY(28px)" });
+    preHideWrites(slots.aside, { opacity: "0", transform: "translateY(30px)" });
+
+    const tl = gsap.timeline({ defaults: { ease: GSAP_EASE.scene }, ...chapterTrigger(gsap, root) });
+    if (slots.label.length) {
+      tl.fromTo(slots.label, { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.55 }, 0.05);
+    }
+    if (slots.head.length) {
+      tl.fromTo(
+        slots.head,
+        { autoAlpha: 0, y: 44, clipPath: "inset(100% 0% 0% 0%)" },
+        { autoAlpha: 1, y: 0, clipPath: "inset(0% 0% 0% 0%)", duration: 0.9 },
+        0,
+      );
+    }
+    if (slots.lead.length) {
+      tl.fromTo(slots.lead, { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.7 }, 0.12);
+    }
+    if (slots.content.length) {
+      tl.fromTo(slots.content, { autoAlpha: 0, y: 28 }, { autoAlpha: 1, y: 0, duration: 0.8 }, 0.18);
+    }
+    if (slots.aside.length) {
+      tl.fromTo(slots.aside, { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: 0.8 }, 0.18);
+    }
+    return undefined;
+  },
+
+  /* trust — claims resolve blur-to-focus, one row at a time. */
+  blur({ gsap, select, root }) {
+    const slots = chapterSlots(select);
+    if (!slots.head.length && !slots.label.length) return undefined;
+    const rows = select("[data-entrance='content'] > *");
+    preHideWrites(slots.label, { opacity: "0", transform: "translateY(16px)" });
+    preHideWrites(slots.head, { opacity: "0", filter: "blur(10px)" });
+    preHideWrites(slots.lead, { opacity: "0", transform: "translateY(24px)" });
+    preHideWrites(rows, {
+      opacity: "0",
+      transform: "translateY(18px)",
+      filter: "blur(8px)",
+    });
+
+    const tl = gsap.timeline({ defaults: { ease: GSAP_EASE.scene }, ...chapterTrigger(gsap, root) });
+    if (slots.label.length) {
+      tl.fromTo(slots.label, { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.55 }, 0.05);
+    }
+    if (slots.head.length) {
+      tl.fromTo(
+        slots.head,
+        { autoAlpha: 0, filter: "blur(10px)" },
+        { autoAlpha: 1, filter: "blur(0px)", duration: 0.85 },
+        0,
+      );
+    }
+    if (slots.lead.length) {
+      tl.fromTo(slots.lead, { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.7 }, 0.1);
+    }
+    if (rows.length) {
+      tl.fromTo(
+        rows,
+        { autoAlpha: 0, y: 18, filter: "blur(8px)" },
+        { autoAlpha: 1, y: 0, filter: "blur(0px)", duration: 0.7, stagger: 0.12 },
+        0.18,
+      );
+    }
+    return undefined;
+  },
+
+  /* machine — the framed panel opens with a wipe; chips light in sequence. */
+  wipe({ gsap, select, root }) {
+    const slots = chapterSlots(select);
+    if (!slots.head.length && !slots.label.length) return undefined;
+    const chips = select("[data-entrance='content'] > *");
+    preHideWrites(slots.label, { opacity: "0", transform: "translateY(16px)" });
+    preHideWrites(slots.head, { opacity: "0", transform: "translateY(40px)" });
+    preHideWrites(slots.lead, { opacity: "0", transform: "translateY(24px)" });
+    preHideWrites(chips, { opacity: "0", transform: "translateY(18px)" });
+    preHideWrites(slots.aside, {
+      opacity: "0",
+      clipPath: "inset(0% 100% 0% 0%)",
+    });
+
+    const tl = gsap.timeline({ defaults: { ease: GSAP_EASE.scene }, ...chapterTrigger(gsap, root) });
+    if (slots.label.length) {
+      tl.fromTo(slots.label, { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.55 }, 0.05);
+    }
+    if (slots.head.length) {
+      tl.fromTo(slots.head, { autoAlpha: 0, y: 40 }, { autoAlpha: 1, y: 0, duration: 0.8 }, 0);
+    }
+    if (slots.lead.length) {
+      tl.fromTo(slots.lead, { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.7 }, 0.12);
+    }
+    if (chips.length) {
+      tl.fromTo(
+        chips,
+        { autoAlpha: 0, y: 18 },
+        { autoAlpha: 1, y: 0, duration: 0.5, stagger: 0.08 },
+        0.18,
+      );
+    }
+    if (slots.aside.length) {
+      tl.fromTo(
+        slots.aside,
+        { autoAlpha: 0, clipPath: "inset(0% 100% 0% 0%)" },
+        { autoAlpha: 1, clipPath: "inset(0% 0% 0% 0%)", duration: 0.9 },
+        0.1,
+      );
+    }
+    return undefined;
+  },
+
+  /* proof — voices roll in one after another, settling each card. */
+  quote({ gsap, select, root }) {
+    const slots = chapterSlots(select);
+    if (!slots.head.length && !slots.label.length) return undefined;
+    const cards = select("[data-entrance='content'] > *");
+    preHideWrites(slots.label, { opacity: "0", transform: "translateY(16px)" });
+    preHideWrites(slots.head, { opacity: "0", transform: "translateY(40px)" });
+    preHideWrites(cards, { opacity: "0", transform: "translateY(34px)" });
+
+    const tl = gsap.timeline({ defaults: { ease: GSAP_EASE.scene }, ...chapterTrigger(gsap, root) });
+    if (slots.label.length) {
+      tl.fromTo(slots.label, { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.55 }, 0.05);
+    }
+    if (slots.head.length) {
+      tl.fromTo(slots.head, { autoAlpha: 0, y: 40 }, { autoAlpha: 1, y: 0, duration: 0.8 }, 0);
+    }
+    if (cards.length) {
+      tl.fromTo(
+        cards,
+        { autoAlpha: 0, y: 34 },
+        { autoAlpha: 1, y: 0, duration: 0.75, stagger: 0.14, ease: GSAP_EASE.physical },
+        0.16,
+      );
+    }
+    return undefined;
+  },
+};
+
+/**
+ * Section motion registry — one named identity per landing section (and the
+ * shell). Sections declare their identity; they never inline tweens. Entries
+ * support `build` for registry-driven choreography (mask/blur/wipe/quote),
+ * `presets`/`variant` for declarative choreography, and bespoke section
+ * timelines (Arrival, Mastery, ForgeGraph) via `builder: true` — the escape
+ * hatch that keeps the registry honest. See DESIGN.md "Motion Language".
+ */
+export const SECTION_MOTION = {
+  wake: {
+    builder: true,
+    docs: "Hero: entrance beat sequence (0/100/250/400/500/600/1200ms) + cap 5-phase scroll + return-differently.",
+  },
+  claim: {
+    build: BUILDERS.mask,
+    docs: "Statements: oversized words rise with clip mask, one line at a time; keyword accent glint.",
+  },
+  trust: {
+    build: BUILDERS.blur,
+    docs: "Why: cards resolve blur-to-focus with shadow settle; checkmark line-draw micro-interaction.",
+  },
+  process: {
+    build: null,
+    variant: "numeral",
+    docs: "How: step cards advance on scrub; connector line draws node-to-node; numerals roll 01->02->03.",
+  },
+  machine: {
+    build: BUILDERS.wipe,
+    nested: {
+      formation: {
+        docs: "ForgeGraph: nodes activate -> edges draw -> clusters form (once-assembly + edge draw-in).",
+      },
+    },
+    docs: "Engine: panel reveals with mask wipe; shimmer travels; status ticks light sequentially.",
+  },
+  proof: {
+    build: BUILDERS.quote,
+    docs: "Experience: testimonial quotes roll vertically; star counts transition up.",
+  },
+  transformation: {
+    builder: true,
+    nested: {
+      signature: {
+        docs: "Knowledge Forge signature: fragmented -> structured -> personalized -> mastered (scrub-driven phases).",
+      },
+    },
+    docs: "Mastery: dissolve -> reform as two distinct acts; copy resolves from scattered to focused; CTA magnetic.",
+  },
+  answers: {
+    variant: "accordion",
+    docs: "FAQ: press physics + chevron micro-rotate + answer fade; no layout animation.",
+  },
+  mirror: {
+    docs: "Product showcase: reuses the app-component motion language.",
+  },
+  quiet: {
+    static: true,
+    docs: "Footer: static, no entrance choreography.",
+  },
+  shell: {
+    docs: "Landing shell: navbar active-state, scroll progress, cursor (shared chrome identity).",
+  },
 };
 
 /** Live prefers-reduced-motion flag. */
@@ -86,7 +352,11 @@ export function useMotionScope(callback, dependencies, root) {
     callbackRef.current = callback;
   }, [callback]);
 
-  useEffect(() => {
+  /* Layout effect: the scope ref is guaranteed attached and the from-state
+     writes (preHide) land before first paint. Passive effects can race the
+     ref attachment (the Engine section's entrance used to silently never
+     run); synchronous refs are the contract here. */
+  useLayoutEffect(() => {
     if (!scopeRef.current) return undefined;
     let ctx = null;
     ctx = gsap.context(() => {
@@ -116,35 +386,6 @@ export function useMotionScope(callback, dependencies, root) {
  *   const root = useRef(null);
  *   useReveal(root, { targets: "> *", stagger: 0.08, y: 28 });
  */
-export function useScrollShow(ref, { y = 24, stagger = 0.08, duration = SECONDS.slow } = {}) {
-  const { reduced } = useMotionSafe();
-
-  useEffect(() => {
-    if (reduced || !ref.current) return undefined;
-    const targets = ref.current.children;
-
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: ref.current,
-        start: "top 82%",
-        once: true,
-      },
-    });
-
-    tl.from(targets, {
-      opacity: 0,
-      y,
-      duration,
-      ease: GSAP_EASE.smooth,
-      stagger,
-      clearProps: "opacity,transform",
-    });
-
-    return () => {
-      tl.revert();
-    };
-  }, [ref, reduced, y, stagger, duration]);
-}
 
 /* ==========================================================================
    Entrance / stagger primitives — GSAP equivalents of the former
@@ -189,87 +430,9 @@ export function useReveal(
 }
 
 /**
- * Chinese-style stagger reveal for list children growing on scroll.
- * Mirrors framer's staggerContainer/staggerChildren on the way in.
- */
-export function useStaggerIn(
-  ref,
-  { target = "> *", y = 18, stagger = 0.08, duration = SECONDS.base } = {},
-) {
-  const { reduced } = useMotionSafe();
-
-  useEffect(() => {
-    if (reduced || !ref.current) return undefined;
-    const targets = ref.current.querySelectorAll(target);
-
-    const timeline = gsap.timeline({
-      scrollTrigger: {
-        trigger: ref.current,
-        start: "top 88%",
-        once: true,
-      },
-    });
-
-    timeline.from(targets, {
-      opacity: 0,
-      y,
-      duration,
-      ease: GSAP_EASE.outExpo,
-      stagger,
-      clearProps: "opacity,transform",
-    });
-
-    return () => {
-      timeline.revert();
-    };
-  }, [ref, reduced, target, y, stagger, duration]);
-}
-
-/**
- * Scroll reveal for one or more selector groups inside a section root.
- * Collapses the near-identical per-section GSAP blocks (AGENTS.md: never
- * duplicate animation logic) into one declarative config. Each entry is
- * `{ selector, trigger?, ...vars }` where `trigger` is the ScrollTrigger
- * start position. Reduced-motion renders content immediately visible.
- *
- *   const root = useRef(null);
- *   useSectionReveal(root, [
- *     { selector: "[data-x='heading']", y: 24, trigger: "top 78%" },
- *     { selector: "[data-x='card']", y: 28, stagger: 0.12, trigger: "top 74%" },
- *   ]);
- */
-export function useSectionReveal(rootRef, configs) {
-  const { reduced } = useMotionSafe();
-
-  useMotionScope(
-    ({ gsap, select }) => {
-      if (reduced) return;
-      configs.forEach(({ selector, trigger, ...vars }) => {
-        const targets = select(selector);
-        if (!targets.length) return;
-        gsap.from(targets, {
-          opacity: 0,
-          y: 24,
-          duration: 0.65,
-          ease: GSAP_EASE.smooth,
-          ...vars,
-          scrollTrigger: {
-            trigger: rootRef.current,
-            start: trigger ?? "top 78%",
-            once: true,
-          },
-        });
-      });
-    },
-    [reduced],
-    rootRef,
-  );
-}
-
-/**
  * Mount/replay helper for state-keyed swaps (e.g. theme icon, question
  * counter, trailing form adornments). Plays an in-on-mount tween and
- * force-kills on unmount. Keyboard: runs like `gsap.from`, respecting
+ * reverts it on unmount. Keyboard: runs like `gsap.from`, respecting
  * reduced-motion.
  */
 export function useMountAnimation(
@@ -293,10 +456,17 @@ export function useMountAnimation(
     const tween = gsap.from(ref.current, { ...from, onComplete });
 
     return () => {
+      /* revert() — not kill(): kill() leaves the from-state (e.g. opacity:0)
+         written inline on the element, so any interruption (StrictMode
+         double-mounting, a re-render that re-runs the effect) strands the
+         target invisible. revert() restores the element to its natural state. */
       tween.revert();
     };
+    // `deps` is spread so React compares its CONTENTS (callers pass array
+    // literals like [location.pathname]); the array identity changes on every
+    // render and must not re-trigger the tween per render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reduced, y, scale, scaleX, opacity, blur, height, duration, ease, delay, ...deps]);
+  }, [ref, reduced, y, scale, scaleX, opacity, blur, height, duration, ease, delay, onComplete, props, ...deps]);
 }
 
 /** Entrance-only wrapper for small panels (search dropdown, tooltips). */
@@ -349,39 +519,256 @@ export function useMicroInteractions(
  * Magnetic pull for primary CTAs. The element eases toward the pointer
  * within a small radius and springs back on leave. Desktop fine pointers
  * only, disabled under prefers-reduced-motion. Restrained by design —
- * the pull is a whisper, not a tug.
+ * the pull is a whisper, not a tug. Rect is cached on enter (no per-move
+ * layout reads); quickTo drives both axes; leave returns with the physical
+ * (spring) token — magnetic spring-to-rest.
  */
-export function useMagnetic(ref, { max = 6, strength = 0.15 } = {}) {
+export function useMagnetic(ref, { strength = 0.35, radius = 140, max = null } = {}) {
+  const { reduced } = useMotionSafe();
+
   useEffect(() => {
     const el = ref.current;
-    if (!el) return undefined;
+    if (reduced || !el) return undefined;
     const fine = window.matchMedia("(pointer: fine)").matches;
     const wide = window.matchMedia("(min-width: 1024px)").matches;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!fine || !wide || reduced) return undefined;
+    if (!fine || !wide) return undefined;
 
-    const toX = gsap.quickTo(el, "x", { duration: 0.4, ease: "power3.out" });
-    const toY = gsap.quickTo(el, "y", { duration: 0.4, ease: "power3.out" });
+    const toX = gsap.quickTo(el, "x", { duration: 0.4, ease: GSAP_EASE.smooth });
+    const toY = gsap.quickTo(el, "y", { duration: 0.4, ease: GSAP_EASE.smooth });
 
+    let rect = null;
+
+    const onEnter = () => {
+      rect = el.getBoundingClientRect();
+    };
     const onMove = (e) => {
-      const r = el.getBoundingClientRect();
-      const dx = e.clientX - (r.left + r.width / 2);
-      const dy = e.clientY - (r.top + r.height / 2);
-      toX(Math.max(-max, Math.min(max, dx * strength)));
-      toY(Math.max(-max, Math.min(max, dy * strength)));
+      if (!rect) return;
+      const dx = e.clientX - (rect.left + rect.width / 2);
+      const dy = e.clientY - (rect.top + rect.height / 2);
+      if (Math.hypot(dx, dy) > radius) return;
+      const cap = max ?? Math.max(radius * 0.5, 1);
+      toX(Math.max(-cap, Math.min(cap, dx * strength)));
+      toY(Math.max(-cap, Math.min(cap, dy * strength)));
     };
     const onLeave = () => {
-      toX(0);
-      toY(0);
+      /* Spring-to-rest: the return uses the physical token (back.out) so
+         the CTA settles with a slight overshoot instead of a linear glide. */
+      gsap.to(el, {
+        x: 0,
+        y: 0,
+        duration: MOTION_TOKENS.physical.duration,
+        ease: GSAP_EASE.physical,
+        overwrite: "auto",
+      });
+      rect = null;
     };
 
+    el.addEventListener("pointerenter", onEnter);
     el.addEventListener("pointermove", onMove);
     el.addEventListener("pointerleave", onLeave);
     return () => {
+      el.removeEventListener("pointerenter", onEnter);
       el.removeEventListener("pointermove", onMove);
       el.removeEventListener("pointerleave", onLeave);
+      gsap.killTweensOf(el);
     };
-  }, [ref, max, strength]);
+  }, [ref, reduced, strength, radius, max]);
+}
+
+/**
+ * Spotlight hover — a radial glow tracks the pointer over a card. The
+ * handler writes CSS vars only (`--spot-x`, `--spot-y`, `--spot-opacity`);
+ * the visual comes from the `.lp-spotlight` utility's ::before. Rect is
+ * cached on enter (no per-move layout reads); rAF-throttled writes; a
+ * `:focus-visible` equivalent lights the glow at the card center.
+ */
+export function useSpotlight(ref) {
+  const { reduced } = useMotionSafe();
+
+  useEffect(() => {
+    const el = ref.current;
+    if (reduced || !el) return undefined;
+    if (!window.matchMedia("(pointer: fine)").matches) return undefined;
+
+    let raf = 0;
+    let pending = null;
+    let rect = null;
+    const write = () => {
+      raf = 0;
+      if (!pending || !rect) return;
+      el.style.setProperty("--spot-x", `${pending.x}px`);
+      el.style.setProperty("--spot-y", `${pending.y}px`);
+      el.style.setProperty("--spot-opacity", "1");
+      pending = null;
+    };
+    const onMove = (e) => {
+      pending = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      if (!raf) raf = requestAnimationFrame(write);
+    };
+    const onEnter = () => {
+      rect = el.getBoundingClientRect();
+      el.style.setProperty("--spot-opacity", "1");
+    };
+    const onLeave = () => {
+      el.style.setProperty("--spot-opacity", "0");
+      rect = null;
+      pending = null;
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+    };
+    const onFocus = (e) => {
+      if (!e.target.matches(":focus-visible")) return;
+      rect = el.getBoundingClientRect();
+      el.style.setProperty("--spot-x", `${rect.width / 2}px`);
+      el.style.setProperty("--spot-y", `${rect.height / 2}px`);
+      el.style.setProperty("--spot-opacity", "1");
+    };
+    const onBlur = () => {
+      el.style.setProperty("--spot-opacity", "0");
+      pending = null;
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+    };
+
+    el.addEventListener("pointerenter", onEnter);
+    el.addEventListener("pointermove", onMove);
+    el.addEventListener("pointerleave", onLeave);
+    el.addEventListener("focusin", onFocus);
+    el.addEventListener("focusout", onBlur);
+    return () => {
+      el.removeEventListener("pointerenter", onEnter);
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerleave", onLeave);
+      el.removeEventListener("focusin", onFocus);
+      el.removeEventListener("focusout", onBlur);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [ref, reduced]);
+}
+
+/**
+ * Border trace — an SVG outline (child `[data-border-trace]`) draws itself
+ * around a panel on hover. The svg must carry `pathLength="1"`; the hook
+ * manages dasharray/dashoffset with the ui token. A `:focus-visible`
+ * equivalent traces on keyboard focus. Disabled under reduced motion
+ * (the border simply rests untraced; the panel's static border remains).
+ */
+export function useBorderTrace(ref) {
+  const { reduced } = useMotionSafe();
+
+  useEffect(() => {
+    const el = ref.current;
+    if (reduced || !el) return undefined;
+    const path = el.querySelector("[data-border-trace]");
+    if (!path) return undefined;
+    path.setAttribute("pathLength", "1");
+    path.style.strokeDasharray = "1 1";
+    path.style.strokeDashoffset = "1";
+
+    const trace = (offset) =>
+      gsap.to(path, {
+        strokeDashoffset: offset,
+        duration: MOTION_TOKENS.ui.duration,
+        ease: GSAP_EASE.ui,
+        overwrite: "auto",
+      });
+    const onEnter = () => trace(0);
+    const onLeave = () => trace(1);
+    const onFocus = (e) => {
+      if (e.target.matches(":focus-visible")) trace(0);
+    };
+    const onBlur = () => trace(1);
+
+    el.addEventListener("pointerenter", onEnter);
+    el.addEventListener("pointerleave", onLeave);
+    el.addEventListener("focusin", onFocus);
+    el.addEventListener("focusout", onBlur);
+    return () => {
+      el.removeEventListener("pointerenter", onEnter);
+      el.removeEventListener("pointerleave", onLeave);
+      el.removeEventListener("focusin", onFocus);
+      el.removeEventListener("focusout", onBlur);
+      gsap.killTweensOf(path);
+    };
+  }, [ref, reduced]);
+}
+
+/**
+ * Press physics — scale down on press, settle back on release. Pointer
+ * events cover mouse, pen, and touch (tap = press). Micro token, reduced-
+ * motion safe (no scale).
+ */
+export function usePressPhysics(ref, { scale = 0.97 } = {}) {
+  const { reduced } = useMotionSafe();
+
+  useEffect(() => {
+    const el = ref.current;
+    if (reduced || !el) return undefined;
+
+    const press = () =>
+      gsap.to(el, {
+        scale,
+        duration: MOTION_TOKENS.micro.duration,
+        ease: GSAP_EASE.micro,
+        overwrite: "auto",
+      });
+    const release = () =>
+      gsap.to(el, {
+        scale: 1,
+        duration: MOTION_TOKENS.micro.duration,
+        ease: GSAP_EASE.physical,
+        overwrite: "auto",
+        onComplete: () => gsap.set(el, { clearProps: "transform" }),
+      });
+
+    el.addEventListener("pointerdown", press);
+    el.addEventListener("pointerup", release);
+    el.addEventListener("pointerleave", release);
+    el.addEventListener("pointercancel", release);
+    return () => {
+      el.removeEventListener("pointerdown", press);
+      el.removeEventListener("pointerup", release);
+      el.removeEventListener("pointerleave", release);
+      el.removeEventListener("pointercancel", release);
+      gsap.killTweensOf(el);
+    };
+  }, [ref, reduced, scale]);
+}
+
+/**
+ * Numeral roll — an eased counting animation for stat readouts. Writes
+ * textContent (with optional padding/suffix) on a GSAP tween; reduced
+ * motion jumps straight to the final value. App surfaces consume this
+ * (quiz feedback, gamification count-ups, roadmap numerals); the landing
+ * numerals stay scrub-driven.
+ */
+export function useNumeralRoll(
+  ref,
+  { to, duration = 1, pad = 0, suffix = "", ease = "power2.out", visible = true } = {},
+) {
+  const { reduced } = useMotionSafe();
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !visible) return undefined;
+    const format = (v) => String(Math.round(v)).padStart(pad, "0") + suffix;
+    if (reduced) {
+      el.textContent = format(to);
+      return undefined;
+    }
+    const state = { v: 0 };
+    const tween = gsap.to(state, {
+      v: to,
+      duration,
+      ease,
+      onUpdate: () => {
+        el.textContent = format(state.v);
+      },
+    });
+    return () => {
+      tween.kill();
+    };
+  }, [ref, reduced, to, duration, pad, suffix, ease, visible]);
 }
 
 /**
@@ -434,55 +821,4 @@ export function useTilt(ref, { max = 2.5 } = {}) {
       if (currentTween) currentTween.kill();
     };
   }, [reduced, ref, max]);
-}
-
-/**
- * SplitText line reveal for editorial headlines. Catches heading text into
- * wrapped lines and reveals them with a mask + rise on scroll.
- */
-export function useSplitReveal(ref, { stagger = 0.08, duration = 0.9 } = {}) {
-  const { reduced } = useMotionSafe();
-  const state = useRef({ split: null, tl: null });
-
-  useLayoutEffect(() => {
-    if (reduced || !ref.current) return undefined;
-
-    const split = new SplitText(ref.current, {
-      type: "lines",
-      linesClass: "split-line",
-      mask: false,
-    });
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: ref.current,
-        start: "top 82%",
-        once: true,
-        onEnter: () => tl.play(),
-      },
-      paused: true,
-    });
-
-    tl.from(
-      split.lines,
-      {
-        opacity: 0,
-        yPercent: 110,
-        duration,
-        ease: GSAP_EASE.outExpo,
-        stagger,
-      },
-      0,
-    );
-
-    state.current = { split, tl };
-    tl.play();
-
-    return () => {
-      tl.revert();
-      if (state.current.split) state.current.split.revert();
-      state.current = { split: null, tl: null };
-    };
-  }, [ref, reduced, stagger, duration]);
-
-  return state;
 }

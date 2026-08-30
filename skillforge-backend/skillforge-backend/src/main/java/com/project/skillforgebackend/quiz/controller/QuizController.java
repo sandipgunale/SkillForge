@@ -138,6 +138,25 @@ public class QuizController {
         );
     }
 
+    /**
+     * Latest quiz the current user generated for a course lesson (or null).
+     */
+    @GetMapping("/by-lesson")
+    public ResponseEntity<ApiResponse<QuizDto>> getQuizByLesson(
+            @AuthenticationPrincipal AuthenticatedPrincipal principal,
+            @RequestParam UUID lessonId
+    ) {
+        User user = currentUser.require(principal);
+        QuizDto quiz = quizQueryService.getQuizByLesson(user, lessonId).orElse(null);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Lesson quiz fetched successfully.",
+                        quiz
+                )
+        );
+    }
+
     @GetMapping("/{quizId}")
     public ResponseEntity<ApiResponse<QuizDto>> getQuiz(
             @AuthenticationPrincipal AuthenticatedPrincipal principal,

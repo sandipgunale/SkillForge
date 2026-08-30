@@ -16,8 +16,10 @@ import com.project.skillforgebackend.quiz.entity.QuizSource;
 import com.project.skillforgebackend.quiz.mapper.QuizMapper;
 import com.project.skillforgebackend.quiz.repository.QuizRepository;
 import com.project.skillforgebackend.quiz.validator.QuizRequestValidator;
+import com.project.skillforgebackend.resource.entity.ContentItem;
 import com.project.skillforgebackend.resource.entity.Resource;
 import com.project.skillforgebackend.resource.entity.Topic;
+import com.project.skillforgebackend.resource.repository.ContentItemRepository;
 import com.project.skillforgebackend.resource.repository.TopicRepository;
 import com.project.skillforgebackend.user.entity.User;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -43,6 +45,7 @@ public class QuizGenerationService {
 
     private final QuizRepository quizRepository;
     private final TopicRepository topicRepository;
+    private final ContentItemRepository contentItemRepository;
     private final LearningPathRepository learningPathRepository;
     private final AIService aiService;
     private final QuizMapper quizMapper;
@@ -106,6 +109,11 @@ public class QuizGenerationService {
                 .totalQuestions(questions.size())
                 .maxScore(questions.size())
                 .build();
+
+        if (request.getLessonId() != null) {
+            contentItemRepository.findById(request.getLessonId())
+                    .ifPresent(quiz::setLesson);
+        }
 
         persistGeneratedQuiz(quiz, questions);
 

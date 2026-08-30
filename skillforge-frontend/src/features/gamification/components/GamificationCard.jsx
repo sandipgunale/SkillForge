@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import CountUp from "@/components/common/CountUp";
 
 import { ROUTES } from "@/constants/routes";
 
@@ -35,7 +36,9 @@ export default function GamificationCard() {
       <CardContent className="space-y-4">
         <div className="flex items-center gap-2 text-sm">
           <StarIcon className="text-warning" />
-          <span className="font-semibold">{data.points}</span>
+          <span className="font-semibold">
+            <CountUp to={data.points} />
+          </span>
           <span className="text-muted-foreground">points earned</span>
         </div>
 

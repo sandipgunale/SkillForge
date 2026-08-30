@@ -75,4 +75,44 @@ export const resourceApi = {
   async deleteResource(resourceId) {
     await apiClient.delete(`/v1/resources/${resourceId}`);
   },
+
+  /**
+   * Get the curriculum (sections -> lessons) for a resource/course.
+   */
+  async getCourseCurriculum(resourceId) {
+    const { data } = await apiClient.get(`/v1/resources/${resourceId}/curriculum`);
+    return data;
+  },
+
+  /**
+   * Get the authenticated user's progress for a course.
+   */
+  async getCourseProgress(courseId) {
+    const { data } = await apiClient.get(`/v1/resources/${courseId}/progress`);
+    return data;
+  },
+
+  /**
+   * Get the authenticated user's progress across many courses.
+   * Returns a map of courseId -> CourseProgressDto.
+   */
+  async getCourseProgressBatch(courseIds = []) {
+    if (!courseIds || courseIds.length === 0) {
+      return { success: true, data: {} };
+    }
+    const params = { courseIds: courseIds.join(",") };
+    const { data } = await apiClient.get("/v1/course-progress", { params });
+    return data;
+  },
+
+  /**
+   * Mark (or unmark) a lesson complete for the current user.
+   */
+  async setLessonComplete(courseId, lessonId, completed) {
+    if (completed) {
+      await apiClient.post(`/v1/resources/${courseId}/lessons/${lessonId}/complete`);
+    } else {
+      await apiClient.delete(`/v1/resources/${courseId}/lessons/${lessonId}/complete`);
+    }
+  },
 };

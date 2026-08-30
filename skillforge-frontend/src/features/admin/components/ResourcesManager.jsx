@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Archive, BookOpen, Pencil, Plus, RotateCcw, Search } from "lucide-react";
+import { Archive, BookOpen, GraduationCap, Layers, Pencil, Plus, RotateCcw, Search } from "lucide-react";
 
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,7 +13,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -40,6 +39,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import ErrorState from "@/components/common/ErrorState";
 
+import { useNavigate } from "react-router-dom";
+import { ROUTES } from "@/constants/routes";
+
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+
 import {
   useAdminResources,
   useCreateResource,
@@ -47,7 +51,7 @@ import {
   useRestoreResource,
   useUpdateResource,
 } from "../hooks/useAdminResources";
-import { useTopicsList } from "../hooks/useCatalog";
+import { useTagsList, useTopicsList } from "../hooks/useCatalog";
 
 const resourceSchema = z.object({
   title: z.string().trim().min(1, "Title is required.").max(200),
@@ -77,8 +81,13 @@ export default function ResourcesManager() {
   const [includeInactive, setIncludeInactive] = useState(false);
   const [page, setPage] = useState(0);
 
+  const debouncedSearch = useDebouncedValue(search, 350);
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const { data: tags = [], isLoading: tagsLoading } = useTagsList();
+
   const { data, isLoading, isError, refetch } = useAdminResources({
-    search,
+    search: debouncedSearch,
     includeInactive,
     page,
   });
@@ -98,8 +107,20 @@ export default function ResourcesManager() {
           </p>
         </div>
 
-        <ResourceFormDialog />
+        <Button size="sm" variant="outline" onClick={() => setCreateOpen(true)}>
+          <Plus className="size-4" />
+          New resource
+        </Button>
       </div>
+
+      {createOpen && (
+        <ResourceFormDialog
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          tags={tags}
+          tagsLoading={tagsLoading}
+        />
+      )}
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="relative min-w-56 flex-1">
@@ -146,7 +167,12 @@ export default function ResourcesManager() {
         <>
           <ul className="space-y-1.5">
             {resources.map((resource) => (
-              <ResourceRow key={resource.id} resource={resource} />
+              <ResourceRow
+                key={resource.id}
+                resource={resource}
+                tags={tags}
+                tagsLoading={tagsLoading}
+              />
             ))}
           </ul>
 
@@ -183,13 +209,18 @@ export default function ResourcesManager() {
 /*                               Resource row                                 */
 /* -------------------------------------------------------------------------- */
 
-function ResourceRow({ resource }) {
+function ResourceRow({ resource, tags, tagsLoading }) {
+  const navigate = useNavigate();
   const updateResource = useUpdateResource();
   const deleteResource = useDeleteResource();
   const restoreResource = useRestoreResource();
+  const [editOpen, setEditOpen] = useState(false);
 
   const handleUpdate = (values) =>
     updateResource.mutate({ resourceId: resource.id, payload: values });
+
+  const openStudio = () => navigate(ROUTES.resourceStudio(resource.id));
+  const openBuilder = () => navigate(ROUTES.courseBuilder(resource.id));
 
   return (
     <li className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-muted/30 px-3 py-2.5">
@@ -213,8 +244,28 @@ function ResourceRow({ resource }) {
         </p>
       </div>
 
-      <div className="flex shrink-0 items-center gap-1">
-        {resource.active === false ? (
+        <div className="flex shrink-0 items-center gap-1">
+          {resource.type === "COURSE" ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={openBuilder}
+            >
+              <GraduationCap className="size-3.5" />
+              Build course
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={openStudio}
+            >
+              <Layers className="size-3.5" />
+              Studio
+            </Button>
+          )}
+
+          {resource.active === false ? (
           <Button
             size="sm"
             variant="outline"
@@ -224,18 +275,34 @@ function ResourceRow({ resource }) {
             <RotateCcw className="size-3.5" />
             Restore
           </Button>
-        ) : (
-          <>
-            <ResourceFormDialog
-              resource={resource}
-              onSubmit={handleUpdate}
-            />
-            <ConfirmDelete
-              onConfirm={() => deleteResource.mutate(resource.id)}
-              label="resource"
-            />
-          </>
-        )}
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => setEditOpen(true)}
+                className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
+                aria-label={`Edit resource ${resource.title}`}
+              >
+                <Pencil className="size-4" />
+              </button>
+
+              {editOpen && (
+                <ResourceFormDialog
+                  resource={resource}
+                  onSubmit={handleUpdate}
+                  open={editOpen}
+                  onOpenChange={setEditOpen}
+                  tags={tags}
+                  tagsLoading={tagsLoading}
+                />
+              )}
+
+              <ConfirmDelete
+                onConfirm={() => deleteResource.mutate(resource.id)}
+                label="resource"
+              />
+            </>
+          )}
       </div>
     </li>
   );
@@ -245,9 +312,14 @@ function ResourceRow({ resource }) {
 /*                              Resource form                                 */
 /* -------------------------------------------------------------------------- */
 
-function ResourceFormDialog({ resource = null, onSubmit }) {
-  const [open, setOpen] = useState(false);
-
+function ResourceFormDialog({
+  resource = null,
+  onSubmit,
+  open,
+  onOpenChange,
+  tags = [],
+  tagsLoading = false,
+}) {
   const createResource = useCreateResource();
   const updateResource = useUpdateResource();
 
@@ -275,39 +347,28 @@ function ResourceFormDialog({ resource = null, onSubmit }) {
   const isEditing = Boolean(resource);
   const isPending = createResource.isPending || updateResource.isPending;
 
+  const [selectedTags, setSelectedTags] = useState(() => {
+    if (!resource) return [];
+    const byName = Object.fromEntries(tags.map((tag) => [tag.name, tag.id]));
+    return (resource.tags ?? []).map((name) => byName[name]).filter(Boolean);
+  });
+
   const handleCreate = (values) => {
     createResource.mutate(values, {
       onSuccess: () => {
         reset();
-        setOpen(false);
+        onOpenChange(false);
       },
     });
   };
 
   const submit = (values) => {
-    const payload = { ...values, tagIds: [] };
+    const payload = { ...values, tagIds: selectedTags };
     return isEditing ? onSubmit(payload) : handleCreate(payload);
   };
 
-  const trigger = isEditing ? (
-    <button
-      type="button"
-      className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
-      aria-label={`Edit resource ${resource.title}`}
-    >
-      <Pencil className="size-4" />
-    </button>
-  ) : (
-    <Button size="sm" variant="outline">
-      <Plus className="size-4" />
-      New resource
-    </Button>
-  );
-
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={trigger} />
-
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEditing ? "Edit resource" : "New resource"}</DialogTitle>
@@ -406,6 +467,41 @@ function ResourceFormDialog({ resource = null, onSubmit }) {
               optionLabels={topics.map((topic) => topic.name)}
               disabled={topicsLoading}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Tags</Label>
+            {tagsLoading ? (
+              <p className="text-sm text-muted-foreground">Loading tags…</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {tags.map((tag) => {
+                  const active = selectedTags.includes(tag.id);
+                  return (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() =>
+                        setSelectedTags((prev) =>
+                          active
+                            ? prev.filter((id) => id !== tag.id)
+                            : [...prev, tag.id]
+                        )
+                      }
+                      aria-pressed={active}
+                      className={
+                        "rounded-full border px-3 py-1 text-sm transition-colors " +
+                        (active
+                          ? "border-ember/40 bg-ember/10 text-ember"
+                          : "border-border text-muted-foreground hover:bg-muted/50")
+                      }
+                    >
+                      {tag.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <DialogFooter>

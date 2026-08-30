@@ -14,7 +14,7 @@ import { gsap } from "gsap";
 
 import Typewriter from "@/components/common/Typewriter";
 import { ROUTES } from "@/constants/routes";
-import { GSAP_EASE, useMotionSafe } from "@/lib/motion-gsap";
+import { GSAP_EASE, useMotionSafe, usePressPhysics } from "@/lib/motion-gsap";
 import { formatStudyTime } from "@/lib/format";
 
 /* ==========================================================================
@@ -124,7 +124,10 @@ export default function AICenter({ analytics }) {
   const [messages, setMessages] = useState([]);
   const chipsRef = useRef(null);
   const threadRef = useRef(null);
+  const sendRef = useRef(null);
   const chips = useMemo(() => buildChips(navigate), [navigate]);
+
+  usePressPhysics(sendRef);
 
   useEffect(() => {
     if (reduced || !chipsRef.current) return undefined;
@@ -231,6 +234,7 @@ export default function AICenter({ analytics }) {
             className="h-9 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
           <button
+            ref={sendRef}
             type="submit"
             disabled={!input.trim() || thinking}
             className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-ember text-primary-foreground transition-transform hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"

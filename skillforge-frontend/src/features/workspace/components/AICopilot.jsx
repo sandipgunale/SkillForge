@@ -25,7 +25,7 @@ import { useWorkspaceStore } from "../store/workspaceStore";
 import { buildAnswer, COPILOT_ACTIONS, detectIntent } from "../lib/copilotEngine";
 import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
-import { GSAP_EASE, useMotionSafe } from "@/lib/motion-gsap";
+import { GSAP_EASE, useMotionSafe, usePressPhysics } from "@/lib/motion-gsap";
 
 /* ==========================================================================
    AI Copilot — the right panel of the Learning Workspace.
@@ -98,6 +98,9 @@ export default function AICopilot({ learningPath }) {
   const [pinned, setPinned] = useState([]);
   const [feedback, setFeedback] = useState({});
   const threadRef = useRef(null);
+  const sendRef = useRef(null);
+
+  usePressPhysics(sendRef);
 const weeks = useMemo(
     () => learningPath?.roadmapJson?.weeks ?? [],
     [learningPath],
@@ -413,6 +416,7 @@ const weeks = useMemo(
           className="h-9 w-full rounded-xl bg-muted/50 px-3 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ember/40"
         />
         <button
+          ref={sendRef}
           type="submit"
           disabled={!input.trim() || thinking}
           className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-ember text-primary-foreground transition-transform hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"

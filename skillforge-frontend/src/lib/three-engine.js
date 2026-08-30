@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
 /* ==========================================================================
@@ -26,21 +26,33 @@ function colorCanvasCtx() {
 
 /** Resolve a CSS token (or any CSS color string) to a THREE.Color via the
  *  browser's own color parser (supports oklch()). Falls back to a neutral
- *  dim color if the value can't be parsed (SSR / unsupported syntax). */
-export function resolveColor(token) {
+ *  dim color if the value can't be parsed (SSR / unsupported syntax).
+ *  `root` lets scoped systems (the landing's Foundry Precision scope on
+ *  .landing-shell) resolve their own token values instead of the global
+ *  document root — default keeps the app-wide behavior. */
+export function resolveColor(token, root) {
   const fallback = new THREE.Color(0x8a94a6);
-  if (typeof window === "undefined" || typeof document === "undefined") {
+  const host = root ?? (typeof document !== "undefined" ? document.documentElement : null);
+  if (typeof window === "undefined" || !host) {
     return fallback;
   }
   try {
     const prop = token.startsWith("--") ? token : `--${token}`;
-    const raw = getComputedStyle(document.documentElement)
-      .getPropertyValue(prop)
-      .trim();
+    const raw = getComputedStyle(host).getPropertyValue(prop).trim();
     const value = raw || token;
     const ctx = colorCanvasCtx();
-    ctx.fillStyle = "#000000";
+    /* Sentinel technique: an invalid value leaves fillStyle untouched, so we
+       can distinguish "unparsable" from a legitimately dark color. "#010203"
+       is used because it serializes to a form no real token would equal. */
+    ctx.fillStyle = "#010203";
     ctx.fillStyle = value;
+    if (
+      ctx.fillStyle === "rgb(1, 2, 3)" &&
+      value !== "#010203" &&
+      value !== "rgb(1, 2, 3)"
+    ) {
+      return fallback;
+    }
     ctx.fillRect(0, 0, 1, 1);
     const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
     return new THREE.Color(r / 255, g / 255, b / 255);
@@ -49,37 +61,52 @@ export function resolveColor(token) {
   }
 }
 
-/** On-mount palette resolved from design tokens (cached per store lifetime). */
-export function useScenePalette() {
-  return useMemo(() => ({
-    ember: resolveColor("--ember"),
-    aurora: resolveColor("--aurora"),
-    dim: resolveColor("--muted-foreground"),
-  }), []);
-}
-
-function resolveScenePalette() {
+function resolveScenePalette(rootRef) {
+  const root = rootRef?.current ?? null;
   return {
-    ember: resolveColor("--ember"),
-    aurora: resolveColor("--aurora"),
-    dim: resolveColor("--muted-foreground"),
-    board: resolveColor("--cap-board"),
-    fabric: resolveColor("--cap-fabric"),
+    ember: resolveColor("--ember", root),
+    aurora: resolveColor("--aurora", root),
+    dim: resolveColor("--muted-foreground", root),
+    board: resolveColor("--cap-board", root),
+    fabric: resolveColor("--cap-fabric", root),
+    gold: resolveColor("--cap-gold", root),
   };
 }
 
+function samePalette(a, b) {
+  return ["ember", "aurora", "dim", "board", "fabric", "gold"].every(
+    (key) => a[key].getHex() === b[key].getHex(),
+  );
+}
+
 /**
- * Live palette — re-resolves the design tokens whenever the theme class on
- * <html> changes (next-themes toggles `.dark`). Scenes that must re-tint on
- * theme switch (the graduation cap) use this; the palette itself is stable,
- * so materials lerp toward the new values in their frame loops.
+ * Shared palette hook. On-mount the design tokens resolve synchronously
+ * (stable per store lifetime), then once more via rAF — the container ref
+ * attaches only after first render, so scoped token systems (the landing's
+ * Foundry Precision scope on .landing-shell) apply even for deferred mounts.
+ * The same-palette guard skips the re-render when the values match, so
+ * app-wide scenes (global root tokens) never re-render on mount.
+ *
+ * `live` additionally re-resolves whenever the theme class on <html> changes
+ * (next-themes toggles `.dark`) or prefers-color-scheme flips — scenes that
+ * must re-tint on theme switch (the graduation cap, the constellation) use
+ * it; the palette object stays referentially stable, so materials lerp
+ * toward the new values in their frame loops instead of rebuilding. All
+ * setState calls happen in event callbacks (observer/media) or async (rAF),
+ * never synchronously in the effect body.
  */
-export function useScenePaletteLive() {
-  const [palette, setPalette] = useState(resolveScenePalette);
+function useScenePaletteInternal(rootRef, live) {
+  const [palette, setPalette] = useState(() => resolveScenePalette(rootRef));
 
   useEffect(() => {
     if (typeof document === "undefined") return undefined;
-    const probe = () => setPalette(resolveScenePalette());
+    const probe = () =>
+      setPalette((prev) => {
+        const resolved = resolveScenePalette(rootRef);
+        return samePalette(prev, resolved) ? prev : resolved;
+      });
+    const raf = requestAnimationFrame(probe);
+    if (!live) return () => cancelAnimationFrame(raf);
     const observer = new MutationObserver(probe);
     observer.observe(document.documentElement, {
       attributes: true,
@@ -90,10 +117,47 @@ export function useScenePaletteLive() {
     return () => {
       observer.disconnect();
       media.removeEventListener("change", probe);
+      cancelAnimationFrame(raf);
     };
-  }, []);
+  }, [rootRef, live]);
 
   return palette;
+}
+
+export function useScenePalette(rootRef) {
+  return useScenePaletteInternal(rootRef, false);
+}
+
+export function useScenePaletteLive(rootRef) {
+  return useScenePaletteInternal(rootRef, true);
+}
+
+/* -------------------------------------------------------------------------- */
+/*  WebGL context-loss lifecycle                                             */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Attach WebGL context-loss/restore listeners to a renderer canvas. When the
+ * browser drops a context (GPU pressure, driver reset, too many live contexts),
+ * a Three.js canvas goes permanently dead — there is no built-in handling in
+ * R3F 9.6.x. The caller supplies onLost/onRestored so the decorative scene can
+ * swap in its fallback (e.g. CapEmblem) or hide itself, and resume rendering
+ * when the context is restored (three re-initializes internally on restore).
+ * Returns a detach function for unmount cleanup.
+ */
+export function attachContextLoss(canvas, onLost, onRestored) {
+  if (!canvas) return () => {};
+  const handleLost = (event) => {
+    event.preventDefault();
+    onLost();
+  };
+  const handleRestored = () => onRestored();
+  canvas.addEventListener("webglcontextlost", handleLost, false);
+  canvas.addEventListener("webglcontextrestored", handleRestored, false);
+  return () => {
+    canvas.removeEventListener("webglcontextlost", handleLost);
+    canvas.removeEventListener("webglcontextrestored", handleRestored);
+  };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -128,23 +192,18 @@ export function softGlowTexture() {
 /*  Field builders — filled sphere (denser core) with optional flattening      */
 /* -------------------------------------------------------------------------- */
 
-/** Build a spherical node field. Returns home positions + vertex colors
- *  distributed across a palette (e.g. ember / aurora / dim) by weight.
- *  `palette` is an array of THREE.Color; `weights` are cumulative [0..1]
- *  thresholds choosing which palette color each node gets. */
-export function buildNodeField({
+/** Build a spherical node field — positions only, so geometry can stay
+ *  memoized independently of the palette (theme toggles re-tint without
+ *  re-randomizing the field). `flatten` squashes the sphere into an
+ *  ellipsoid; `outlierChance`/`outlierScale` scatter a few nodes further out. */
+export function buildFieldPositions({
   nodeCount,
   radius,
-  palette,
-  weights = [0.42, 0.74],
   flatten = [1, 0.8, 0.72],
   outlierChance = 0.85,
   outlierScale = 1.32,
 }) {
   const home = new Float32Array(nodeCount * 3);
-  const colors = new Float32Array(nodeCount * 3);
-  const base = new THREE.Color();
-
   for (let i = 0; i < nodeCount; i++) {
     const u = Math.random();
     const r = radius * Math.cbrt(u * 0.72 + 0.28) * (Math.random() > outlierChance ? outlierScale : 1);
@@ -154,7 +213,20 @@ export function buildNodeField({
     home[i * 3] = r * Math.sin(theta) * Math.cos(phi);
     home[i * 3 + 1] = r * Math.sin(theta) * Math.sin(phi) * flatten[1];
     home[i * 3 + 2] = r * Math.cos(theta) * flatten[2];
+  }
+  return home;
+}
 
+/** Assign vertex colors to an existing field across a palette (e.g. ember /
+ *  aurora / dim) by weight. `weights` are cumulative [0..1] thresholds
+ *  choosing which palette color each node gets. Cheap enough to re-run on
+ *  palette changes. */
+export function colorizeField(home, palette, weights = [0.42, 0.74]) {
+  const nodeCount = home.length / 3;
+  const colors = new Float32Array(nodeCount * 3);
+  const base = new THREE.Color();
+
+  for (let i = 0; i < nodeCount; i++) {
     const t = Math.random();
     let pick = palette[palette.length - 1];
     for (let w = 0; w < weights.length; w += 1) {
@@ -170,6 +242,24 @@ export function buildNodeField({
     colors[i * 3 + 2] = base.b * bright;
   }
 
+  return colors;
+}
+
+/** Build a spherical node field. Returns home positions + vertex colors
+ *  distributed across a palette (e.g. ember / aurora / dim) by weight.
+ *  `palette` is an array of THREE.Color; `weights` are cumulative [0..1]
+ *  thresholds choosing which palette color each node gets. */
+export function buildNodeField({
+  nodeCount,
+  radius,
+  palette,
+  weights = [0.42, 0.74],
+  flatten = [1, 0.8, 0.72],
+  outlierChance = 0.85,
+  outlierScale = 1.32,
+}) {
+  const home = buildFieldPositions({ nodeCount, radius, flatten, outlierChance, outlierScale });
+  const colors = colorizeField(home, palette, weights);
   return { home, colors };
 }
 
@@ -248,24 +338,10 @@ export function buildDust(count, { inner = 9, outer = 13.5, flatten = 1 } = {}) 
 /*  Adaptive runtime — reduced motion, tab visibility, device capability       */
 /* -------------------------------------------------------------------------- */
 
-/** Tracks prefers-reduced-motion with live updates. */
-export function useReducedMotion() {
-  const [reduced, setReduced] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-  );
-
-  useEffect(() => {
-    if (typeof window === "undefined") return undefined;
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const onChange = (e) => setReduced(e.matches);
-    media.addEventListener("change", onChange);
-    return () => media.removeEventListener("change", onChange);
-  }, []);
-
-  return reduced;
-}
+/* useReducedMotion lives in motion-gsap.js (the single motion library);
+   re-exported here so scene imports keep their path. */
+import { useReducedMotion } from "./motion-gsap";
+export { useReducedMotion };
 
 /** Tracks document.visibilitychange so the Canvas frameloop can pause. */
 export function useTabHidden() {
@@ -277,6 +353,48 @@ export function useTabHidden() {
     return () => document.removeEventListener("visibilitychange", onChange);
   }, []);
   return hidden;
+}
+
+/** Tracks element visibility in the viewport (120px margin) so Canvas
+ *  frameloops pause when scrolled out of view — off-screen scenes never
+ *  render (perf budget: 60 FPS where the user is looking, zero elsewhere). */
+export function useOffscreen() {
+  const ref = useRef(null);
+  const [off, setOff] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    if (!("IntersectionObserver" in window)) return undefined;
+    const observer = new IntersectionObserver(
+      ([entry]) => setOff(!entry.isIntersecting),
+      { rootMargin: "120px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  return { ref, off };
+}
+
+/**
+ * Near-viewport gate: true only while `ref` is within `rootMargin` of the
+ * viewport, false once scrolled away. Used to keep heavy WebGL scenes (the
+ * graduation cap) mounted on exactly one section at a time, so the page never
+ * holds more than one cap renderer simultaneously. Defaults to false so a
+ * section off-screen at load stays unmounted until scrolled near.
+ */
+export function useNearViewport(ref, rootMargin = "250px") {
+  const [near, setNear] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") return undefined;
+    const observer = new IntersectionObserver(
+      ([entry]) => setNear(entry.isIntersecting),
+      { rootMargin },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref, rootMargin]);
+  return near;
 }
 
 /** Adaptive node count + DPR based on screen size / device capability. */

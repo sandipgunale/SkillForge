@@ -2,6 +2,12 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+@import "@fontsource/instrument-sans/400.css";
+@import "@fontsource/instrument-sans/500.css";
+@import "@fontsource/instrument-sans/600.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "./styles/tokens.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -13,9 +19,28 @@
    ========================================================================== */
 
 @theme inline {
-    /* Fonts */
+/* Fonts */
     --font-heading: var(--font-sans);
     --font-sans: 'Geist Variable', sans-serif;
+
+    /* Landing fonts (Foundry Precision — see DESIGN.md) */
+    --font-lp-display: var(--lp-font-display);
+    --font-lp-body: var(--lp-font-body);
+    --font-lp-mono: var(--lp-font-mono);
+
+    /* Landing colors — resolved inside .landing-shell via the scoped vars */
+    --color-lp-bg: var(--lp-bg);
+    --color-lp-surface: var(--lp-surface);
+    --color-lp-surface-2: var(--lp-surface-2);
+    --color-lp-text: var(--lp-text);
+    --color-lp-muted: var(--lp-muted);
+    --color-lp-faint: var(--lp-faint);
+    --color-lp-accent: var(--lp-accent);
+    --color-lp-accent-strong: var(--lp-accent-strong);
+    --color-lp-accent-ink: var(--lp-accent-ink);
+    --color-lp-secondary: var(--lp-secondary);
+    --color-lp-border: var(--lp-border);
+    --color-lp-border-strong: var(--lp-border-strong);
 
     /* ------------------------------------------------------------------
        Typography scale — micro sizes (below default) + fluid editorial
@@ -128,6 +153,7 @@
    Light theme — warm paper, ink text, ember primary
    ========================================================================== */
 :root {
+    --morph-duration: 600ms;
     --background: oklch(0.985 0.003 80);
     --foreground: oklch(0.2 0.02 60);
 
@@ -201,9 +227,10 @@
     --book-cover-muted: oklch(0.74 0.015 60);
     --book-spine: oklch(0.13 0.02 60);
 
-    /* Graduation cap materials (light theme) — deep ink fabric, ember tassel */
-    --cap-board: oklch(0.24 0.015 60);
-    --cap-fabric: oklch(0.33 0.02 60);
+    /* Graduation cap materials (light theme) — neutral charcoal fabric, gold trim */
+    --cap-board: oklch(0.24 0.005 250);
+    --cap-fabric: oklch(0.33 0.007 250);
+    --cap-gold: oklch(0.66 0.11 75);
 }
 
 /* ==========================================================================
@@ -281,9 +308,10 @@
     --book-cover-muted: oklch(0.72 0.01 90);
     --book-spine: oklch(0.1 0.012 260);
 
-    /* Graduation cap materials (dark theme) — deep blue-ink fabric */
-    --cap-board: oklch(0.3 0.02 260);
-    --cap-fabric: oklch(0.4 0.025 260);
+    /* Graduation cap materials (dark theme) — neutral charcoal fabric */
+    --cap-board: oklch(0.3 0.006 250);
+    --cap-fabric: oklch(0.4 0.008 250);
+    --cap-gold: oklch(0.78 0.12 78);
 }
 
 /* ==========================================================================
@@ -291,21 +319,25 @@
    ========================================================================== */
 @layer base {
     * {
-        @apply border-border outline-ring/50;
+        border-color: var(--border);
+        outline-color: color-mix(in oklab, var(--ring) 50%, transparent);
     }
 
     html {
-        @apply font-sans antialiased;
+        font-family: var(--font-sans);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
         scroll-behavior: smooth;
         text-rendering: optimizeLegibility;
     }
 
     body {
-        @apply bg-background text-foreground;
+        background-color: var(--background);
+        color: var(--foreground);
         font-feature-settings: "cv11", "ss01";
         transition:
-            background-color 600ms ease,
-            color 600ms ease;
+            background-color var(--morph-duration) ease,
+            color var(--morph-duration) ease;
     }
 
     /* Cinematic theme morph — surfaces, borders and cards follow the mood */
@@ -313,9 +345,19 @@
     .glass-strong,
     .card {
         transition:
-            background-color 600ms ease,
-            border-color 600ms ease,
-            box-shadow 600ms ease;
+            background-color var(--morph-duration) ease,
+            border-color var(--morph-duration) ease,
+            box-shadow var(--morph-duration) ease;
+    }
+
+    /* Reduced motion: no 600ms cross-fade on theme swaps (T-ADD-3) */
+    @media (prefers-reduced-motion: reduce) {
+        body,
+        .glass,
+        .glass-strong,
+        .card {
+            transition: none;
+        }
     }
 
     ::selection {
@@ -365,28 +407,23 @@
 }
 
 /* ==========================================================================
-   Landing shell height reservation
+   Landing shell
    ========================================================================== */
-/* The landing is a lazy route: before its chunk mounts, the shell alone is
-   only one viewport tall, so the browser's refresh scroll-restoration (which
-   runs at first layout) clamps to ~0 and never re-restores when the fold
-   grows the page. Reserve the fold's minimum height (SECTIONS.length x
-   100svh — keep in sync with forge/registry.js) so restoration lands where
-   the user was. Purely a min-height: the fold's own measured height wins
-   once it mounts, and no visible element moves (the sheets are
-   transform-pinned), so this never shifts anything. */
+/* The landing is a lazy route in native flow (Approach A — sticky scenes).
+   It must never scroll horizontally: the cap and graph scenes project beyond
+   the viewport width, so clip at the shell — the landing's own box — keeping
+   the document free of a horizontal scrollbar. Tokens/typography live in
+   src/styles/tokens.css (Foundry Precision scope). */
 .landing-shell {
-    min-height: calc(9 * 100svh);
-    /* The fold's turning sheets project beyond the viewport width at angles
-       near ±180 deg, which would grow the document's scrollable width to
-       2x and toggle a horizontal scrollbar/pan during every turn. Clip at
-       the shell — the landing's own box — so the document never scrolls
-       horizontally. Deliberately NOT on .forge-fold: the stage must never
-       clip its content, because the last sheet legitimately translates
-       below the stage's bottom edge, and any overflow on the stage itself
-       raster-clips that sheet (breaking its paint and hit-testing). The
-       shell encloses the whole document, so nothing legitimate is cut. */
     overflow-x: clip;
+    /* Scroll restoration: the landing is a lazy chunk, so on refresh the
+       initial document is ~100svh and the browser's restoration (which
+       runs at first layout) clamps to ~0, never re-restoring when the
+       chunk grows the page. Reserve the narrative's minimum height (9
+       scenes) so restoration lands where the user was. Purely a
+       min-height: the real measured height wins once the sections mount,
+       and nothing visible moves, so this never shifts anything. */
+    min-height: calc(9 * 100svh);
 }
 
 /* ==========================================================================
@@ -519,19 +556,6 @@
     50% {
         transform: scale(0.94);
     }
-}
-
-/* Text gradient helper */
-.text-gradient-ember {
-    background: linear-gradient(
-        100deg,
-        var(--ember) 0%,
-        color-mix(in oklch, var(--ember) 60%, var(--aurora)) 55%,
-        var(--aurora) 100%
-    );
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
 }
 
 /* Glassmorphism helper — frosted ceramic surface for panels nested on

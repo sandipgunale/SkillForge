@@ -1,8 +1,11 @@
 package com.project.skillforgebackend.resource.entity;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UuidGenerator;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -73,6 +76,18 @@ public class Resource {
     @Column(name = "is_active", nullable = false)
     private Boolean active = true;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "course_level", length = 30)
+    private CourseLevel courseLevel;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private JsonNode courseOutcomes;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private JsonNode courseResources;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -98,6 +113,13 @@ public class Resource {
         COURSE,
         DOCS,
         BOOK
+    }
+
+    public enum CourseLevel {
+        BEGINNER,
+        INTERMEDIATE,
+        ADVANCED,
+        ALL_LEVELS
     }
 
     public enum Difficulty {
