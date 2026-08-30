@@ -43,3 +43,6 @@ backend-run.err.log
 *~
 node_modules/
 .gstack/
+
+# ---- QA artifacts (large test evidence, not repo) ----
+.qa/
