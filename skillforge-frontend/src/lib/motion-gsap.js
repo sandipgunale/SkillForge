@@ -432,7 +432,7 @@ export function useReveal(
 /**
  * Mount/replay helper for state-keyed swaps (e.g. theme icon, question
  * counter, trailing form adornments). Plays an in-on-mount tween and
- * force-kills on unmount. Keyboard: runs like `gsap.from`, respecting
+ * reverts it on unmount. Keyboard: runs like `gsap.from`, respecting
  * reduced-motion.
  */
 export function useMountAnimation(
@@ -456,9 +456,17 @@ export function useMountAnimation(
     const tween = gsap.from(ref.current, { ...from, onComplete });
 
     return () => {
-      tween.kill();
+      /* revert() — not kill(): kill() leaves the from-state (e.g. opacity:0)
+         written inline on the element, so any interruption (StrictMode
+         double-mounting, a re-render that re-runs the effect) strands the
+         target invisible. revert() restores the element to its natural state. */
+      tween.revert();
     };
-  }, [ref, reduced, y, scale, scaleX, opacity, blur, height, duration, ease, delay, onComplete, props, deps]);
+    // `deps` is spread so React compares its CONTENTS (callers pass array
+    // literals like [location.pathname]); the array identity changes on every
+    // render and must not re-trigger the tween per render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ref, reduced, y, scale, scaleX, opacity, blur, height, duration, ease, delay, onComplete, props, ...deps]);
 }
 
 /** Entrance-only wrapper for small panels (search dropdown, tooltips). */

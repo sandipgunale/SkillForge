@@ -37,6 +37,9 @@ public class ResourceMapper {
                 .createdAt(resource.getCreatedAt())
                 .estimatedMinutes(resource.getEstimatedMinutes())
                 .active(resource.getActive())
+                .courseLevel(resource.getCourseLevel() != null ? resource.getCourseLevel().name() : null)
+                .courseOutcomes(resource.getCourseOutcomes())
+                .courseResources(resource.getCourseResources())
                 .build();
     }
 

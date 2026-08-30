@@ -7,12 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 import BookmarkButton from "@/features/bookmark/components/BookmarkButton";
+import CourseProgressMini from "./CourseProgressMini";
 import {
   getDifficultyVariant,
   getDifficultyLabel,
 } from "@/lib/difficulty";
 
-function ResourceCard({ resource }) {
+function ResourceCard({ resource, progress }) {
   const getTypeIcon = () => {
     switch (resource.type) {
       case "VIDEO":
@@ -72,6 +73,10 @@ function ResourceCard({ resource }) {
             </Badge>
           ))}
         </div>
+
+        {resource.type === "COURSE" && progress && (
+          <CourseProgressMini progress={progress} />
+        )}
 
         <div className="mt-auto flex items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center gap-1">

@@ -70,8 +70,8 @@
   /* Scene aliases — the 3D cap + graph re-tint within the landing only */
   --ember: #c24a15;
   --aurora: #2563b5;
-  --cap-board: #343b4c;
-  --cap-fabric: #20262f;
+  --cap-board: #3b3e43;
+  --cap-fabric: #27292d;
   --cap-gold: #b58a24;
 
   background: var(--lp-bg);
@@ -104,8 +104,8 @@
   /* Scene aliases — forged fabric, ceremonial gold tassel */
   --ember: #ff8a3d;
   --aurora: #5ea2f0;
-  --cap-board: #2a3040;
-  --cap-fabric: #1a2029;
+  --cap-board: #2d2f33;
+  --cap-fabric: #1d1f22;
   --cap-gold: #d4a832;
 }
 

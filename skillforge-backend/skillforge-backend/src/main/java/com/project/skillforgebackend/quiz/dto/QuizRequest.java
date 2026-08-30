@@ -25,6 +25,9 @@ public class QuizRequest {
     // Required only for LEARNING_PATH quiz
     private UUID learningPathId;
 
+    // Optional: links the generated quiz to a course lesson
+    private UUID lessonId;
+
     private Integer weekNumber;
 
     @NotNull(message = "Difficulty is required")

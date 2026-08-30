@@ -1,0 +1,36 @@
+diff --git a/C:/Users/sandi/AppData/Local/Temp/opencode/pwtest/r3f-pack/package/dist/events-156d8d12.esm.js b/D:/OpenCode/SkillForge/SkillForge/skillforge-frontend/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js
+index 9681d0c..966a083 100644
+--- a/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js
++++ b/node_modules/@react-three/fiber/dist/events-156d8d12.esm.js
+@@ -15978,6 +15978,7 @@ function unmountComponentAtNode(canvas, callback) {
+       if (state) {
+         setTimeout(() => {
+           try {
++            if (state.internal.active) return;
+             var _state$gl, _state$gl$renderLists, _state$gl2, _state$gl3;
+             state.events.disconnect == null ? void 0 : state.events.disconnect();
+             (_state$gl = state.gl) == null ? void 0 : (_state$gl$renderLists = _state$gl.renderLists) == null ? void 0 : _state$gl$renderLists.dispose == null ? void 0 : _state$gl$renderLists.dispose();
+diff --git a/C:/Users/sandi/AppData/Local/Temp/opencode/pwtest/r3f-pack/package/dist/events-b1bdeb1a.cjs.dev.js b/D:/OpenCode/SkillForge/SkillForge/skillforge-frontend/node_modules/@react-three/fiber/dist/events-b1bdeb1a.cjs.dev.js
+index 7785529..ade38e3 100644
+--- a/node_modules/@react-three/fiber/dist/events-b1bdeb1a.cjs.dev.js
++++ b/node_modules/@react-three/fiber/dist/events-b1bdeb1a.cjs.dev.js
+@@ -16003,6 +16003,7 @@ function unmountComponentAtNode(canvas, callback) {
+       if (state) {
+         setTimeout(() => {
+           try {
++            if (state.internal.active) return;
+             var _state$gl, _state$gl$renderLists, _state$gl2, _state$gl3;
+             state.events.disconnect == null ? void 0 : state.events.disconnect();
+             (_state$gl = state.gl) == null ? void 0 : (_state$gl$renderLists = _state$gl.renderLists) == null ? void 0 : _state$gl$renderLists.dispose == null ? void 0 : _state$gl$renderLists.dispose();
+diff --git a/C:/Users/sandi/AppData/Local/Temp/opencode/pwtest/r3f-pack/package/dist/events-4c71f21f.cjs.prod.js b/D:/OpenCode/SkillForge/SkillForge/skillforge-frontend/node_modules/@react-three/fiber/dist/events-4c71f21f.cjs.prod.js
+index 65e702e..5b83333 100644
+--- a/node_modules/@react-three/fiber/dist/events-4c71f21f.cjs.prod.js
++++ b/node_modules/@react-three/fiber/dist/events-4c71f21f.cjs.prod.js
+@@ -7806,6 +7806,7 @@ function unmountComponentAtNode(canvas, callback) {
+       if (state) {
+         setTimeout(() => {
+           try {
++            if (state.internal.active) return;
+             var _state$gl, _state$gl$renderLists, _state$gl2, _state$gl3;
+             state.events.disconnect == null ? void 0 : state.events.disconnect();
+             (_state$gl = state.gl) == null ? void 0 : (_state$gl$renderLists = _state$gl.renderLists) == null ? void 0 : _state$gl$renderLists.dispose == null ? void 0 : _state$gl$renderLists.dispose();

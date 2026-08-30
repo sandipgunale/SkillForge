@@ -18,21 +18,27 @@ import {
 } from "@/lib/three-engine";
 
 /* -------------------------------------------------------------------------- */
-/*  GraduationCapScene — a rebuilt, realistic academic mortarboard.           */
-/*  Structure (bottom to top): a tapered lathe crown with a real circular     */
-/*  opening and dark inner cavity, gold trim ring + band around the opening,  */
-/*  a diamond-oriented beveled square board, a center button, and a gold      */
-/*  cord + multi-strand tassel whose yaw LAGS behind the cap's slow spin.     */
-/*  Five distinct materials: blue-black board fabric, slightly lighter crown  */
-/*  fabric, deep interior, polished ceremonial gold (trim/cord/strands), and  */
-/*  a warm under-glow. Studio key/fill/rim lighting with a gold accent light. */
-/*  The rig starts tilted forward (underside visible) with a diamond board    */
-/*  presentation, then idles with an extremely slow Y spin + breathing X/Z    */
-/*  and floating lift; damped mouse parallax (desktop) and a springy          */
-/*  entrance. Decorative (pointer-events: none) backdrop for 00 ARRIVAL and   */
-/*  13 MASTERY. Materials resolve the --cap-* / --ember tokens live, so the   */
-/*  cap re-tints smoothly on theme switch. Falls back to CapEmblem when       */
-/*  WebGL is unavailable and freezes to a static pose under reduced motion.   */
+/*  GraduationCapScene — a realistic academic mortarboard, built to real       */
+/*  proportions.                                                               */
+/*  Structure (bottom to top): a skull-cap crown (LatheGeometry, 0.68          */
+/*  diameter x 0.32 high — a rounded fabric cap, NOT a hemisphere) with a      */
+/*  dark inner cavity, a thin gold trim ring around its base, a square         */
+/*  beveled board (1.0 wide, 0.026 thick, subtle 0.012 edge radius) held       */
+/*  diamond-oriented on top, a small gold center button, and a thin gold       */
+/*  cord running from the button to the front corner where the tassel hangs    */
+/*  (knot + head + one merged 14-strand geometry). Gold is ceremonial and      */
+/*  restrained — fine trims, not rings.                                        */
+/*  Five materials: charcoal board fabric, slightly lighter crown fabric,      */
+/*  deep interior, polished gold (trims/cord/tassel), warm under-glow.          */
+/*  Studio key/fill/rim lighting with a gold accent light. The rig starts      */
+/*  tilted forward (underside + trim visible) with a diamond board, idles      */
+/*  with an extremely slow Y spin + breathing X/Z + floating lift, and damped  */
+/*  mouse parallax (desktop) and a springy entrance. Decorative (pointer-      */
+/*  events: none) backdrop for 00 ARRIVAL and 13 MASTERY. Materials resolve    */
+/*  the --cap-* / --ember tokens live, so the cap re-tints on theme switch.    */
+/*  Falls back to CapEmblem when WebGL is unavailable and freezes to a static  */
+/*  pose under reduced motion. The camera frames the cap comfortably (it      */
+/*  occupies ~70% of the slot) — never filling the viewport.                   */
 /* -------------------------------------------------------------------------- */
 
 const ROTATION_SPEED = 0.055;
@@ -45,6 +51,19 @@ const TASSEL_SWAY = 0.1;
 const PARALLAX_Y = 0.18;
 const PARALLAX_X = 0.14;
 const TASSEL_LAG_RATE = 2.8;
+
+/* Real mortarboard proportions (board width = 1.0) */
+const BOARD = 1.0; /* board width (square) */
+const BOARD_THICKNESS = 0.03; /* subtle, believable physical thickness */
+const BOARD_BEVEL = 0.006; /* crisp board with a soft, non-CG edge */
+const CROWN_RADIUS = 0.34; /* crown diameter 0.68 */
+const CROWN_HEIGHT = 0.26; /* shallow skullcap — not a tall dome/helmet */
+const BUTTON_RADIUS = 0.045;
+const CORD_RADIUS = 0.012;
+const BOARD_TOP = CROWN_HEIGHT + BOARD_THICKNESS / 2; /* 0.275 */
+const BOARD_CORNER = (BOARD / 2) * Math.SQRT2; /* 0.707 — diamond corner reach */
+/* Tassel hang point: just past the front corner, below the board edge */
+const TASSEL_HANG = [0.66, 0.16, 0];
 
 /** Exponential damping factor per frame: ~rate/s convergence. */
 function damp(delta, rate) {
@@ -106,39 +125,42 @@ function fabricBumpTexture() {
 }
 
 /**
- * Lathe profile of the crown: a slightly tapered, rounded-top fabric cap
- * with a circular opening at the bottom (the wearable underside). Not a
- * hemisphere, not a cylinder — the wall thins toward the rim and the top
- * domes gently, so it reads as cloth stretched over a head.
+ * Lathe profile of the skull cap: a shallow, structured fabric cap, 0.68
+ * diameter, ~0.275 tall, with a circular opening at the bottom (the wearable
+ * underside). A short straight side-band then a gentle taper to a flattened
+ * top — the contour of cloth stretched over a head, NOT a hemisphere/helmet.
  */
 function crownProfile() {
   return [
-    new THREE.Vector2(1.0, 0.0),
-    new THREE.Vector2(1.0, 0.035),
-    new THREE.Vector2(0.965, 0.09),
-    new THREE.Vector2(0.9, 0.18),
-    new THREE.Vector2(0.8, 0.3),
-    new THREE.Vector2(0.66, 0.42),
-    new THREE.Vector2(0.48, 0.52),
-    new THREE.Vector2(0.26, 0.585),
-    new THREE.Vector2(0.09, 0.615),
-    new THREE.Vector2(0.0, 0.625),
+    new THREE.Vector2(0.34, 0.0),
+    new THREE.Vector2(0.34, 0.05),
+    new THREE.Vector2(0.334, 0.12),
+    new THREE.Vector2(0.318, 0.19),
+    new THREE.Vector2(0.275, 0.24),
+    new THREE.Vector2(0.19, 0.262),
+    new THREE.Vector2(0.1, 0.27),
+    new THREE.Vector2(0.0, 0.275),
   ];
 }
 
 /**
  * The tassel's hanging strands, merged into ONE geometry (single draw call).
- * Fourteen fine capsules with tiny random splay and length variance — reads
- * as loose lightweight threads, not a rigid cylinder.
+ * Many fine capsules with tiny random splay and length variance — reads as
+ * loose lightweight woven threads hanging from the collar, never a rigid
+ * cylinder or a single extruded mesh.
  */
 function buildStrandGeometry() {
   const geoms = [];
-  for (let i = 0; i < 14; i += 1) {
-    const len = 0.38 + Math.random() * 0.1;
-    const strand = new THREE.CapsuleGeometry(0.013, len, 3, 5);
-    strand.rotateZ((Math.random() - 0.5) * 0.08);
-    strand.rotateX((Math.random() - 0.5) * 0.08);
-    strand.translate((Math.random() - 0.5) * 0.05, -(0.09 + len / 2), (Math.random() - 0.5) * 0.05);
+  for (let i = 0; i < 24; i += 1) {
+    const len = 0.24 + Math.random() * 0.1;
+    const strand = new THREE.CapsuleGeometry(0.008, len, 3, 5);
+    strand.rotateZ((Math.random() - 0.5) * 0.11);
+    strand.rotateX((Math.random() - 0.5) * 0.11);
+    strand.translate(
+      (Math.random() - 0.5) * 0.05,
+      -(0.07 + len / 2),
+      (Math.random() - 0.5) * 0.05,
+    );
     geoms.push(strand);
   }
   const merged = mergeGeometries(geoms);
@@ -146,31 +168,7 @@ function buildStrandGeometry() {
   return merged;
 }
 
-function Tassel({ gold, cordMat, knotMat, goldMat, tasselRef, lagRef }) {
-  /* Cord: from the center button, across the board top, over the front-right
-     edge, dropping beside the board to the tassel head. */
-  const cordCurve = useMemo(
-    () =>
-      new THREE.CatmullRomCurve3([
-        new THREE.Vector3(0, 0.84, 0),
-        new THREE.Vector3(0.75, 0.85, 0.03),
-        new THREE.Vector3(1.45, 0.82, 0.07),
-        new THREE.Vector3(1.68, 0.6, 0.1),
-        new THREE.Vector3(1.78, 0.25, 0.12),
-        new THREE.Vector3(1.74, -0.12, 0.12),
-        new THREE.Vector3(1.66, -0.34, 0.1),
-      ]),
-    [],
-  );
-  const cordGeometry = useMemo(
-    () => new THREE.TubeGeometry(cordCurve, 32, 0.022, 8),
-    [cordCurve],
-  );
-  const strandGeometry = useMemo(() => buildStrandGeometry(), []);
-
-  useEffect(() => () => cordGeometry.dispose(), [cordGeometry]);
-  useEffect(() => () => strandGeometry.dispose(), [strandGeometry]);
-
+function Tassel({ gold, knotMat, goldMat, tasselRef, lagRef, strandGeometry }) {
   useFrame((state) => {
     const group = tasselRef.current;
     if (!group) return;
@@ -185,43 +183,34 @@ function Tassel({ gold, cordMat, knotMat, goldMat, tasselRef, lagRef }) {
   });
 
   return (
-    <group ref={tasselRef} position={[1.66, -0.34, 0.1]}>
-      {/* Cord — gold, natural curve over the board edge */}
-      <mesh geometry={cordGeometry}>
-        <meshStandardMaterial
-          ref={cordMat}
-          color={gold}
-          roughness={0.32}
-          metalness={0.8}
-        />
-      </mesh>
-      {/* Knot where the cord leaves the board edge */}
-      <mesh position={[1.68, 0.6, 0.1]}>
-        <sphereGeometry args={[0.06, 12, 10]} />
+    <group ref={tasselRef} position={TASSEL_HANG}>
+      {/* Knot where the cord leaves the board corner — meets the cord's endpoint */}
+      <mesh position={[0, 0, 0]}>
+        <sphereGeometry args={[0.028, 12, 10]} />
         <meshStandardMaterial
           ref={knotMat}
           color={gold}
-          roughness={0.3}
-          metalness={0.85}
+          roughness={0.55}
+          metalness={0.18}
         />
       </mesh>
       {/* Tassel head — flattened knot + flared collar */}
-      <mesh position={[0, 0.02, 0]}>
-        <sphereGeometry args={[0.055, 12, 10]} />
+      <mesh position={[0, -0.035, 0]}>
+        <sphereGeometry args={[0.032, 12, 10]} />
         <meshStandardMaterial
           ref={goldMat}
           color={gold}
-          roughness={0.38}
-          metalness={0.75}
+          roughness={0.6}
+          metalness={0.15}
         />
       </mesh>
-      <mesh position={[0, -0.045, 0]}>
-        <cylinderGeometry args={[0.075, 0.1, 0.09, 12]} />
+      <mesh position={[0, -0.075, 0]}>
+        <cylinderGeometry args={[0.045, 0.06, 0.05, 12]} />
         <meshStandardMaterial
           ref={goldMat}
           color={gold}
-          roughness={0.38}
-          metalness={0.75}
+          roughness={0.6}
+          metalness={0.15}
         />
       </mesh>
       {/* Hanging strands — one merged geometry */}
@@ -229,8 +218,8 @@ function Tassel({ gold, cordMat, knotMat, goldMat, tasselRef, lagRef }) {
         <meshStandardMaterial
           ref={goldMat}
           color={gold}
-          roughness={0.4}
-          metalness={0.7}
+          roughness={0.62}
+          metalness={0.12}
         />
       </mesh>
     </group>
@@ -272,29 +261,49 @@ function CapRig({
   /* The addon class is CJS-interop wrapped by Vite, so it must be invoked
      explicitly with `new` (JSX construction fails in @react-three/fiber). */
   const boardGeometry = useMemo(
-    () => new RoundedBoxGeometry(3.2, 0.16, 3.2, 6, 0.1),
+    () => new RoundedBoxGeometry(BOARD, BOARD_THICKNESS, BOARD, 4, BOARD_BEVEL),
     [],
   );
+  useEffect(() => () => boardGeometry.dispose(), [boardGeometry]);
   const crownGeometry = useMemo(
     () => new THREE.LatheGeometry(crownProfile(), 48),
     [],
   );
-  /* Inner cavity: a hemisphere facing INTO the crown — actual depth that
-     reads darker through the opening, never a painted circle. */
+  useEffect(() => () => crownGeometry.dispose(), [crownGeometry]);
+  /* Inner cavity: a dome facing INTO the crown — actual depth that reads
+      darker through the opening, never a painted circle. */
   const innerGeometry = useMemo(
-    () => new THREE.SphereGeometry(0.96, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2),
+    () => new THREE.SphereGeometry(0.33, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2),
     [],
   );
+  useEffect(() => () => innerGeometry.dispose(), [innerGeometry]);
   const trimGeometry = useMemo(
-    () => new THREE.TorusGeometry(1.07, 0.05, 16, 64),
+    () => new THREE.TorusGeometry(CROWN_RADIUS, 0.005, 12, 64),
     [],
   );
-  const bandGeometry = useMemo(
-    () => new THREE.CylinderGeometry(1.06, 1.06, 0.16, 48, 1, true),
+  useEffect(() => () => trimGeometry.dispose(), [trimGeometry]);
+  const strandGeometry = useMemo(() => buildStrandGeometry(), []);
+  useEffect(() => () => strandGeometry.dispose(), [strandGeometry]);
+  const cordCurve = useMemo(
+    () =>
+      new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0, BOARD_TOP + BOARD_THICKNESS / 2 + 0.02, 0),
+        new THREE.Vector3(0.3, BOARD_TOP + 0.03, 0.02),
+        new THREE.Vector3(0.58, BOARD_TOP + 0.015, 0.03),
+        new THREE.Vector3(BOARD_CORNER, BOARD_TOP + BOARD_THICKNESS / 2 - 0.02, 0.02),
+        new THREE.Vector3(TASSEL_HANG[0], TASSEL_HANG[1] + 0.14, 0.01),
+        new THREE.Vector3(TASSEL_HANG[0], TASSEL_HANG[1], TASSEL_HANG[2]),
+      ]),
     [],
   );
+  const cordGeometry = useMemo(
+    () => new THREE.TubeGeometry(cordCurve, 32, CORD_RADIUS, 8),
+    [cordCurve],
+  );
+  useEffect(() => () => cordGeometry.dispose(), [cordGeometry]);
 
   const [glowTexture] = useState(() => softGlowTexture());
+  useEffect(() => () => glowTexture.dispose(), [glowTexture]);
 
   /* Material colors start at the current palette; the frame loop lerps them
      toward the live palette so theme switches blend instead of snapping. */
@@ -344,7 +353,7 @@ function CapRig({
       if (cordMaterial) lerpColor(cordMaterial.color, paletteColors.gold, f);
       if (knotMaterial) lerpColor(knotMaterial.color, paletteColors.gold, f);
       if (goldMaterial) lerpColor(goldMaterial.color, paletteColors.gold, f);
-      if (buttonMaterial) lerpColor(buttonMaterial.color, paletteColors.board, f);
+      if (buttonMaterial) lerpColor(buttonMaterial.color, paletteColors.gold, f);
     }
 
     if (reduced || !group || !inner) {
@@ -411,90 +420,103 @@ function CapRig({
       const tilt = Math.abs(group.rotation.x) * 0.5 + Math.abs(group.rotation.y) * 0.25;
       shadow.material.opacity = 0.24 + Math.min(0.09, tilt);
       const k = Math.max(0.86, 1 - tilt * 0.3);
-      shadow.scale.set(3.8 * k, 1.9 * k, 1);
+      shadow.scale.set(1.0 * k, 0.5 * k, 1);
     }
   });
 
   return (
     <group ref={groupRef}>
       <group ref={innerRef}>
-        {/* Crown — tapered fabric cap with a real circular opening. The
-            bottom rim is open, so the dark inner cavity is actual depth. */}
+        {/* Crown — skull cap with a real circular opening. The bottom rim is
+             open, so the dark inner cavity is actual depth. */}
         <mesh geometry={crownGeometry} position={[0, 0, 0]}>
           <meshStandardMaterial
             ref={crownMat}
             color={palette.fabric}
-            roughness={0.85}
-            metalness={0.02}
+            roughness={0.92}
+            metalness={0.0}
             bumpMap={bump}
-            bumpScale={0.014}
+            bumpScale={0.025}
+            envMapIntensity={0.35}
           />
         </mesh>
 
-        {/* Inner cavity — inverted dome facing into the crown */}
-        <mesh geometry={innerGeometry} position={[0, 0.02, 0]}>
+        {/* Inner cavity — dome facing into the crown */}
+        <mesh geometry={innerGeometry} position={[0, 0.06, 0]}>
           <meshStandardMaterial
             ref={innerMat}
             color={palette.fabric}
             roughness={0.95}
             metalness={0}
+            envMapIntensity={0.2}
             side={THREE.BackSide}
           />
         </mesh>
 
-        {/* Gold trim — ring around the circular lower edge + band above it */}
-        <mesh geometry={trimGeometry} rotation={[Math.PI / 2, 0, 0]} position={[0, 0.035, 0]}>
+        {/* Gold trim — very thin, elegant ring hugging the crown's base rim.
+            Restrained accent: the lower edge still reads as dark fabric. */}
+        <mesh geometry={trimGeometry} rotation={[Math.PI / 2, 0, 0]} position={[0, 0.018, 0]}>
           <meshStandardMaterial
             ref={trimMat}
             color={palette.gold}
-            roughness={0.28}
-            metalness={0.85}
-          />
-        </mesh>
-        <mesh geometry={bandGeometry} position={[0, 0.11, 0]}>
-          <meshStandardMaterial
-            ref={trimMat}
-            color={palette.gold}
-            roughness={0.28}
-            metalness={0.85}
+            roughness={0.5}
+            metalness={0.55}
+            envMapIntensity={0.6}
           />
         </mesh>
 
         {/* Mortarboard — square, diamond-oriented, beveled, real thickness */}
-        <mesh geometry={boardGeometry} position={[0, 0.72, 0]} rotation={[0, Math.PI / 4, 0]}>
+        <mesh
+          geometry={boardGeometry}
+          position={[0, BOARD_TOP, 0]}
+          rotation={[0, Math.PI / 4, 0]}
+        >
           <meshStandardMaterial
             ref={boardMat}
             color={palette.board}
-            roughness={0.72}
-            metalness={0.08}
+            roughness={0.92}
+            metalness={0.0}
             bumpMap={bump}
-            bumpScale={0.02}
+            bumpScale={0.03}
+            envMapIntensity={0.35}
           />
         </mesh>
 
-        {/* Center button */}
-        <mesh position={[0, 0.82, 0]}>
-          <sphereGeometry args={[0.09, 16, 12]} />
+        {/* Center button — small, subtle gold disc sitting on the fabric */}
+        <mesh position={[0, BOARD_TOP + BOARD_THICKNESS / 2 + 0.011, 0]}>
+          <cylinderGeometry args={[BUTTON_RADIUS, BUTTON_RADIUS + 0.006, 0.02, 20]} />
           <meshStandardMaterial
             ref={buttonMat}
-            color={palette.board}
+            color={palette.gold}
+            roughness={0.45}
+            metalness={0.55}
+            envMapIntensity={0.6}
+          />
+        </mesh>
+
+        {/* Cord — fine woven cord, runs from button to tassel hang point */}
+        <mesh geometry={cordGeometry}>
+          <meshStandardMaterial
+            ref={cordMat}
+            color={palette.gold}
             roughness={0.55}
-            metalness={0.1}
+            metalness={0.3}
+            envMapIntensity={0.5}
           />
         </mesh>
 
         <Tassel
           gold={palette.gold}
-          cordMat={cordMat}
           knotMat={knotMat}
           goldMat={goldMat}
           tasselRef={tasselRef}
           lagRef={lagRef}
+          strandGeometry={strandGeometry}
         />
       </group>
 
       {/* Soft contact shadow + ember under-glow */}
-      <sprite ref={shadowRef} position={[0, -1.5, 0]} scale={[3.8, 1.9, 1]}>
+      <sprite ref={shadowRef} position={[0, -0.22, 0]} scale={[1.0, 0.5, 1]}>
         <spriteMaterial
           map={glowTexture}
           color={palette.dim}
@@ -504,7 +526,7 @@ function CapRig({
           blending={THREE.NormalBlending}
         />
       </sprite>
-      <sprite position={[0, -0.7, 1.5]} scale={[2.6, 2.6, 1]}>
+      <sprite position={[0, -0.1, 0.6]} scale={[0.8, 0.8, 1]}>
         <spriteMaterial
           map={glowTexture}
           color={palette.ember}
@@ -545,13 +567,20 @@ function CapCanvas({ reduced, hidden, entrance, onContextLost, onContextRestored
   useEffect(() => () => bump.dispose(), [bump]);
 
   /* The PMREM environment texture is created imperatively in onCreated, so it
-     is NOT auto-disposed by R3F — dispose it explicitly on unmount. */
+      is NOT auto-disposed by R3F — dispose it explicitly on unmount. The
+      context-loss listeners are likewise detached here so a remount/route
+      change never leaves stale WebGL listeners behind. */
   const envTexture = useRef(null);
+  const contextLossDetach = useRef(null);
   useEffect(
     () => () => {
       if (envTexture.current) {
         envTexture.current.dispose();
         envTexture.current = null;
+      }
+      if (contextLossDetach.current) {
+        contextLossDetach.current();
+        contextLossDetach.current = null;
       }
     },
     [],
@@ -583,12 +612,12 @@ function CapCanvas({ reduced, hidden, entrance, onContextLost, onContextRestored
       <Canvas
         dpr={dpr}
         frameloop={reduced || hidden ? "demand" : "always"}
-        camera={{ position: [0, 0.95, 4.35], fov: 38 }}
+        camera={{ position: [0, 0.52, 2.6], fov: 38 }}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
         style={{ background: "transparent" }}
         onCreated={(state) => {
           envTexture.current = applyStudioEnvironment(state);
-          attachContextLoss(
+          contextLossDetach.current = attachContextLoss(
             state.gl.domElement,
             onContextLost,
             onContextRestored,

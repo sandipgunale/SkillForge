@@ -375,6 +375,28 @@ export function useOffscreen() {
   return { ref, off };
 }
 
+/**
+ * Near-viewport gate: true only while `ref` is within `rootMargin` of the
+ * viewport, false once scrolled away. Used to keep heavy WebGL scenes (the
+ * graduation cap) mounted on exactly one section at a time, so the page never
+ * holds more than one cap renderer simultaneously. Defaults to false so a
+ * section off-screen at load stays unmounted until scrolled near.
+ */
+export function useNearViewport(ref, rootMargin = "250px") {
+  const [near, setNear] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") return undefined;
+    const observer = new IntersectionObserver(
+      ([entry]) => setNear(entry.isIntersecting),
+      { rootMargin },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref, rootMargin]);
+  return near;
+}
+
 /** Adaptive node count + DPR based on screen size / device capability. */
 export function useSceneBudget({ high = 480, low = 240, baseDpr = 1.5 }) {
   const reduced = useReducedMotion();

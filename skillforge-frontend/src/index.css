@@ -227,9 +227,9 @@
     --book-cover-muted: oklch(0.74 0.015 60);
     --book-spine: oklch(0.13 0.02 60);
 
-    /* Graduation cap materials (light theme) — deep blue-ink fabric, gold trim */
-    --cap-board: oklch(0.24 0.018 255);
-    --cap-fabric: oklch(0.33 0.022 255);
+    /* Graduation cap materials (light theme) — neutral charcoal fabric, gold trim */
+    --cap-board: oklch(0.24 0.005 250);
+    --cap-fabric: oklch(0.33 0.007 250);
     --cap-gold: oklch(0.66 0.11 75);
 }
 
@@ -308,9 +308,9 @@
     --book-cover-muted: oklch(0.72 0.01 90);
     --book-spine: oklch(0.1 0.012 260);
 
-    /* Graduation cap materials (dark theme) — deep blue-ink fabric */
-    --cap-board: oklch(0.3 0.02 260);
-    --cap-fabric: oklch(0.4 0.025 260);
+    /* Graduation cap materials (dark theme) — neutral charcoal fabric */
+    --cap-board: oklch(0.3 0.006 250);
+    --cap-fabric: oklch(0.4 0.008 250);
     --cap-gold: oklch(0.78 0.12 78);
 }
 

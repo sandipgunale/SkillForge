@@ -154,6 +154,11 @@ export default function QuizPage() {
 
   const answeredCount = Object.keys(answers).length;
 
+  const total = quiz?.questions?.length ?? 0;
+
+  const difficulty = quiz?.difficulty;
+  const topic = quiz?.topicName ?? quiz?.learningPathTitle;
+
   /*
    * ----------------------------------
    * Navigation
@@ -174,6 +179,35 @@ export default function QuizPage() {
     },
     [setCurrentQuestion],
   );
+
+  /*
+   * ----------------------------------
+   * Keyboard navigation (← / →)
+   * ----------------------------------
+   * Arrow keys move between questions unless the user is typing in a field
+   * (code editor / interview / scenario answers) or a dialog is open.
+   */
+  useEffect(() => {
+    const onKey = (event) => {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+
+      const target = event.target;
+      const tag = target?.tagName;
+
+      if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
+      if (target?.closest?.('[role="dialog"]')) return;
+
+      if (event.key === "ArrowRight") {
+        if (safeIndex < total - 1) next();
+      } else if (safeIndex > 0) {
+        previous();
+      }
+    };
+
+    window.addEventListener("keydown", onKey);
+
+    return () => window.removeEventListener("keydown", onKey);
+  }, [safeIndex, total, next, previous]);
 
   const answer = useCallback(
     (value) => {
@@ -262,19 +296,23 @@ export default function QuizPage() {
         onTimeout={handleTimeout}
       />
 
-      <QuizProgress current={safeIndex} total={quiz.questions.length} />
+      <QuizProgress current={safeIndex} total={total} />
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-3">
-        <div className="space-y-8 lg:col-span-2">
+      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="space-y-8">
           <QuestionCard
             question={question}
+            index={safeIndex}
+            total={total}
+            difficulty={difficulty}
+            topic={topic}
             selectedAnswer={answers[question.id]}
             onAnswer={answer}
           />
 
           <QuizNavigation
             current={safeIndex}
-            total={quiz.questions.length}
+            total={total}
             answered={answeredCount}
             previous={previous}
             next={next}

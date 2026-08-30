@@ -1,8 +1,7 @@
-import { Component, lazy, Suspense, useRef } from "react";
+import { Component, lazy, Suspense } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 
 import { alpha } from "@/lib/design-system";
-import { useMountAnimation } from "@/lib/motion-gsap";
 import ThemeToggle from "@/components/common/ThemeToggle";
 import AuthLogo from "@/features/auth/components/AuthLogo";
 
@@ -28,12 +27,12 @@ class SceneBoundary extends Component {
 
 export default function AuthLayout() {
   const location = useLocation();
-  const panelRef = useRef(null);
 
-  useMountAnimation(panelRef, [location.pathname], {
-    duration: 0.32,
-    ease: "power2.inOut",
-  });
+  /* NOTE: no entrance animation on the card wrapper. The auth form must be
+     visible IMMEDIATELY and is non-negotiable — any gsap.from opacity gate
+     creates a window where the card is invisible (and, interrupted, can
+     strand it invisible). The page chrome (logo, toggle) and the card render
+     on first paint, unconditionally. */
 
   return (
     <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-background">
@@ -103,7 +102,7 @@ export default function AuthLayout() {
       {/* Layer 5 — the floating glass panel */}
       <main className="relative z-10 flex flex-1 items-center justify-center px-4 py-10 sm:py-12">
         <div className="w-full max-w-md">
-          <div key={location.pathname} ref={panelRef}>
+          <div key={location.pathname}>
             <Outlet />
           </div>
         </div>

@@ -1,5 +1,6 @@
 package com.project.skillforgebackend.resource.dto;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.project.skillforgebackend.resource.entity.Resource;
 import jakarta.validation.constraints.*;
 import lombok.*;
@@ -45,5 +46,11 @@ public class CreateResourceRequest {
     @NotNull
     @Builder.Default
     private Set<UUID> tagIds = new HashSet<>();
+
+    private Resource.CourseLevel courseLevel;
+
+    private JsonNode courseOutcomes;
+
+    private JsonNode courseResources;
 
 }

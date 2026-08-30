@@ -5,6 +5,7 @@ import com.project.skillforgebackend.config.properties.GeminiProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 @Component
+@Order(1)
 @Slf4j
 public class GeminiClient implements AiProvider {
 
@@ -249,9 +251,21 @@ public class GeminiClient implements AiProvider {
                         )
                 );
 
-                if (ex.getStatusCode().value() == 429) {
+                int status = ex.getStatusCode().value();
+
+                // 429 (rate limited) and 5xx (transient server overload such as
+                // "high demand") are both retryable: rotate to the next model and
+                // retry with backoff rather than failing the whole request.
+                if (status == 429 || (status >= 500 && status <= 599)) {
 
                     lastHttpError = ex;
+
+                    log.warn(
+                            "Gemini model {} returned HTTP {} (transient); "
+                                    + "rotating to the next model and retrying.",
+                            model,
+                            status
+                    );
 
                     sleepBeforeRetry(
                             extractRetryDelaySeconds(
@@ -309,7 +323,7 @@ public class GeminiClient implements AiProvider {
         if (lastHttpError != null) {
 
             throw new AIServiceException(
-                    "Gemini rate limit exceeded on all models ("
+                    "Gemini was unavailable on all configured models ("
                             + String.join(", ", models)
                             + "). "
                             + extractErrorMessage(

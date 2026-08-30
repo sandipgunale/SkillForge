@@ -55,6 +55,17 @@ export const quizApi = {
   },
 
   /**
+   * Latest quiz the current user generated for a course lesson (or null).
+   */
+  async getQuizByLesson(lessonId) {
+    const { data } = await apiClient.get("/v1/quizzes/by-lesson", {
+      params: { lessonId },
+    });
+
+    return data;
+  },
+
+  /**
    * Quiz History
    */
   async getQuizHistory({

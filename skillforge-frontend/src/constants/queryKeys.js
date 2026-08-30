@@ -47,4 +47,8 @@ export const QUERY_KEYS = {
     "quiz-result",
     quizId,
   ],
+
+  CONTENT_ITEMS: (resourceId) => ["content-items", resourceId],
+
+  CONTENT_ITEM: (contentItemId) => ["content-item", contentItemId],
 };

@@ -1,5 +1,6 @@
 package com.project.skillforgebackend.resource.dto;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -42,5 +43,11 @@ public class ResourceDto {
     private Integer estimatedMinutes;
 
     private Boolean active;
+
+    private String courseLevel;
+
+    private JsonNode courseOutcomes;
+
+    private JsonNode courseResources;
 
 }

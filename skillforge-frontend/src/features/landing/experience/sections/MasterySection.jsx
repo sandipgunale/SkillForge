@@ -7,6 +7,7 @@ import { useMotionScope, usePressPhysics, useReducedMotion } from "@/lib/motion-
 
 import { useInView } from "../useEntrance";
 import CapEmblem from "../cap/CapEmblem";
+import { useNearViewport } from "@/lib/three-engine";
 import { SceneErrorBoundary, T } from "./shared";
 
 /* -------------------------------------------------------------------------- */
@@ -25,6 +26,10 @@ export default function MasterySection() {
   const signatureRef = useRef(null);
   const reduced = useReducedMotion();
   const sceneReady = useInView(rootRef);
+  /* The Mastery cap holds its own WebGL context — only mount it while this
+     section is on screen, so the hero and Mastery cap never coexist as live
+     renderers (the hero's context is disposed once it scrolls away). */
+  const masteryNear = useNearViewport(rootRef);
 
   usePressPhysics(ctaRef);
   usePressPhysics(ctaOutlineRef);
@@ -87,7 +92,7 @@ export default function MasterySection() {
     rootRef,
   );
 
-  const cap = sceneReady ? (
+  const cap = sceneReady && masteryNear ? (
     <SceneErrorBoundary>
       <Suspense fallback={<CapEmblem className="h-full w-full opacity-90" />}>
         <GraduationCapScene className="h-full w-full" />
@@ -119,7 +124,7 @@ export default function MasterySection() {
         <div
           data-cap-return
           aria-hidden="true"
-          className="pointer-events-none absolute top-1/2 left-1/2 w-[82svh] -translate-x-1/2 -translate-y-1/2 sm:w-[62svw] lg:w-[44svw]"
+          className="pointer-events-none absolute top-1/2 left-1/2 w-[70svh] -translate-x-1/2 -translate-y-1/2 sm:w-[54svw] lg:w-[38svw]"
         >
           <div className="relative aspect-square">
             <div data-cap-scene-wrap className="absolute inset-0">{cap}</div>

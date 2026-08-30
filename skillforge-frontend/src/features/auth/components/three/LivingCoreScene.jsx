@@ -37,8 +37,8 @@ import {
 /*  paused frameloop while the tab is hidden, static under reduced motion.    */
 /* -------------------------------------------------------------------------- */
 
-const PULSE_POOL = 14;
-const SPARK_POOL = 10;
+const PULSE_POOL = 10;
+const SPARK_POOL = 7;
 
 function CoreField({ reducedMotion, nodeCount, palette, busy }) {
   const groupRef = useRef(null);
@@ -65,10 +65,10 @@ function CoreField({ reducedMotion, nodeCount, palette, busy }) {
     [data.home, nodeCount],
   );
   const { edgePositions, edgeColors, edgeList } = useMemo(
-    () => buildEdges(data.home, nodeCount, 2.0, 820),
+    () => buildEdges(data.home, nodeCount, 2.0, 560),
     [data.home, nodeCount],
   );
-  const dustPositions = useMemo(() => buildDust(150, {}), []);
+  const dustPositions = useMemo(() => buildDust(100, {}), []);
 
   const [positions] = useState(() => new Float32Array(data.home));
   const [baseColors] = useState(() => new Float32Array(data.colors));
@@ -97,7 +97,6 @@ function CoreField({ reducedMotion, nodeCount, palette, busy }) {
     orbitersRef.current = [
       { sprite: null, angle: Math.random() * Math.PI * 2, radius: 4.9, speed: 0.14, bob: 1.1, phase: 0, scale: 0.22, color: palette.ember },
       { sprite: null, angle: Math.random() * Math.PI * 2, radius: 5.6, speed: -0.1, bob: 0.9, phase: 2.1, scale: 0.16, color: palette.aurora },
-      { sprite: null, angle: Math.random() * Math.PI * 2, radius: 4.3, speed: 0.19, bob: 0.7, phase: 4.2, scale: 0.13, color: palette.ember },
     ];
   }
   const [orbiters] = useState(() => orbitersRef.current);
@@ -358,10 +357,10 @@ function CoreField({ reducedMotion, nodeCount, palette, busy }) {
           <bufferAttribute ref={colorAttrRef} attach="attributes-color" args={[data.colors, 3]} />
         </bufferGeometry>
         <pointsMaterial
-          size={0.058}
+          size={0.05}
           vertexColors
           transparent
-          opacity={0.9}
+          opacity={0.75}
           depthWrite={false}
           sizeAttenuation
           blending={THREE.AdditiveBlending}
@@ -377,7 +376,7 @@ function CoreField({ reducedMotion, nodeCount, palette, busy }) {
         <lineBasicMaterial
           vertexColors
           transparent
-          opacity={0.7}
+          opacity={0.42}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
         />
@@ -386,7 +385,7 @@ function CoreField({ reducedMotion, nodeCount, palette, busy }) {
       {/* Volumetric progress ring — spins, accelerates on submit */}
       <mesh ref={ringRef} rotation={[1.15, 0.4, 0]}>
         <torusGeometry args={[4.4, 0.012, 8, 96]} />
-        <meshBasicMaterial color={palette.aurora} transparent opacity={0.22} depthWrite={false} blending={THREE.AdditiveBlending} />
+        <meshBasicMaterial color={palette.aurora} transparent opacity={0.16} depthWrite={false} blending={THREE.AdditiveBlending} />
       </mesh>
 
       {/* Ring-wave expanding ring */}
@@ -515,8 +514,8 @@ export default function LivingCoreScene({ className }) {
   const handleContextRestored = useCallback(() => setGlLost(false), []);
 
   const { nodeCount, dpr } = useSceneBudget({
-    high: 480,
-    low: 240,
+    high: 300,
+    low: 170,
     baseDpr: 1.5,
   });
 

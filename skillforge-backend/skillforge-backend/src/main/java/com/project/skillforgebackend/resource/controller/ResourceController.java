@@ -1,6 +1,7 @@
 package com.project.skillforgebackend.resource.controller;
 
 import com.project.skillforgebackend.common.response.ApiResponse;
+import com.project.skillforgebackend.resource.dto.CourseCurriculumDto;
 import com.project.skillforgebackend.resource.dto.CreateResourceRequest;
 import com.project.skillforgebackend.resource.dto.ResourceDto;
 import com.project.skillforgebackend.resource.dto.UpdateResourceRequest;
@@ -65,6 +66,18 @@ public class ResourceController {
                 ApiResponse.success(
                         "Resource fetched successfully.",
                         resourceService.getResourceById(resourceId)
+                )
+        );
+    }
+
+    @GetMapping("/{resourceId}/curriculum")
+    public ResponseEntity<ApiResponse<CourseCurriculumDto>> getCurriculum(
+            @PathVariable UUID resourceId
+    ) {
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Curriculum fetched successfully.",
+                        resourceService.getCourseCurriculum(resourceId)
                 )
         );
     }

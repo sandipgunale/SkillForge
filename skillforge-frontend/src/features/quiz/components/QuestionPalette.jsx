@@ -45,14 +45,21 @@ function QuestionPalette({
 
   return (
     <div className="sticky top-24 rounded-2xl border bg-card p-6 shadow-sm">
-      <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold">Questions</h3>
+      <div className="flex items-end justify-between">
+        <div>
+          <h3 className="text-base font-semibold">Questions</h3>
+          <p className="mt-0.5 font-mono text-2xl font-bold tracking-tight tabular-nums text-foreground">
+            {String(currentQuestion + 1).padStart(2, "0")}
+            <span className="px-1.5 text-border">/</span>
+            {String(questions.length).padStart(2, "0")}
+          </p>
+        </div>
         <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground tabular-nums">
-          {answeredCount}/{questions.length}
+          {answeredCount}/{questions.length} answered
         </span>
       </div>
 
-      <div className="mt-5 grid grid-cols-5 gap-2.5">
+      <div className="mt-5 flex gap-2.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:grid sm:grid-cols-5 sm:overflow-visible [&::-webkit-scrollbar]:hidden">
         {questions.map((question, index) => {
           const answered = answers[question.id] !== undefined;
           const current = currentQuestion === index;

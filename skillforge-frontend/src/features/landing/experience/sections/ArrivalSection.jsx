@@ -12,6 +12,7 @@ import {
 
 import useDeferredScene from "../useDeferredScene";
 import CapEmblem from "../cap/CapEmblem";
+import { useNearViewport } from "@/lib/three-engine";
 import { SceneErrorBoundary, T } from "./shared";
 
 /* -------------------------------------------------------------------------- */
@@ -49,6 +50,10 @@ export default function ArrivalSection() {
   const ctaRef = useRef(null);
   const reduced = useReducedMotion();
   const sceneReady = useDeferredScene();
+  /* Keep the hero cap's WebGL context alive only while this section is on
+     screen — once scrolled away it unmounts and its renderer is disposed, so
+     the page never holds the hero and Mastery cap contexts at once. */
+  const heroNear = useNearViewport(rootRef);
 
   usePressPhysics(ctaRef);
 
@@ -229,7 +234,7 @@ export default function ArrivalSection() {
 
   const cap = (
     <div className="aspect-square h-full w-full">
-      {sceneReady ? (
+      {sceneReady && heroNear ? (
         <SceneErrorBoundary>
           <Suspense fallback={<CapEmblem className="h-full w-full opacity-80" />}>
             <div className="h-full w-full">
@@ -251,14 +256,16 @@ export default function ArrivalSection() {
       data-motion="wake"
       className="relative overflow-hidden"
     >
-      {/* The cap — decorative, never blocks input. Desktop: anchored right,
-          below the statement. Mobile: centered behind the copy. */}
+      {/* The cap — decorative, never blocks input. Desktop: anchored right
+          (with breathing room), below the statement. Mobile: centered behind
+          the copy. The slot is sized so the cap reads as an accent, not a
+          dominant element. */}
       <div
         data-cap-slot
         aria-hidden="true"
-        className="pointer-events-none absolute right-0 top-[62svh] z-0 lg:top-[16svh]"
+        className="pointer-events-none absolute right-0 top-[62svh] z-0 lg:top-[16svh] lg:right-[5vw]"
       >
-        <div className="aspect-square w-[104svw] sm:w-[86vw] lg:w-[52vw] xl:w-[58vw]">
+        <div className="aspect-square w-[88svw] sm:w-[64vw] lg:w-[38vw] xl:w-[40vw]">
           {/* Ember halo behind the cap — B2 opens it, the coda pulses it.
               No Tailwind transforms here: the beat tweens own transform. */}
           <div

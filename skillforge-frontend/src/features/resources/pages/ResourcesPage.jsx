@@ -13,6 +13,7 @@ import ResourceGridSkeleton from "../components/loading/ResourceGridSkeleton";
 import { useResources } from "../hooks/useResources";
 import { useTopics } from "../hooks/useTopics";
 import { useResourceFilters } from "../hooks/useResourceFilters";
+import { useUserCourseProgress } from "../hooks/useCourseProgress";
 
 import { useDebounce } from "@/hooks/useDebounce";
 
@@ -31,6 +32,15 @@ export default function ResourcesPage() {
 
   const { data, isLoading, isFetching, isError, refetch } =
     useResources(queryFilters);
+
+  const courseIds = useMemo(
+    () =>
+      (data?.resources ?? [])
+        .filter((resource) => resource.type === "COURSE")
+        .map((resource) => resource.id),
+    [data],
+  );
+  const { data: progressMap } = useUserCourseProgress(courseIds);
 
   const { data: topics = [], isLoading: topicsLoading } = useTopics();
 
@@ -91,7 +101,7 @@ export default function ResourcesPage() {
             description="Try changing your filters."
           />
         ) : (
-          <ResourceGrid resources={resources} />
+          <ResourceGrid resources={resources} progressMap={progressMap} />
         )}
       </section>
 

@@ -1,6 +1,7 @@
 package com.project.skillforgebackend.quiz.entity;
 
 import com.project.skillforgebackend.learningpath.entity.LearningPath;
+import com.project.skillforgebackend.resource.entity.ContentItem;
 import com.project.skillforgebackend.resource.entity.Resource;
 import com.project.skillforgebackend.resource.entity.Topic;
 import com.project.skillforgebackend.user.entity.User;
@@ -38,6 +39,10 @@ public class Quiz {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "learning_path_id")
     private LearningPath learningPath;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lesson_id")
+    private ContentItem lesson;
 
     @Column(name = "week_number")
     private Integer weekNumber;

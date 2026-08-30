@@ -96,9 +96,16 @@ export default function CatalogManager() {
             ))}
           </div>
         ) : topics.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
-            No topics yet.
-          </p>
+          <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed px-4 py-8 text-center">
+            <FolderTree className="size-6 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium">No topics yet</p>
+              <p className="text-xs text-muted-foreground">
+                Create your first learning topic to organize resources.
+              </p>
+            </div>
+            <TopicFormDialog />
+          </div>
         ) : (
           <ul className="space-y-1.5">
             {topics.map((topic) => (
@@ -132,9 +139,16 @@ export default function CatalogManager() {
             ))}
           </div>
         ) : tags.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
-            No tags yet.
-          </p>
+          <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed px-4 py-8 text-center">
+            <Hash className="size-6 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium">No tags yet</p>
+              <p className="text-xs text-muted-foreground">
+                Tags help learners discover related skills.
+              </p>
+            </div>
+            <TopicFormDialog isTag />
+          </div>
         ) : (
           <div className="flex flex-wrap gap-2">
             {tags.map((tag) => (
@@ -144,7 +158,9 @@ export default function CatalogManager() {
         )}
       </section>
 
-      <ResourcesManager />
+      <div className="lg:col-span-2">
+        <ResourcesManager />
+      </div>
     </div>
   );
 }
