@@ -5,6 +5,15 @@ All notable changes to SkillForge are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to four-part versions (MAJOR.MINOR.PATCH.MICRO).
 
+## [0.3.0.1] - 2026-08-30
+
+### Fixed
+- `ResourceServiceTest` constructor updated to match 10-field `@RequiredArgsConstructor` after course-workspace expansion (was causing `mvn verify` failures).
+
+### Added
+- Course learning workspace shipped end-to-end: Course → Sections → Lessons → Content + Materials + Resources, with progress tracking and quiz-to-lesson linking (F2).
+- SecurityConfig method-level authorization hardened; `/api/v1/auth/**` path corrected.
+
 ## [0.3.0.0] - 2026-08-18
 
 Foundry Precision: the landing page rebuilt from scratch as a 14-section

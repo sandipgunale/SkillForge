@@ -5,8 +5,12 @@ import com.project.skillforgebackend.resource.dto.UpdateResourceRequest;
 import com.project.skillforgebackend.resource.entity.Resource;
 import com.project.skillforgebackend.resource.entity.Tag;
 import com.project.skillforgebackend.resource.entity.Topic;
+import com.project.skillforgebackend.resource.mapper.ContentItemMapper;
+import com.project.skillforgebackend.resource.mapper.CourseSectionMapper;
 import com.project.skillforgebackend.resource.mapper.ResourceMapper;
 import com.project.skillforgebackend.resource.mapper.TopicMapper;
+import com.project.skillforgebackend.resource.repository.ContentItemRepository;
+import com.project.skillforgebackend.resource.repository.CourseSectionRepository;
 import com.project.skillforgebackend.resource.repository.ResourceRepository;
 import com.project.skillforgebackend.resource.repository.TagRepository;
 import com.project.skillforgebackend.resource.repository.TopicRepository;
@@ -45,6 +49,18 @@ class ResourceServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private CourseSectionRepository courseSectionRepository;
+
+    @Mock
+    private CourseSectionMapper courseSectionMapper;
+
+    @Mock
+    private ContentItemRepository contentItemRepository;
+
+    @Mock
+    private ContentItemMapper contentItemMapper;
+
     private ResourceService resourceService;
 
     private Resource resource;
@@ -57,7 +73,11 @@ class ResourceServiceTest {
                 new ResourceMapper(),
                 new TopicMapper(),
                 tagRepository,
-                eventPublisher
+                eventPublisher,
+                courseSectionRepository,
+                courseSectionMapper,
+                contentItemRepository,
+                contentItemMapper
         );
 
         Topic topic = Topic.builder()
